@@ -1,6 +1,6 @@
 # Ncx.Core
 
-Everything that knows what an NCX program says and what it means: the model of a program, the word catalog, the lexer and the parser, expressions, the canonical writer, the geometry of arcs, the records of the machine model, and the virtual machine (architecture 3 to 6; D107). It depends on nothing but the .NET base library and reads no file: a caller hands it text and a loaded machine.
+Everything that knows what an NCX program says and what it means: the model of a program, the word catalog, the lexer and the parser, expressions, the canonical writer, the geometry of arcs, the records of the machine model, the expander, and the virtual machine with its validation and its events (architecture 3 to 6; D107). It depends on nothing but the .NET base library and reads no file: a caller hands it text and a loaded machine.
 
 ## Open first
 
@@ -19,10 +19,10 @@ Everything that knows what an NCX program says and what it means: the model of a
 | `Writing/` | the canonical writer, and the builder the readers will use | language 2 rule 7, 5 rules 6 and 7; D90 to D93 |
 | `Geometry/` | `Vec3`, planes, angles, arcs, in `double` | virtual machine 3.2; architecture 4.2; D62, D84 |
 | `Machine/` | the records a machine file is loaded into, the cycle catalog, the job manifest | machine-config 1 to 9; architecture 6; D107 |
-| `VirtualMachine/` | the virtual machine, the state of a channel (`VirtualMachine/State/`), the word handlers (`VirtualMachine/Handlers/`) | virtual machine 1 to 4; architecture 5 |
+| `VirtualMachine/` | the virtual machine, the state of a channel (`VirtualMachine/State/`), the word handlers (`VirtualMachine/Handlers/`), the validation list (`VirtualMachine/Validation/`), the events and `IVmListener` (`VirtualMachine/Events/`) | virtual machine 1 to 5, 7; architecture 5; D99, D106 |
 | `Expander/` | the expander between parser and virtual machine: the expansion rules of the machine, the program rewriters (`IProgramRewriter`, `RewriteResult`, `RewriteContext`), `limits = "clamp"` | virtual machine 1, 3.10; language 4.15; machine-config 5a; architecture 5.5; D63, D64, D100, D106 |
 
-The events of P1-05 and, with them, the plugin interface `IVmListener` join this project (D106).
+Two of the four plugin interfaces live here with the code that calls them (D106): `IProgramRewriter` in `Expander/`, `IVmListener` in `VirtualMachine/Events/`.
 
 ## Never here
 

@@ -1,3 +1,3 @@
 # Repository tests
 
-Rules of the repository that every build keeps: `ReferenceGraphTests` reads the project files and asserts the dependency diagram of architecture 3 and the package rule of code-guidelines 9; `FixtureTests` asserts that the embedded examples equal `docs/spec/examples` byte for byte (`../../README.md`, Fixtures).
+Rules of the repository that every build keeps: `ReferenceGraphTests` reads the project files and asserts the dependency diagram of architecture 3 and the package rule of code-guidelines 9; `FixtureTests` asserts that the embedded examples equal `docs/spec/examples` byte for byte (`../../README.md`, Fixtures); `ReadingTheCodeTests` asserts that every file and folder the guided tour `../../../docs/reading-the-code.md` names exists, and that its route runs from `Program.cs` through `format` and `check` into the virtual machine (P0-07; the conventions are in the last section of the tour).

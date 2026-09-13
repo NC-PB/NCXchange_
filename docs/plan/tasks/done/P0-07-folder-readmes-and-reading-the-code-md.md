@@ -56,3 +56,36 @@ Remains for part two, at the end of phase 1 (D78 allows no later date):
 - The task file stays in `inbox/` until then (phase 0, exit checklist).
 
 Gate: `dotnet build -warnaserror` with 0 warnings; `dotnet test` with 2268 tests passing (1329 in `Ncx.Core.Tests`, 897 in `Ncx.Config.Tests`, 40 in `Ncx.Acceptance`); `dotnet format --verify-no-changes` clean.
+
+Claude (agent), 2026-09-13, part two (the tour; branch `p0-07b-tour`). Built on `main` at 0c81e4e (P1-07), with phase 1 (P1-01 to P1-07) and P3-01 merged, and written from the code as it is there. Decision applied: D78 (the tour at the end of phase 1, not later). No production code changed, no shared file changed, the specification is unchanged, and no decision was needed.
+
+- Files:
+  - `docs/reading-the-code.md`, the tour, 98 paths:
+    - build, run and test; the command line (`Program.cs`, the diagnostics, the exit codes);
+    - one `ncx format` run: `FormatCommand`, the lexer, the word lexer, the catalog, the block rules, the structure pass and the writer, following line 10 of `2.5D_FRAESEN.ncx`;
+    - one `ncx check` run: `CheckCommand`, the pipeline, the default machine, the expander, the STATIC walk and the seven steps of `Execute`, following the same block, and a small file of the reader's own to its three diagnostics;
+    - the same run with a listener (`trace`); where a change goes, by the three levels; what phase 3 adds; with each part the tests to read beside it.
+  - `docs/README.md`: the three levels of extension of code-guidelines 10.1 as a section of the front page; the tour in the reading order and in the layout table.
+  - `tests/Ncx.Acceptance/Repository/ReadingTheCodeTests.cs`: every path the tour names exists; the route runs from `Program.cs` through `FormatCommand.cs` and `CheckCommand.cs` into `VirtualMachine.cs`, by the order of first mention; two tests of the rule by which a path counts as named.
+  - The READMEs of part one brought up to date with what landed since (P1-03 to P1-07, P3-01):
+    - `src/README.md`: the tour; the reader framework and the four commands in the project table; in "Looking for" the seven steps, the validation list, the events, the expander, the pipeline, `ReaderBase` and the `RDR` codes.
+    - `src/Ncx.Core/README.md`: the expander, the validation and the events; the two plugin interfaces of Core, where a sentence still announced the events of P1-05.
+    - `src/Ncx.Core/VirtualMachine/README.md`: one sentence, the events of step 7 are in `Events/`.
+    - `tests/Ncx.Core.Tests/README.md` and its `VirtualMachine/README.md`: the event tests.
+    - `tests/Ncx.Acceptance/README.md`, its `Repository/` and `Examples/`: the tour test, `ExampleEventTests`.
+  - `tests/Ncx.Core.Tests/Expander/README.md`: new; P1-06 added the folder without one (code-guidelines 10.3: every folder).
+- Decided while doing it (conventions, no decision of the log):
+  - The tour writes every path from the repository root, not from `docs/` as `docs/README.md` does, because it walks through `src/` and `tests/`. A class or a method is named without `.cs`.
+  - What counts as a named path for the test: every word in backticks, and every word of a block marked `sh` (a command line), that holds a slash or ends like a file of the repository. Blocks marked `text` (program text, output, a file of the reader's own) and the Mermaid picture name no file. The last section of the tour says so for whoever changes it, and that a task that renames a file the tour names updates the tour in the same commit.
+  - The `check` walk-through uses a small file the reader saves himself, because no file of the repository gives an ERROR. Every output the tour quotes was produced by running the command on this branch.
+  - The paths of the READMEs are not made a test. The READMEs name folders to come by design (`Fanuc/` in the readers and compilers), name files by their bare name inside a folder's list, and several tasks of this wave write READMEs at the same time. They were checked by a script outside the repository, as in part one: every path a README names exists, relative to the README or from the root, except those names.
+  - Left to the owner of the folder (P1-06 in this wave): `src/Ncx.Core/Expander/README.md` names `Model/GeneratedBlock.cs` where `../Model/GeneratedBlock.cs` is meant.
+
+Done when:
+
+- "A reader who has never seen the repository can name the file that parses a word after ten minutes with the READMEs": holds as far as documents can show it; it was not tried with a person. `src/README.md` names `src/Ncx.Core/Parsing/WordLexer.cs` in its "Looking for" table, and the tour calls it the file that parses a word (section 2.2).
+- "The tour is checked against the code in the acceptance test project by a test that asserts the mentioned files exist": holds. `ReadingTheCodeTests.Tour_EveryNamedPath_Exists` checks the 98 paths, and the route test stands beside it.
+
+Every criterion holds; the task file moves to `done/`. Left to later tasks: P3-07 extends the tour to `convert` and `compile`, and P7-03 checks the tour and the READMEs once more for the release.
+
+Gate: `dotnet build -warnaserror` with 0 warnings; `dotnet test` with 2870 tests passing (1773 in `Ncx.Core.Tests`, 897 in `Ncx.Config.Tests`, 60 in `Ncx.Readers.Tests`, 1 in `Ncx.Compilers.Tests`, 139 in `Ncx.Acceptance`, 4 of them new); `dotnet format --verify-no-changes` clean.

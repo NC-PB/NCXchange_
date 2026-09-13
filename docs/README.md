@@ -2,7 +2,19 @@
 
 NCXchange is a controller-independent NC program format (NCX) with a virtual machine, readers for Fanuc, Heidenhain and Siemens programs, compilers driven by TOML machine configurations, analytics and plugins, written in C# on .NET. This folder is the complete documentation of version 1.0 of the design: everything the engineer needs is here, and nothing here refers to anything outside the repository except the official controller and machine-builder manuals, which are named by title.
 
-Start with `HANDOFF.md`. Then, in this order: `spec/ncx-language.md` (what a program says), `spec/ncx-virtual-machine.md` (what it means), `spec/machine-config.md` (what the machine adds), `spec/controller-mapping.md` (how the controllers say it), `architecture/architecture.md` (how the code is cut), `architecture/code-guidelines.md` (how the code is written), `plan/phases.md` and `plan/tasks/` (what to do first), then `implementation/` (how the engineer builds it, and what has to be settled before the first code).
+Start with `HANDOFF.md`. Then, in this order: `spec/ncx-language.md` (what a program says), `spec/ncx-virtual-machine.md` (what it means), `spec/machine-config.md` (what the machine adds), `spec/controller-mapping.md` (how the controllers say it), `architecture/architecture.md` (how the code is cut), `architecture/code-guidelines.md` (how the code is written), `plan/phases.md` and `plan/tasks/` (what to do first), then `implementation/` (how the engineer builds it, and what has to be settled before the first code). The code is entered through `reading-the-code.md`, the guided tour from the command line into the virtual machine.
+
+## Three levels of extension
+
+A change to what NCXchange does is made at the lowest of three levels that can make it (code-guidelines 10.1):
+
+| Level | Who | What | Where |
+|---|---|---|---|
+| Configuration | every user | a new machine, changed M codes, a coolant that needs a spindle stop, a retract before the tool change, a cycle catalog entry | TOML files: the machine file, the cycle catalog, the expansion rules (`spec/machine-config.md`, section 5a; the files of `../machines/` and `../cycles/`); no compiler, no build |
+| Plugin | an NC programmer with a little C# | a rule the configuration cannot express: a limit that depends on the tool, an inserted sequence that depends on two states, a changed output layout | one C# file from the plugin template (`architecture/code-guidelines.md`, section 11), built with one command and dropped into `plugins/`; the template, the plugin loader and the `ncx plugin` commands come in phase 7 |
+| Source | an NC programmer who wants more, or a developer | a new controller family, a new NCX word, a new analytic | one folder per reader or compiler, one catalog entry plus one handler per word, one class per analytic; `reading-the-code.md` is the way in |
+
+Before a feature is implemented as code, it is checked whether a TOML rule covers it; before it goes into the source, it is checked whether a plugin covers it.
 
 ## Layout
 
@@ -18,6 +30,7 @@ Start with `HANDOFF.md`. Then, in this order: `spec/ncx-language.md` (what a pro
 | `spec/examples/machines/*.toml` | Five machine configuration sketches (Nakamura, Doosan, Mori Seiki on Fanuc; DMG and the generic 840D sl mill-turn `millturn1.toml` of `MILLTURN_TRANSFER.ncx` on Siemens, D104) |
 | `architecture/architecture.md` | Solution layout, core model, virtual machine, configuration, readers, compilers, analytics, plugins, CLI, tests, build order; Mermaid diagrams |
 | `architecture/code-guidelines.md` | The four rules, the comment rule, C# conventions, SOLID with KISS, patterns, diagnostics, types, tests, repository settings, code for non-programmers, the plugin template, definition of done |
+| `reading-the-code.md` | The guided tour through the code: from `Program.cs` through one `ncx format` run and one `ncx check` run into the virtual machine, file by file, with the tests to read beside it |
 | `controllers/` | The controller knowledge base: differences, Fanuc, Heidenhain, Siemens, machine builders, sample corpus |
 | `decisions/decisions.md` | Every decision by number, as the documents cite them |
 | `decisions/rationale.md` | The questions, recommendations and answers behind the decisions |
