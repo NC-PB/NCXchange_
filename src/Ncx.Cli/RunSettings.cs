@@ -1,0 +1,37 @@
+using Ncx.Core.VirtualMachine;
+
+namespace Ncx.Cli;
+
+/// <summary>
+/// What the command line asks of one run of check, trace or annotate: the file, the machine and the options the three
+/// commands share (architecture 10; D37, D53, D97, D103).
+/// </summary>
+internal sealed record RunSettings
+{
+    /// <summary>
+    /// The NCX file as the command line names it; the diagnostics carry this name (D98).
+    /// </summary>
+    public required string File { get; init; }
+
+    /// <summary>
+    /// --machine: the path of the machine file; null for the built-in default machine of D103.
+    /// </summary>
+    public string? MachineFile { get; init; }
+
+    /// <summary>
+    /// --strict: a WARNING sets the exit code 1 (D97).
+    /// </summary>
+    public bool Strict { get; init; }
+
+    /// <summary>
+    /// --skip-blocks: the run option skip_blocks, which SKIP blocks the virtual machine skips; none by default, every
+    /// SKIP block runs (D53).
+    /// </summary>
+    public SkipBlocks SkipBlocks { get; init; } = SkipBlocks.None;
+
+    /// <summary>
+    /// --expand-cycles: the run option ExpandCycles, a CYCLE_CALL raised as its individual MOTION events (virtual
+    /// machine 3.3, D37).
+    /// </summary>
+    public bool ExpandCycles { get; init; }
+}

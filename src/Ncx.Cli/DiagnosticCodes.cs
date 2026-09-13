@@ -11,6 +11,7 @@ namespace Ncx.Cli;
 // one, and takes its codes from a range of its own:
 //
 //   CLI001-CLI099  the command line, reading the input, writing the output, ncx format (P0-06)
+//   CLI100-CLI199  ncx check, trace and annotate: their pipeline and the machine file of --machine (P1-07)
 
 /// <summary>
 /// The diagnostic codes of Ncx.Cli: one constant per rule, named after the rule, the area prefix CLI and three digits

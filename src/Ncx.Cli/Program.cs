@@ -8,7 +8,8 @@ namespace Ncx.Cli;
 
 /// <summary>
 /// The composition root of ncx (code-guidelines 5): the root command with its commands, built by hand, run once. The
-/// commands of architecture 10 join as their tasks arrive; ncx format is the first (phase 0, P0-06).
+/// commands of architecture 10 join as their tasks arrive: ncx format (phase 0, P0-06), then check, trace and annotate
+/// (phase 1, P1-07).
 /// </summary>
 internal static class Program
 {
@@ -39,6 +40,9 @@ internal static class Program
         var root = new RootCommand("ncx reads, checks, formats and compiles NCX programs (architecture 10).")
         {
             FormatCommand.Create(output, error),
+            CheckCommand.Create(error),
+            TraceCommand.Create(output, error),
+            AnnotateCommand.Create(output, error),
         };
 
         // A usage error is reported as a diagnostic and decides exit code 2 before the run starts (D97, D98;

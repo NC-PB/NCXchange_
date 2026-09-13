@@ -1,0 +1,65 @@
+channel  block  variable          old      new
+1        5      UNITS                      MM
+1        6      ORIGIN            0        1
+1        10     TOOL:H1           0        1
+1        10     OFFSET:LEN:H1     0        1
+1        10     OFFSET:RAD:H1     0        1
+1        10     RPM:S2            0        1592
+1        12     SPINDLE:S2        OFF      CW
+1        15     X                          50.4
+1        15     Y                          -7.025
+1        16     Z                          2
+1        17     COOLANT:STANDARD  OFF      ON
+1        18     Z                 2        -8
+1        19     Z                 -8       -10
+1        19     F                          2387
+1        20     Y                 -7.025   2
+1        20     COMP              OFF      LEFT
+1        21     X                 50.4     7
+1        22     X                 7        2
+1        22     Y                 2        7
+1        23     Y                 7        93
+1        24     X                 2        7
+1        24     Y                 93       98
+1        25     X                 7        93
+1        26     X                 93       98
+1        26     Y                 98       93
+1        27     Y                 93       7
+1        28     X                 98       93
+1        28     Y                 7        2
+1        29     X                 93       49.6
+1        30     Y                 2        -7.025
+1        30     COMP              LEFT     OFF
+1        31     Z                 -10      2
+1        34     FEED_MODE         PER_MIN  PER_REV
+1        35     X                 49.6     51.836
+1        35     Y                 -7.025   62.846
+1        36     Z                 2        -8
+1        37     Z                 -8       -10
+1        37     F                 2387     1.5
+1        38     X                 51.836   56.253
+1        38     Y                 62.846   65.241
+1        38     COMP              OFF      LEFT
+1        39     X                 56.253   55.243
+1        39     Y                 65.241   67.104
+1        40     X                 55.243   50.534
+1        40     Y                 67.104   69.993
+1        41     X                 50.534   70
+1        41     Y                 69.993   50
+1        42     X                 70       49.466
+1        42     Y                 50       69.993
+1        43     X                 49.466   44.757
+1        43     Y                 69.993   67.104
+1        44     X                 44.757   43.747
+1        44     Y                 67.104   65.241
+1        45     X                 43.747   48.164
+1        45     Y                 65.241   62.846
+1        45     COMP              LEFT     OFF
+1        46     Z                 -10      2
+1        47     COOLANT:STANDARD  ON       OFF
+1        48     Z                 2        0 (MACHINE)
+1        49     X                 48.164   0 (MACHINE)
+1        49     Y                 62.846   0 (MACHINE)
+1        50     SPINDLE:S2        CW       OFF
+1        51     F                 1.5
+1        51     FEED_MODE         PER_REV  PER_MIN

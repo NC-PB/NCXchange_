@@ -1063,13 +1063,14 @@ The API is shaped for NC programmers with little C# (code-guidelines.md, section
 | `ncx convert <file> --machine <toml>` | controller file | reader, NcxWriter, STATIC check | `.ncx` in the working directory, diagnostics |
 | `ncx compile <file.ncx> --machine <toml>` | NCX | parser, VM STATIC, compiler | NC file under `out/<machine>/`, diagnostics |
 | `ncx compile --job <job.toml>` | job manifest | parser per channel, job compiler | one NC file per channel |
-| `ncx format <file.ncx> [--check]` | NCX | parser, NcxWriter | canonical text to stdout or `--output`; with `--check` no output, exit 1 on a difference |
-| `ncx check <file.ncx> [--machine <toml>]` | NCX | parser, VM STATIC | diagnostics only |
+| `ncx format <file.ncx> [--check] [--output <file>]` | NCX | parser, NcxWriter | canonical text to stdout or `--output`; with `--check` no output, exit 1 on a difference |
+| `ncx check <file.ncx> [--machine <toml>] [--skip-blocks none\|all\|1,3] [--expand-cycles]` | NCX | parser, expander, VM STATIC | diagnostics only |
 | `ncx analyze <file.ncx or job> [--machine <toml>] [--vars file] [--from n --to m]` | NCX | parser, VM INTERPRETED, analytics over the block range | text tables |
-| `ncx trace`, `ncx annotate` `[--machine <toml>]` | NCX | parser, VM | history outputs |
+| `ncx trace <file.ncx> [--format text\|csv]` with the options of `check` | NCX | parser, expander, VM STATIC | one row per changed state variable per executed block: channel, block, variable, old, new (VM 6), in aligned text or CSV |
+| `ncx annotate <file.ncx>` with the options of `check` | NCX | parser, expander, VM STATIC | the program with the previous values appended to each block's comment (VM 6) |
 | `ncx plugin new <name>`, `build`, `check`, `test` | template | copies the plugin template, builds it into `plugins/`, registers it in `ncx.toml`, loads and lists a DLL's interfaces | a runnable plugin without knowing `dotnet new` |
 
-Every command accepts `--strict`, under which a WARNING sets the exit code 1 (D97).
+Every command accepts `--strict`, under which a WARNING sets the exit code 1 (D97). `check`, `trace` and `annotate` share `--machine` (a machine file by path; without it the built-in default machine of D103), `--skip-blocks` (the run option `skip_blocks`: every `SKIP` block runs by default, `all` skips them all, `1,3` skips those of the switches that are on, D53) and `--expand-cycles` (the VM option `ExpandCycles`, D37). This table is the one list of the commands and options of `ncx`: a task that adds a command or an option adds it here in the same commit (F28).
 
 `ncx.toml` in the working directory names the machine file that `--machine` defaults to, the machine and cycle folders, the output folder and the plugin assemblies. Without `--machine` and without a machine named in `ncx.toml`, `check`, `analyze`, `trace` and `annotate` run against the built-in default machine of D103; `compile` and `convert` keep requiring a machine file from one of the two (D77, D103). Exit code 0 when the run produced no ERROR; 1 on at least one ERROR, on a WARNING under `--strict`, or when `format --check` finds a difference; 2 for a usage error, an unreadable input or a missing machine file where one is required (D97). Code 2 is decided before the run starts and takes precedence; a run that has started ends with 0 or 1.
 

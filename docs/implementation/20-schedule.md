@@ -23,7 +23,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 13 | ✓ P1-04 Validation rules and diagnostics | 11 | |
 | 14 | ✓ P1-05 Events with Before and After | 11 | |
 | 15 | ✓ P1-06 Expander and generated blocks | 11 | |
-| 16 | P1-07 `ncx check`, `ncx trace`, `ncx annotate` | 11 | closes M2; then the `reading-the-code.md` tour of P0-07 |
+| 16 | ✓ P1-07 `ncx check`, `ncx trace`, `ncx annotate` | 11 | closes M2; then the `reading-the-code.md` tour of P0-07 |
 | 17 | ✓ P2-03 Cycle catalogs | 12 | |
 | 18 | P2-04 Example machines and `machines/` folder | 12 | closes M3; the second reading of "examples check clean" |
 | 19 | ✓ P3-01 Reader framework and source-side state | 13 | ask for the corpus now |

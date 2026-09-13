@@ -7,16 +7,14 @@ using Ncx.Core.Writing;
 namespace Ncx.Cli.Commands;
 
 /// <summary>
-/// ncx format &lt;file&gt; [--check] [--output &lt;file&gt;]: reads an NCX file and writes it in canonical form. It is
-/// the parser and the canonical writer and nothing else: no machine file, no virtual machine, no expander, so a bare
-/// TOOL stays bare (D91; architecture 10). Exit code 0 without an ERROR, 1 with one or when --check finds a difference,
-/// 2 for a usage error or an input that cannot be read (D97); the diagnostics go to the standard error (D98).
+/// ncx format &lt;file&gt; [--check] [--output &lt;file&gt;] [--strict]: reads an NCX file and writes it in canonical
+/// form. It is the parser and the canonical writer and nothing else: no machine file, no virtual machine, no expander,
+/// so a bare TOOL stays bare (D91; architecture 10). Exit code 0 without an ERROR, 1 with one, with a WARNING under
+/// --strict or when --check finds a difference, 2 for a usage error or an input that cannot be read (D97); the
+/// diagnostics go to the standard error (D98).
 /// </summary>
 internal static class FormatCommand
 {
-    // The byte order mark as it stands at the start of a decoded text.
-    private const string ByteOrderMark = "﻿";
-
     // A diagnostic about a whole file stands on its first line, as the loaders of Ncx.Config report one.
     private const int FileLine = 1;
 
@@ -41,6 +39,9 @@ internal static class FormatCommand
             Description = "Write the canonical text into this file instead of the standard output.",
             HelpName = "file",
         };
+
+        // --strict, which every command accepts (architecture 10, D97).
+        var strictOption = RunOptions.StrictOption();
         var command = new Command(
             "format",
             "Write an NCX file in canonical form: the words in canonical order, the comment in column 57. No machine "
@@ -49,6 +50,7 @@ internal static class FormatCommand
             fileArgument,
             checkOption,
             outputOption,
+            strictOption,
         };
 
         // --check writes no output, so it takes no --output (architecture 10).
@@ -64,6 +66,7 @@ internal static class FormatCommand
             parseResult.GetRequiredValue(fileArgument),
             parseResult.GetValue(checkOption),
             parseResult.GetValue(outputOption),
+            parseResult.GetValue(strictOption),
             output,
             error));
         return command;
@@ -75,21 +78,28 @@ internal static class FormatCommand
     /// <param name="file">The NCX file, as the command line names it; the diagnostics carry this name (D98).</param>
     /// <param name="check">Write nothing and compare the canonical text with the file.</param>
     /// <param name="outputFile">The file for the canonical text; null for the standard output.</param>
+    /// <param name="strict">--strict: a WARNING sets the exit code 1 (D97).</param>
     /// <param name="output">The standard output.</param>
     /// <param name="error">The standard error.</param>
     /// <returns>The exit code (D97).</returns>
-    internal static int Run(string file, bool check, string? outputFile, TextWriter output, TextWriter error)
+    internal static int Run(string file, bool check, string? outputFile, bool strict, TextWriter output,
+        TextWriter error)
     {
-        string? text = ReadInput(file, error);
+        var readDiagnostics = new Diagnostics(file);
+        string? text = InputFile.Read(file, DiagnosticCodes.InputUnreadable, "The file", "language 3, Encoding",
+            readDiagnostics);
         if (text is null)
         {
+            error.Write(readDiagnostics.ToText());
             return ExitCodes.NotStarted;
         }
 
         // TODO(question): language 3 says UTF-8 and does not say whether a byte order mark belongs to an NCX file. It is
         // no part of the text the parser reads and goes back in front of the canonical text as it came, so that format
         // changes nothing it is not asked to, until that is answered.
-        string byteOrderMark = text.StartsWith(ByteOrderMark, StringComparison.Ordinal) ? ByteOrderMark : "";
+        string byteOrderMark = text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
+            ? InputFile.ByteOrderMark
+            : "";
         NcxProgram program = Parser.Parse(text.Substring(byteOrderMark.Length), file, new ParserOptions());
         Diagnostics diagnostics = program.Diagnostics;
 
@@ -116,28 +126,9 @@ internal static class FormatCommand
             output.Write(canonical);
         }
 
-        // A WARNING is reported and the run continues (D97; --strict arrives with P1-07).
+        // A WARNING is reported and the run continues; under --strict it sets the exit code 1 (D97).
         error.Write(diagnostics.ToText());
-        return differs || diagnostics.HasErrors ? ExitCodes.Error : ExitCodes.NoError;
-    }
-
-    // An input that cannot be read, or whose bytes are no UTF-8 text, decides exit code 2 before the run starts; the
-    // I/O error is reported as a diagnostic with the file name (D97; language 3, Encoding; code-guidelines 6). A path
-    // the file system refuses and bytes that are no UTF-8 raise an ArgumentException.
-    private static string? ReadInput(string file, TextWriter error)
-    {
-        try
-        {
-            return s_utf8.GetString(File.ReadAllBytes(file));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            var diagnostics = new Diagnostics(file);
-            diagnostics.Error(FileLine, DiagnosticCodes.InputUnreadable,
-                $"The file cannot be read as UTF-8 text: {exception.Message.TrimEnd('.')} (language 3, Encoding).");
-            error.Write(diagnostics.ToText());
-            return null;
-        }
+        return differs ? ExitCodes.Error : ExitCodes.OfRun(diagnostics, strict);
     }
 
     // --check writes nothing and exits with 1 when the canonical text differs from the file (D97, architecture 10). The
