@@ -1,7 +1,7 @@
 # NCX machine configuration sketch: Doosan Puma 2600SY, Fanuc control, single channel, main and sub spindle, Y axis, milling spindle.
 # Written from "M-FUNKTIONEN 2600SY" (the Doosan dealer sheet; the Puma 2600/M II operating manual has no programming content). Schema draft 4. Not verified on the machine.
 # The point of this file: one channel with two work spindles, spindle selection by a P suffix on the M code, and cycle behaviour chosen by mode M codes.
-# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+# D100 data (P2-04): home and limits in machine coordinates, rapid, max_feed and acceleration on every [[axis]], rpm_min, rpm_max and accel_time on every spindle table, the [positions] and [dynamics] tables. The numbers are plausible for a machine of this class and not verified on the machine.
 
 [machine]
 name = "Doosan Puma 2600SY"
@@ -51,6 +51,9 @@ type = "tool_holder"
 spindle = "S3"
 magazine = false
 
+# D100: home and limits are machine coordinates (the G53 frame); the reference point is the machine zero of every linear axis. The limits of a C axis are its display range, not a travel limit.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+
 [[axis]]
 id = "X1"
 ncx = "X"
@@ -58,6 +61,11 @@ letter = "X"
 programming = "diameter"           # D60: X words are diameters on this machine
 incremental_letter = "U"
 kind = "linear"
+limits = [-520, 0]                 # mm, machine coordinates; X = 0 is the reference point at the top of the travel
+rapid = 30000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 0                           # reference point 1 (G28 U0)
 
 [[axis]]
 id = "Z1"
@@ -65,6 +73,11 @@ ncx = "Z"
 letter = "Z"
 incremental_letter = "W"
 kind = "linear"
+limits = [-750, 0]                 # mm; Z = 0 is the reference point away from the main spindle
+rapid = 36000
+max_feed = 10000
+acceleration = 3000
+home = 0
 
 [[axis]]
 id = "Y1"
@@ -72,6 +85,11 @@ ncx = "Y"
 letter = "Y"
 incremental_letter = "V"
 kind = "linear"
+limits = [-52.5, 52.5]             # mm; the Y stroke of the turret
+rapid = 10000
+max_feed = 5000
+acceleration = 1500
+home = 0
 
 [[axis]]
 id = "C1"
@@ -80,6 +98,11 @@ letter = "C"
 incremental_letter = "H"
 kind = "rotary"
 owner = "S1"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000                      # deg/min
+max_feed = 18000                   # deg/min
+acceleration = 2000                # deg/s^2
+home = 0                           # the spindle zero mark
 
 [[axis]]
 id = "B1"
@@ -87,6 +110,20 @@ ncx = "B"
 letter = "B"
 kind = "linear"                    # sub spindle slide
 owner = "S2"
+limits = [-800, 0]                 # mm; B = 0 is the reference point with the slide retracted
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 0, Z = 0 }     # the turret indexes anywhere; this is the clearance position a rule may move to before a change
+program_end = { X = 0, Z = 0 }     # the reference point
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.004                 # seconds per block
+path_mode = "continuous"           # G64 cutting mode (fanuc 3, group 13)
+corner_speed = 1000                # mm/min carried through a corner
 
 [tool_change]
 change = "T{tool:02}{offset:02}"
@@ -102,17 +139,26 @@ RPM = "S{rpm}"
 VC = "G96 S{value}"
 CSS_OFF = "G97"
 RPM_MAX = "G50 S{value}"
+rpm_min = 35                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 3500
+accel_time = 3.5                   # seconds from stop to rpm_max, for the runtime estimate
 
 [spindle.SUB]                      # after M134 the right spindle is the turning spindle addressed by P11
 CW = "M03 P11"
 CCW = "M04 P11"
 OFF = "M05 P11"
 ORIENT = "M119"
+rpm_min = 50
+rpm_max = 6000
+accel_time = 2.0
 
 [spindle.TOOL]
 CW = "M03 P12"
 CCW = "M04 P12"
 OFF = "M05 P12"
+rpm_min = 50
+rpm_max = 5000
+accel_time = 1.0
 
 [spindle_mode.MAIN]
 AXIS = "M35"

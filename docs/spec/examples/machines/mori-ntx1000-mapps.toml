@@ -1,7 +1,7 @@
 # NCX machine configuration sketch: Mori Seiki NTX1000 SZM (Fanuc 31i under MAPPS), two channels (HEAD 1 tool spindle with B axis and ATC, HEAD 2 turret 2), spindle 1 and spindle 2 (sub spindle on the A axis).
 # Written from "Programmieranleitung NTX1000SZM" (G and M function lists, T function, workpiece transfer chapter) and the ESPRIT postprocessor manual. Schema draft 4. Not verified on the machine.
 # The point of this file: the two-step ATC of the tool spindle maps exactly onto PRELOAD (the T word) and TOOL (G361), the spindle synchronization codes must be written in both channel programs, the sub spindle moves on a named linear axis A, and turret 2 tools use offsets +30 for spindle 2.
-# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+# D100 data (P2-04): home and limits in machine coordinates, rapid, max_feed and acceleration on every [[axis]], rpm_min, rpm_max and accel_time on every spindle table, the [positions] and [dynamics] tables. The numbers are plausible for a machine of this class and not verified on the machine.
 
 [machine]
 name = "Mori Seiki NTX1000 SZM"
@@ -59,6 +59,9 @@ type = "tool_holder"
 magazine = false
 channel = 2
 
+# D100: home and limits are machine coordinates (the G53 frame); the reference point is the machine zero of every linear axis. The limits of a C axis are its display range, not a travel limit; those of the B swivel are travel limits.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+
 [[axis]]
 id = "X1"
 ncx = "X"
@@ -66,6 +69,11 @@ letter = "X"
 programming = "diameter"           # D60: X words are diameters on this machine
 incremental_letter = "U"
 kind = "linear"
+limits = [-910, 0]                 # mm, machine coordinates; X = 0 is the reference point at the top of the travel
+rapid = 40000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 0                           # reference point 1 (G28 U0)
 
 [[axis]]
 id = "Z1"
@@ -73,6 +81,11 @@ ncx = "Z"
 letter = "Z"
 incremental_letter = "W"
 kind = "linear"
+limits = [-800, 0]                 # mm; Z = 0 is the reference point away from spindle 1
+rapid = 40000
+max_feed = 10000
+acceleration = 3000
+home = 0
 
 [[axis]]
 id = "Y1"
@@ -80,12 +93,22 @@ ncx = "Y"
 letter = "Y"
 incremental_letter = "V"
 kind = "linear"
+limits = [-80, 80]                 # mm; the Y stroke of HEAD 1
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0                           # G28 V0
 
 [[axis]]
 id = "B1"
 ncx = "B"
 letter = "B"
 kind = "rotary"                    # tool spindle swivel; indexed by G361 B after a tool change, contouring under M594
+limits = [-120, 120]               # degrees; the swivel range, a travel limit
+rapid = 36000                      # deg/min
+max_feed = 18000                   # deg/min
+acceleration = 1500                # deg/s^2
+home = 0
 
 [[axis]]
 id = "C1"
@@ -94,6 +117,11 @@ letter = "C"
 incremental_letter = "H"
 kind = "rotary"
 owner = "S1"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0                           # the spindle zero mark
 
 [[axis]]
 id = "C2"
@@ -101,6 +129,11 @@ ncx = "C2"
 letter = "C"                       # same address, valid after M304 selects spindle 2
 kind = "rotary"
 owner = "S2"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0
 
 [[axis]]
 id = "A1"
@@ -108,6 +141,20 @@ ncx = "A"
 letter = "A"
 kind = "linear"                    # headstock 2 (sub spindle) slide; G330 returns it to its reference point
 owner = "S2"
+limits = [-800, 0]                 # mm; A = 0 is the reference point G330 returns to
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 0, Y = 0, Z = 0 }   # HEAD 1 at the reference point for the ATC change of G361
+program_end = { X = 0, Y = 0, Z = 0 }   # the reference point
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.001                 # seconds per block
+path_mode = "continuous"           # G64 cutting mode (fanuc 3, group 13)
+corner_speed = 2000                # mm/min carried through a corner
 
 [tool_change]
 change = "G361 B{b} D{kind}"       # the change; B index angle after the change (90 when omitted), D0. rotary, D1./D2. turning tool (M436/M437 orientation)
@@ -133,6 +180,9 @@ VC = "G96 S{value}"
 CSS_OFF = "G97"
 RPM_MAX = "G50 S{value}"
 CLAMP = { ON = "M68", OFF = "M69" }
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 6000
+accel_time = 2.5                   # seconds from stop to rpm_max, for the runtime estimate
 
 [spindle.SUB]
 CW = "M203"
@@ -140,6 +190,9 @@ CCW = "M204"
 OFF = "M205"
 ORIENT = "M219"
 CLAMP = { ON = "M268", OFF = "M269" }
+rpm_min = 20
+rpm_max = 6000
+accel_time = 2.5
 
 [spindle.TOOL]
 CW = "M3"                          # under M90 (spindle 1 / tool spindle simultaneous mode) the tool spindle takes the M3/M4/M5 words; verify on the machine
@@ -147,6 +200,9 @@ CCW = "M4"
 OFF = "M5"
 ORIENT = "M319"
 CLAMP = { ON = "M301", OFF = "M302" }
+rpm_min = 50
+rpm_max = 12000
+accel_time = 1.0
 
 [spindle_mode.MAIN]
 AXIS = "M45"

@@ -1,7 +1,7 @@
 # NCX machine configuration sketch: DMG MORI CTX / NTX turn-mill on Siemens Sinumerik 840D with GILDEMEISTER structure programming, two channels, main spindle (S4), counter spindle (S3), tool spindles (S1, S2).
 # Written from "Technik Programmierung V2.1" (cycle documentation with the complete M list), the GILDEMEISTER structure training manual (Sinumerik 840D, GMX/CTX TC) and the NTX 1000 datum sheets. Schema draft 4. Not verified on the machine.
 # The point of this file: builder functions are subprogram cycles with parameters (L7xx, TC), spindles are numbers, channels synchronize with WAITM on reusable marks, chucks and clamps are M codes in the spindle's hundred (M4xx for spindle 4, M3xx for spindle 3).
-# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+# D100 data (P2-04): home and limits in machine coordinates, rapid, max_feed and acceleration on every [[axis]], rpm_min, rpm_max and accel_time on every spindle table, the [positions] and [dynamics] tables. The numbers are plausible for a machine of this class and not verified on the machine.
 
 [machine]
 name = "DMG MORI CTX beta 1250 TC"
@@ -63,30 +63,53 @@ spindle = "S2"
 magazine = false
 channel = 2
 
+# D100: home and limits are machine coordinates (the G53 frame). HOME on this machine is L711, the move to the tool change point ([home] below), so the home of X, Y and Z is that point. The limits of a C axis are its display range, not a travel limit; those of the B swivel are travel limits.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+
 [[axis]]
 id = "X1"
 ncx = "X"
 letter = "X"
 programming = "switchable"           # D60: X words are diameters on this machine; DIAMON/DIAMOF switch it
 kind = "linear"
+limits = [-60, 450]                # mm, machine coordinates; X = 0 on the spindle axis
+rapid = 30000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 450                         # the X of the tool change point (L711)
 
 [[axis]]
 id = "Z1"
 ncx = "Z"
 letter = "Z"
 kind = "linear"
+limits = [-20, 1250]               # mm
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 600                         # the Z of the tool change point (L711)
 
 [[axis]]
 id = "Y1"
 ncx = "Y"
 letter = "Y"
 kind = "linear"
+limits = [-100, 100]               # mm; the Y stroke of the tool carrier
+rapid = 20000
+max_feed = 10000
+acceleration = 2500
+home = 0                           # the Y of the tool change point (L711)
 
 [[axis]]
 id = "B1"
 ncx = "B"
 letter = "B"
 kind = "rotary"                    # tool carrier swivel, indexed through TC() or L710(5)
+limits = [-120, 120]               # degrees; the swivel range, a travel limit
+rapid = 36000                      # deg/min
+max_feed = 18000                   # deg/min
+acceleration = 1500                # deg/s^2
+home = 0
 
 [[axis]]
 id = "C4"
@@ -94,6 +117,11 @@ ncx = "C"
 letter = "C4"
 kind = "rotary"
 owner = "S4"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0                           # the spindle zero mark
 
 [[axis]]
 id = "C3"
@@ -101,6 +129,11 @@ ncx = "C3"
 letter = "C3"
 kind = "rotary"
 owner = "S3"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0
 
 [[axis]]
 id = "Z3"
@@ -108,6 +141,20 @@ ncx = "Z3"
 letter = "Z3"
 kind = "linear"                    # counter spindle slide
 owner = "S3"
+limits = [0, 1300]                 # mm
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 1300                        # the slide fully retracted from the main spindle
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 450, Y = 0, Z = 600 }   # the tool change point of L711, the same point as home
+program_end = { X = 450, Y = 0, Z = 600 }   # optional: where a rule parks the slide for PROGRAM=END
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.004                 # seconds per block
+path_mode = "continuous"           # G64 continuous-path mode (siemens 2, group 10)
+corner_speed = 2000                # mm/min carried through a corner
 
 [tool_change]
 pre = ["HOME X Y Z"]              # the tool change point cycle L711 of [home] runs before every change (expansion rule, machine-config 5a)
@@ -132,6 +179,9 @@ VC = "G96 S4={value}"
 CSS_OFF = "G97"
 RPM_MAX = "LIMS={value}"           # under G96; "G26 S4={value}" under G95
 CLAMP = { ON = "M412", OFF = "M413" }
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 4000
+accel_time = 3.0                   # seconds from stop to rpm_max, for the runtime estimate
 
 [spindle.SUB]
 CW = "M3=3"
@@ -142,6 +192,9 @@ RPM = "S3={rpm}"
 VC = "G96 S3={value}"
 RPM_MAX = "LIMS={value}"
 CLAMP = { ON = "M312", OFF = "M313" }
+rpm_min = 20
+rpm_max = 5000
+accel_time = 2.0
 
 [spindle.TOOL]
 CW = "M1=3"
@@ -149,6 +202,9 @@ CCW = "M1=4"
 OFF = "M1=5"
 RPM = "S1={rpm}"
 CLAMP = { ON = "M112", OFF = "M113" }
+rpm_min = 50
+rpm_max = 12000
+accel_time = 1.0
 
 [spindle.TOOL2]
 CW = "M2=3"
@@ -156,6 +212,9 @@ CCW = "M2=4"
 OFF = "M2=5"
 RPM = "S2={rpm}"
 CLAMP = { ON = "M212", OFF = "M213" }
+rpm_min = 50
+rpm_max = 4000
+accel_time = 1.0
 
 [spindle_mode.MAIN]
 AXIS = "L707({angle})"             # spindle 4 to C4 axis mode, positioned to angle

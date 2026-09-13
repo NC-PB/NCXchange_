@@ -1,0 +1,155 @@
+# NCX machine configuration: plain vertical machining center on Fanuc Series 30i, one path, three linear axes X Y Z, one milling spindle (S1) with a tool magazine (H1), the table (TABLE1).
+# Written from controllers/fanuc.md and the Fanuc column of spec/controller-mapping.md with the generic words only: no builder tables, no RAW:BUILDER vocabulary. Schema draft 8. Not verified on a machine.
+# The point of this file: the machine of the Fanuc reader and compiler of phase 3 (sources/2.5D_FRAESEN.fanuc.nc, BOHREN.fanuc.nc, 3D_FRAESEN.fanuc.nc) and one of the two machines that 2.5D_FRAESEN, PATTERN_LOOP and INCREMENTAL_SUB check with (P2-04).
+# D100: every number under [[axis]], [positions], [dynamics] and the spindle limits is plausible for a machine of this class and not verified on the machine. The reference point is the machine zero, so the G91 G28 Z0 of the Fanuc sources and the M91 moves to Z0 and X0 Y0 of the Heidenhain sources end at the same place (2.5D_FRAESEN note 4).
+# The tables of lathes, rotary axes and several paths ([diameter], [spindle_mode], [spindle_sync], [workpiece], [sync], [transform]) have nothing to configure on this machine.
+
+[machine]
+name = "Generic Fanuc 30i vertical mill"
+controller = "fanuc"
+dialect = "30i"                    # machining center; gcode_system is for Fanuc lathes only (machine-config 1)
+builder = ""                       # no builder function tables, no RAW:BUILDER vocabulary
+s_binds_to_spindle_word = true     # Fanuc has one S word (fanuc 5); with one spindle it always belongs to S1
+limits = "warn"                    # RPM, F and targets beyond the machine limits are WARNINGs (D64)
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "H1"
+default_workpiece = "TABLE1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Y = 3, Z = 3, F = 3, S = 0 }
+trailing_zeros = false             # the decimal point is written on every real number all the same (fanuc 10 rule 5)
+block_numbers = { enabled = true, start = 10, step = 10 }   # N10, N20, ... as in the sources
+line_ending = "CRLF"
+program_end = "M2"                 # written for PROGRAM=END (D48, D49); the three Fanuc sources end with M2, M30 would rewind as well (fanuc 1)
+sub_end = "M99"                    # written for SUB=END and RETURN
+program_layout = "one_file"        # the O programs of the NCX file in one file, subprograms after the end (fanuc 10 rule 3)
+max_line_length = 0                # 0 = unlimited
+comment_charset = "ASCII"          # comments in parentheses, transliterated to ASCII (fanuc 10 rule 5)
+
+[tool_change]
+change = "T{tool} M6"              # TOOL=n and a bare TOOL ({tool} from the VM, D91): the Fanuc machining center form (machine-config 3)
+preload = "T{tool}"                # PRELOAD=n: T5 alone brings tool 5 to the change position (fanuc 5)
+unload = "T0 M6"                   # TOOL=0 (controller-mapping 3)
+auto_preload = false               # the compiler writes the PRELOAD words the program has and inserts none
+preload_position = "after_change"  # T0 and T2 stand right after T1 M6 in the sources
+offsets_with_change = false        # G43 H and D are written where the OFFSET words stand (fanuc 5)
+tool_name_allowed = false          # Fanuc tools are numbers
+# No change_preloaded: BOHREN.fanuc.nc writes T2 M6 also when tool 2 is preloaded, so every change is written with its T word.
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+
+[home]
+template = "G28 {axes}"            # reference point return; {axes} in the G91 form, G91 G28 Z0 and G28 X0 Y0 in the sources (fanuc 4, machine-config 3)
+point = "G30 P{point} {axes}"      # second and further reference points (fanuc 4)
+
+[setpos]
+template = "G92 {axes}"            # G92 declares the current position (fanuc 4); G50 is the lathe system A form
+
+[roles]
+TOOL = "S1"                        # the only spindle of a mill (language 4.10)
+TABLE = "TABLE1"
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+
+[[resource]]
+id = "S1"
+type = "tool_spindle"
+
+[[resource]]
+id = "H1"
+type = "tool_holder"
+spindle = "S1"
+magazine = true                    # T prepares the tool, M6 changes it
+
+[[resource]]
+id = "TABLE1"
+type = "table"
+
+# Axis limits, home (the reference point) and the positions below are machine coordinates, the G53 frame (D100); the machine zero is the reference point at the positive end of every axis.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+kind = "linear"
+limits = [-800, 0]                 # mm, machine coordinates
+rapid = 36000                      # mm/min
+max_feed = 20000                   # mm/min
+acceleration = 4000                # mm/s^2
+home = 0                           # reference point 1, written through [home] (G28)
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+kind = "linear"
+limits = [-500, 0]
+rapid = 36000
+max_feed = 20000
+acceleration = 4000
+home = 0
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+kind = "linear"
+limits = [-500, 0]                 # Z = 0 is the top of the travel
+rapid = 30000
+max_feed = 20000
+acceleration = 3500
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { Z = 0 }            # the spindle up at the reference point, where the magazine of a vertical mill changes
+program_end = { X = 0, Y = 0, Z = 0 }   # the reference point, where the sources end (G91 G28 Z0, G28 X0 Y0)
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.001                 # seconds per block
+path_mode = "continuous"           # G64 cutting mode (fanuc 3, group 13)
+corner_speed = 2000                # mm/min carried through a corner
+
+[spindle.TOOL]                     # S1, the milling spindle
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+ORIENT = "M19"                     # oriented stop; the angle forms M19 S and M19 R depend on the machine (controller-mapping 4)
+RPM = "S{rpm}"                     # written in the block of M3 or M4 (fanuc 10 rule 2)
+VC = "G96 S{value}"                # constant surface speed (fanuc 4)
+CSS_OFF = "G97"
+RPM_MAX = "G92 S{value}"           # the speed limit under G96; G50 S is the lathe system A form (fanuc 4)
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 12000
+accel_time = 1.5                   # seconds from stop to rpm_max, for the runtime estimate
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }   # COOLANT=ON and OFF (controller-mapping 4)
+
+[func]                             # strings (D105); the loader normalizes M29, M029, 29 and 029 to "M29", readers compare by number
+RIGID_TAP = { ON = "M29" }         # M29 S before G84 makes the tapping rigid (fanuc 6, BOHREN.fanuc.nc N3100)
+
+[retract]                          # the RETRACT verb (D83)
+MAX = ""                           # empty: a computed G53 move when the kinematics is known, else ERROR (controller-mapping 1)
+BY = ""
+
+[tolerance]                        # the TOLERANCE words (D85)
+ON = "G5.1 Q1"                     # AI contour control on; the tolerance itself sits in a parameter and stays RAW (fanuc 4)
+OFF = "G5.1 Q0"
+
+[cycles]
+catalog = "fanuc.toml"             # the Fanuc cycle catalog shipped with NCXchange (machine-config 6)
+
+[variables]
+unassigned = "error"
+map = { Q = "#1", QL = "#", QR = "#5" }   # Heidenhain-named variables to Fanuc ranges: Q1 -> #101, QR1 -> #501 (machine-config 7, PATTERN_LOOP)
+block_cap = 1000000
+call_depth = 8
+
+[system_variables]                 # NCX SYS_ names to native system variables (D51); X Y Z are the axes 1 to 3
+SYS_POS_X = "#5041"                # workpiece position (fanuc 7)
+SYS_POS_Y = "#5042"
+SYS_POS_Z = "#5043"
+SYS_MPOS_X = "#5021"               # machine position (fanuc 7)
+SYS_MPOS_Y = "#5022"
+SYS_MPOS_Z = "#5023"

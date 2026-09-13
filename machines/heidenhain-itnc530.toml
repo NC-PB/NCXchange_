@@ -1,0 +1,139 @@
+# NCX machine configuration: plain vertical machining center on Heidenhain iTNC 530 (Klartext), three linear axes X Y Z, one milling spindle (S1) with a tool magazine (H1), the table (TABLE1).
+# Written from controllers/heidenhain.md and the Heidenhain column of spec/controller-mapping.md with the generic words only: no builder tables, no RAW:BUILDER vocabulary. Schema draft 8. Not verified on a machine.
+# The point of this file: the machine of the Heidenhain reader and compiler of phase 3 (sources/2.5D_FRAESEN.h, BOHREN.h, 3D_FRAESEN.h) and one of the two machines that 2.5D_FRAESEN, PATTERN_LOOP and INCREMENTAL_SUB check with (P2-04). The control has no reference point command: the compiler writes HOME as L ... FMAX M91 to the home of each axis (heidenhain 8 rule 5), which is why every axis carries one.
+# D100: every number under [[axis]], [positions], [dynamics] and the spindle limits is plausible for a machine of this class and not verified on the machine. The reference point is the machine zero, so the L Z0 FMAX M91 and L X0 Y0 FMAX M91 of the sources are the HOME Z and HOME X Y of the Fanuc sources (2.5D_FRAESEN note 4).
+# The tables of lathes, rotary axes and several channels ([diameter], [spindle_mode], [spindle_sync], [workpiece], [sync], [transform]) have nothing to configure on this machine.
+
+[machine]
+name = "Generic Heidenhain iTNC 530 vertical mill"
+controller = "heidenhain"
+dialect = "iTNC530"
+builder = ""                       # no builder function tables, no RAW:BUILDER vocabulary
+limits = "warn"                    # RPM, F and targets beyond the machine limits are WARNINGs (D64)
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "H1"
+default_workpiece = "TABLE1"
+
+[format]
+decimal_separator = ","            # the files carry the comma (heidenhain 1, 8 rule 2)
+decimals = { X = 3, Y = 3, Z = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 0, step = 1 }   # consecutive from 0 (heidenhain 8 rule 1)
+line_ending = "CRLF"
+program_end = "M30"                # written before END PGM for PROGRAM=END (heidenhain 8 rule 1)
+sub_end = "LBL 0"                  # written for SUB=END and RETURN: the label section closes with LBL 0 (heidenhain 1)
+program_layout = "file_per_program"   # one program per file, subprograms as LBL sections after the M30 of every caller (heidenhain 8 rule 6, D48)
+max_line_length = 0                # 0 = unlimited
+comment_charset = "ASCII"
+
+[tool_change]
+change = "TOOL CALL {tool} {axis} S{rpm}"   # TOOL, the tool axis of WORKPLANE and the RPM of the same or the next block in one call (heidenhain 8 rule 3)
+preload = "TOOL DEF {tool}"        # PRELOAD=n (heidenhain 4)
+unload = "TOOL CALL 0"             # TOOL=0 empties the spindle (heidenhain 4)
+auto_preload = false               # the compiler writes the PRELOAD words the program has and inserts none
+preload_position = "after_change"  # TOOL DEF stands right after TOOL CALL in the sources
+offsets_with_change = true         # length and radius come from the tool table with the call; OFFSET words are not written (heidenhain 4)
+tool_name_allowed = false          # TOOL CALL "NAME" is documented for the TNC 640 (heidenhain 4); the sources use numbers
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+
+# No [home] table: HOME is written as L ... FMAX M91 to the home (home2 under POINT=2) of each [[axis]] (heidenhain 8 rule 5, machine-config 3).
+# No [setpos] table: the compiler folds SETPOS into SHIFT (machine-config 3).
+
+[roles]
+TOOL = "S1"                        # the only spindle of a mill (language 4.10)
+TABLE = "TABLE1"
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+
+[[resource]]
+id = "S1"
+type = "tool_spindle"
+
+[[resource]]
+id = "H1"
+type = "tool_holder"
+spindle = "S1"
+magazine = true                    # TOOL DEF prepares the tool, TOOL CALL changes it
+
+[[resource]]
+id = "TABLE1"
+type = "table"
+
+# Axis limits, home (the reference point) and the positions below are machine coordinates, the M91 frame (D100); the machine zero is the reference point at the positive end of every axis.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+kind = "linear"
+limits = [-500, 0]                 # mm, machine coordinates
+rapid = 30000                      # mm/min
+max_feed = 20000                   # mm/min
+acceleration = 4000                # mm/s^2
+home = 0                           # reference point 1, the target of L X... FMAX M91 for HOME X
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+kind = "linear"
+limits = [-450, 0]
+rapid = 30000
+max_feed = 20000
+acceleration = 4000
+home = 0
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+kind = "linear"
+limits = [-400, 0]                 # Z = 0 is the top of the travel, where L Z0 FMAX M91 retracts
+rapid = 30000
+max_feed = 20000
+acceleration = 3500
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { Z = 0 }            # the spindle up at the reference point, where the magazine of a vertical mill changes
+program_end = { X = 0, Y = 0, Z = 0 }   # the reference point, where the sources end (L Z0 FMAX M91, L X0 Y0 FMAX M91)
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.0005                # seconds per block
+path_mode = "continuous"
+corner_speed = 2000                # mm/min carried through a corner
+
+[spindle.TOOL]                     # S1, the milling spindle
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+RPM = "TOOL CALL S{rpm}"           # a speed change without a tool (heidenhain 4); with TOOL the compiler folds RPM into the TOOL CALL (heidenhain 8 rule 3)
+# TODO(question): heidenhain 4 and controller-mapping 3 allow TOOL CALL S without a tool number on newer controls; whether the iTNC 530 is one of them is not said.
+# TODO(question): ORIENT has no generic form here: heidenhain 4 calls M19 the builder's and heidenhain 5 names cycle 13 (spindle orientation) without its syntax, so ORIENT is left out.
+# No VC, CSS_OFF, RPM_MAX: constant surface speed is FUNCTION TURNDATA SPIN of the TNC 640 turning mode (heidenhain 4), not a word of this milling control.
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 14000
+accel_time = 1.5                   # seconds from stop to rpm_max, for the runtime estimate
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }   # COOLANT=ON and OFF (heidenhain 4)
+
+[retract]                          # the RETRACT verb (D83)
+MAX = "M140 MB MAX"                # bare RETRACT: along the tool axis to the limit (heidenhain 2)
+BY = "M140 MB{distance}"           # RETRACT=50 as M140 MB50 (heidenhain 2)
+
+[tolerance]                        # the TOLERANCE words (D85)
+ON = "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T{tol}\nCYCL DEF 32.2 HSC-MODE:{mode} TA{rotary}"   # cycle 32 (heidenhain 2, machine-config 5)
+OFF = "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T0"
+mode = { FINISH = 0, ROUGH = 1 }   # value of {mode}: HSC-MODE 0 finish, 1 rough (heidenhain 2)
+# TODO(question): TA{rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no rotary tolerance; which value, or which template without TA, is written then?
+
+[cycles]
+catalog = "heidenhain.toml"        # the Heidenhain cycle catalog shipped with NCXchange (machine-config 6)
+
+[variables]                        # Q, QL, QR and QS are the control's own names (heidenhain 6), so there is no map
+unassigned = "error"
+block_cap = 1000000
+call_depth = 8
+# TODO(question): no [system_variables] table: machine-config 7 points to FN 18 ids for Heidenhain, and heidenhain.md lists none.

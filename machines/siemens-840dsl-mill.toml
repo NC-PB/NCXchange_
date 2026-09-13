@@ -1,0 +1,153 @@
+# NCX machine configuration: plain vertical machining center on Siemens SINUMERIK 840D sl, one channel, three linear axes X Y Z, one milling spindle (S1, the master spindle) with a tool magazine (H1), the table (TABLE1).
+# Written from controllers/siemens.md, sections 1 to 5 and 12, and the Siemens column of spec/controller-mapping.md with the generic words only: no builder cycles, no structure programming, no RAW:BUILDER vocabulary. Schema draft 8. Not verified on a machine.
+# The point of this file: the plain mill of the Siemens reader and compiler of phase 5, next to millturn1.toml (the mill-turn of MILLTURN_TRANSFER, D104). The T word selects the tool and M6 changes it (siemens 5), D selects the cutting edge, the axes home with G74.
+# D100: every number under [[axis]], [positions], [dynamics] and the spindle limits is plausible for a machine of this class and not verified on the machine.
+# The tables of lathes, rotary axes and several channels ([diameter], [spindle_mode], [spindle_sync], [workpiece], [sync], [transform]) have nothing to configure on this machine.
+
+[machine]
+name = "Generic 840D sl vertical mill"
+controller = "siemens"
+dialect = "840Dsl"
+builder = ""                       # no builder function tables, no RAW:BUILDER vocabulary
+limits = "warn"                    # RPM, F and targets beyond the machine limits are WARNINGs (D64)
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "H1"
+default_workpiece = "TABLE1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Y = 3, Z = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48; siemens 12 rule 1)
+sub_end = "RET"                    # written for SUB=END and RETURN (siemens 12 rule 1)
+program_layout = "one_file"        # all programs and subprograms of the NCX file into one output file with %_N_NAME_MPF / _SPF headers (siemens 12 rule 1)
+max_line_length = 0                # 0 = unlimited
+comment_charset = "ASCII"
+
+[tool_change]
+change = "T{tool} M6"              # on a mill M6 performs the change of the selected tool (siemens 5, controller-mapping 3)
+preload = "T{tool}"                # T alone before M6 is the preload (siemens 5)
+unload = "T0 M6"                   # TOOL=0 (controller-mapping 3)
+auto_preload = false               # the compiler writes the PRELOAD words the program has and inserts none
+preload_position = "after_change"  # the corpus writes the next T right after M6 (controller-mapping 3)
+offsets_with_change = false        # D from OFFSET, written where OFFSET stands (siemens 12 rule 3)
+tool_name_allowed = true           # T="NAME" under tool management (siemens 5)
+# TODO(question): a named TOOL needs a {name} template (T=\"{name}\" M6, machine-config 3), and change has one form; which template writes TOOL="NAME" on a machine that also takes numbers?
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+
+[home]
+template = "G74 {axes}"            # reference point approach with machine axis names, own block, no transformation active (siemens 3)
+point = "G75 {axes} FP={point}"    # fixed points for POINT=2 and further (siemens 3)
+
+[setpos]
+template = "PRESETON({axis},{value})"   # declares the current position of one axis; one call per axis of the SETPOS block (siemens 3)
+
+[roles]
+TOOL = "S1"                        # the only spindle of a mill (language 4.10)
+TABLE = "TABLE1"
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+
+[[resource]]
+id = "S1"
+type = "tool_spindle"
+
+[[resource]]
+id = "H1"
+type = "tool_holder"
+spindle = "S1"
+magazine = true                    # T prepares the tool, M6 changes it
+
+[[resource]]
+id = "TABLE1"
+type = "table"
+
+# Axis limits, home (the reference point) and the positions below are machine coordinates, the G53 frame (D100); the machine zero is the reference point at the positive end of every axis.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+kind = "linear"
+limits = [-600, 0]                 # mm, machine coordinates
+rapid = 30000                      # mm/min
+max_feed = 15000                   # mm/min
+acceleration = 4000                # mm/s^2
+home = 0                           # reference point 1, written through [home] (G74)
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+kind = "linear"
+limits = [-500, 0]
+rapid = 30000
+max_feed = 15000
+acceleration = 4000
+home = 0
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+kind = "linear"
+limits = [-500, 0]                 # Z = 0 is the top of the travel
+rapid = 30000
+max_feed = 15000
+acceleration = 3500
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { Z = 0 }            # the spindle up, where the corpus retracts with G53 Z.. D0 before M6 (controller-mapping 1)
+program_end = { X = 0, Y = 0, Z = 0 }   # the reference point
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.002                 # seconds per block
+path_mode = "continuous"           # G64 continuous-path mode (siemens 2, group 10)
+corner_speed = 2000                # mm/min carried through a corner
+
+[spindle.TOOL]                     # S1, the configured master spindle: plain S, M3, M4, M5 and G96 refer to it (siemens 5)
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+ORIENT = "SPOS={angle}"            # oriented stop at an angle (siemens 5)
+RPM = "S{rpm}"
+VC = "G96 S{value}"                # constant surface speed (siemens 5)
+CSS_OFF = "G97"
+RPM_MAX = "LIMS={value}"           # the speed limit under G96 (siemens 5)
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 12000
+accel_time = 1.5                   # seconds from stop to rpm_max, for the runtime estimate
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }   # COOLANT=ON and OFF (siemens 5, controller-mapping 4)
+
+[retract]                          # the RETRACT verb (D83)
+MAX = ""                           # empty: a computed machine-frame move when the kinematics is known, else ERROR
+BY = ""                            # Siemens has no distance retract word (controller-mapping 1)
+
+[tolerance]                        # the TOLERANCE words (D85)
+ON = "CYCLE832({tol},{mode},{rotary})"
+OFF = "CYCLE832(0,0,1)"
+mode = { FINISH = 1, ROUGH = 3 }   # value of {mode}: 1 finish, 3 rough (siemens 3)
+# TODO(question): {rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no orientation tolerance; which value, or which template without it, is written then?
+
+[cycles]
+catalog = "siemens.toml"           # the 840D sl cycle catalog shipped with NCXchange (siemens 7)
+
+[variables]
+unassigned = "error"
+block_cap = 1000000
+call_depth = 8
+# TODO(question): machine-config 7 shows the variable map for Fanuc only; how Heidenhain-named Q variables compile to R parameters or DEF names on Siemens is not given, so there is no map.
+
+[system_variables]                 # NCX SYS_ names to native system variables (D51)
+SYS_POS_X = "$AA_IW[X]"            # workpiece position (siemens 8)
+SYS_POS_Y = "$AA_IW[Y]"
+SYS_POS_Z = "$AA_IW[Z]"
+SYS_MPOS_X = "$AA_IM[X]"           # machine position (siemens 8)
+SYS_MPOS_Y = "$AA_IM[Y]"
+SYS_MPOS_Z = "$AA_IM[Z]"
