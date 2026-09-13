@@ -11,11 +11,15 @@ internal static class ToolWords
     /// </summary>
     public static IReadOnlyList<WordDefinition> Definitions { get; } =
     [
+        // PRELOAD prepares the tool of a holder like TOOL, addressed by the holder role and without one for the default
+        // holder (virtual machine 2.3, PRELOAD[:r]; 3.8 rule 2; language 4.10); the row of language 4.4 names no
+        // address.
         new WordDefinition
         {
             Key = "PRELOAD",
             Group = WordKind.Tool,
             ValueKinds = ValueKinds.Integer | ValueKinds.String,
+            AddrKind = AddrKind.Role,
             Scope = Scope.Modal,
             CanonicalRank = CanonicalRanks.Preload,
             Section = "4.4",

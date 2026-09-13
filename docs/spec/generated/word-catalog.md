@@ -61,7 +61,7 @@ variable) sort under their rank by the address text. The ten verbs share one ran
 | 390 | `ANGLE` | number, expression |  | is one |  | block | 4.3 | Sweep angle of an ARC in degrees, greater than 0, in the direction of its verb, instead of the plane end point (D84). |
 | 400 | `F` | number, expression |  |  |  | modal | 4.3 | Feed in the active feed mode. |
 | 410 | `FEED_MODE` | `PER_MIN`, `PER_REV` |  |  |  | modal | 4.3 | Feed per minute (G94) or per spindle revolution (G95); default PER_MIN. |
-| 420 | `PRELOAD` | integer, string |  |  |  | modal | 4.4 | Prepares a tool in the magazine, modal until the change consumes it; PRELOAD=0 clears a pending preload (D47). |
+| 420 | `PRELOAD` | integer, string |  |  | role, optional | modal | 4.4 | Prepares a tool in the magazine, modal until the change consumes it; PRELOAD=0 clears a pending preload (D47). |
 | 430 | `TOOL` | none, integer, string |  |  | role, optional | modal | 4.4 | The spindle or the addressed holder now carries this tool, TOOL=0 empties it; a bare TOOL changes to the preloaded tool (D47, D91). |
 | 440 | `OFFSET` | integer |  |  | offset kind, optional | modal | 4.4 | Combined offset register; OFFSET:LEN the tool length offset register (G43 H), OFFSET:RAD the tool radius offset register (D); 0 cancels. |
 | 450 | `OFFSET:LEN` | integer |  |  | `LEN` | modal | 4.4 | Combined offset register; OFFSET:LEN the tool length offset register (G43 H), OFFSET:RAD the tool radius offset register (D); 0 cancels. |
