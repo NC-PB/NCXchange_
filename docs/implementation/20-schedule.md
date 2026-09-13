@@ -9,7 +9,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | # | Task | Phase file | Note |
 |---|---|---|---|
 | 1 | P0-01 Repository skeleton and solution | 10 | `git init` first |
-| 2 | P0-02 Core model | 10 | |
+| 2 | ✓ P0-02 Core model | 10 | |
 | 3 | P0-03 Word catalog | 10 | decision batch 1, answered 2026-09-11 |
 | 4 | P0-04 Lexer and parser | 10 | |
 | 5 | P0-05 Expression parser | 10 | |
