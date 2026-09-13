@@ -250,6 +250,32 @@ internal static class FrameRules
     }
 
     /// <summary>
+    /// The coordinate of an axis in the MACHINE frame: the stored value of an axis known there, or the machine position
+    /// that follows from the store through the record of its setpos shift, the store plus the shifts of the chain on
+    /// the axis minus those at the SETPOS (virtual machine 3.4, D101); null while the machine position is unknown. For
+    /// the limits of the validation, which are compared in the MACHINE frame (virtual machine 5, D100).
+    /// </summary>
+    public static decimal? MachineCoordinate(ChannelState state, string axis)
+    {
+        if (!state.Motion.Position.TryGetValue(axis, out AxisPosition position) || !position.Known)
+        {
+            return null;
+        }
+
+        if (position.Frame == PositionFrame.Machine)
+        {
+            return position.Value;
+        }
+
+        if (!MachinePositionThroughRecord(state, axis, position, out SetposRecord record))
+        {
+            return null;
+        }
+
+        return position.Value + ChainShift(state, axis) - record.ChainShift;
+    }
+
+    /// <summary>
     /// After a motion block that moves in the workpiece frame (virtual machine 3.1 to 3.3), for every axis whose setpos
     /// shift was recorded against the machine position and that is known in the workpiece frame. A motion that names
     /// some axes leaves the others as they were (3.4), so only an axis whose machine position the block can have

@@ -33,7 +33,8 @@ public sealed class VectorWordTests
     [Fact]
     public void Line_VectorWithoutTcpm_IsAnError()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM F=100", "LINE X=1 TX=0 TY=0 TZ=1");
+        VmHarness vm = new VmHarness(VmMachines.Default())
+            .Execute("UNITS=MM F=100 SPINDLE=CW", "LINE X=1 TX=0 TY=0 TZ=1");
 
         Assert.Equal([DiagnosticCodes.VectorWithoutTcpm], vm.Codes());
     }
@@ -106,6 +107,6 @@ public sealed class VectorWordTests
     // The default machine of D103 with the units, a feed and TCPM=ON.
     private static VmHarness Tcpm()
     {
-        return new VmHarness(VmMachines.Default()).Execute("UNITS=MM F=100 TCPM=ON");
+        return new VmHarness(VmMachines.Default()).Execute("UNITS=MM F=100 TCPM=ON SPINDLE=CW");
     }
 }

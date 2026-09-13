@@ -1,0 +1,7 @@
+MILLTURN_TRANSFER.ncx(10): WARNING VM003: The built-in default machine has no role TURRET1: not checked: no machine file; the word runs against a tool holder created on the spot (virtual machine 3.8, D103).
+MILLTURN_TRANSFER.ncx(13): WARNING VM500: LINE cuts while the default spindle TOOL is OFF; the current tool holder TURRET1 has no spindle of its own (virtual machine 5).
+MILLTURN_TRANSFER.ncx(14): WARNING VM500: LINE cuts while the default spindle TOOL is OFF; the current tool holder TURRET1 has no spindle of its own (virtual machine 5).
+MILLTURN_TRANSFER.ncx(18): WARNING VM003: The built-in default machine has no role SUB: not checked: no machine file; the word runs against a work spindle created on the spot (virtual machine 3.8, D103).
+MILLTURN_TRANSFER.ncx(19): WARNING VM003: The built-in default machine has no function SUB_CHUCK: not checked: no machine file; the word runs against a function created on the spot (virtual machine 3.8, D103).
+MILLTURN_TRANSFER.ncx(20): WARNING VM003: The built-in default machine has no axis Z2: not checked: no machine file; the word runs against an axis created on the spot (virtual machine 3.8, D103).
+MILLTURN_TRANSFER.ncx(22): WARNING VM003: The built-in default machine has no function MAIN_CHUCK: not checked: no machine file; the word runs against a function created on the spot (virtual machine 3.8, D103).

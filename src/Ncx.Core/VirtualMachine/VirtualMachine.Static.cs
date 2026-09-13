@@ -1,6 +1,7 @@
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine.Handlers;
 using Ncx.Core.VirtualMachine.State;
+using Ncx.Core.VirtualMachine.Validation;
 
 namespace Ncx.Core.VirtualMachine;
 
@@ -47,6 +48,15 @@ public sealed partial class VirtualMachine
         _calledSubs.Clear();
         _firstVerbState = null;
 
+        // The pre-pass over the file: duplicate labels and missing jump targets are ERRORs before execution, and the
+        // rules about a block as it is written are reported once per block (virtual machine 3.6, 5).
+        _validation = new RunValidation(Machine, Diagnostics, Mode);
+        _validation.CheckFile(program);
+        if (Diagnostics.HasErrors)
+        {
+            return new RunResult { Stopped = true };
+        }
+
         // One pass top to bottom over every program of the file (virtual machine 1).
         // TODO(question): virtual machine 1 walks every program of the file and does not say which state a program
         // after the first starts from; each starts from the state of a channel at the start of a run, as a program
@@ -83,6 +93,9 @@ public sealed partial class VirtualMachine
                 return new RunResult { Stopped = true };
             }
         }
+
+        // The expressions STATIC mode left unresolved are counted and reported once (virtual machine 5).
+        _validation.EndRun();
 
         // After the run the state is the one the last program left.
         StartWalk(lastProgram ?? _state, suppressCallerRules: false);

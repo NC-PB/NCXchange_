@@ -2,6 +2,7 @@ using Ncx.Core.Catalog;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine.State;
+using Ncx.Core.VirtualMachine.Validation;
 
 namespace Ncx.Core.VirtualMachine;
 
@@ -46,6 +47,9 @@ public sealed partial class VirtualMachine
     private ChannelState _state;
     private bool _suppressCallerRules;
 
+    // The validation list of virtual machine 5 during the run, the rules that the steps do not raise themselves.
+    private RunValidation _validation;
+
     /// <summary>
     /// A virtual machine for one channel.
     /// </summary>
@@ -64,6 +68,7 @@ public sealed partial class VirtualMachine
         _startValues = startValues;
         _suppressed = new Diagnostics(diagnostics.File);
         _resources = new ResourceResolver(machine);
+        _validation = new RunValidation(machine, diagnostics, mode);
         _state = NewState(channelId: 1);
     }
 
@@ -130,6 +135,9 @@ public sealed partial class VirtualMachine
         // 2. Resolve role addresses and axis names against the machine configuration.
         BlockContext context = ResolveRolesAndAxes(block);
 
+        // The validation of virtual machine 5 notes the state the block finds (Validation/RunValidation).
+        _validation.BeforeBlock(context);
+
         // 3. Apply the state words.
         ApplyStateWords(context);
 
@@ -138,6 +146,9 @@ public sealed partial class VirtualMachine
 
         // 5. If the verb is a motion verb, resolve the target and execute it.
         ExecuteMotion(context);
+
+        // The rules of virtual machine 5 that read the state the block leaves (Validation/RunValidation).
+        _validation.AfterBlock(context);
 
         // The flow words, then 6. reset the block-scoped items (architecture 5.1).
         BlockFlow flow = ApplyFlowWords(context);

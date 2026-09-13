@@ -1,0 +1,1 @@
+POLAR_FACE.ncx(14): WARNING VM060: HOME C: the configuration has no reference point for C; the axis is unknown in every frame afterwards (virtual machine 3 step 5, D100).

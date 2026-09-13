@@ -457,6 +457,6 @@ public sealed class SetposMotionTests
     // The mill-turn machine file with reference points (X home 300, C home 90), the units and a feed set.
     private static VmHarness MillTurn()
     {
-        return new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM F=100");
+        return new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM F=100 SPINDLE:TOOL=CW");
     }
 }

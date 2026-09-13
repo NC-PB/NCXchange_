@@ -16,8 +16,15 @@ namespace Ncx.Core.Model;
 //   PAR150-PAR199  word catalog (P0-03)
 //   VM001-VM199    block execution (P1-02)
 //   VM200-VM399    motion, arcs, retract, home, cycles (P1-03)
-//   VM400-VM899    validation and the rest of phase 1 (P1-04 onward)
-//   VM900-VM949    expression evaluation (P4-01)
+//   VM400-VM599    validation (P1-04)
+//   VM600-VM649    events (P1-05)
+//   VM650-VM749    expander and generated blocks (P1-06)
+//   VM750-VM849    INTERPRETED mode and its flow (P4-01 part two)
+//   VM900-VM949    expression evaluation (P4-01 part one)
+//
+// Every code has its row, with its severity, its rule and the section it comes from, in the table of the validation
+// (VirtualMachine/Validation/DiagnosticTable.cs), which docs/spec/generated/diagnostics.md is written from; a new code
+// gets its row in the family of virtual machine 5 it belongs to.
 
 /// <summary>
 /// The diagnostic codes of Ncx.Core: one constant per rule, named after the rule, an area prefix and three digits

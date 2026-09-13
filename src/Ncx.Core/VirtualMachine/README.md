@@ -19,6 +19,6 @@ Start with `VirtualMachine.cs`: `Execute(block)` runs the seven steps of virtual
 | `BlockContext.cs`, `BlockFlow.cs` | one block while it executes, and where the flow goes after it |
 | `VmOptions.cs`, `SkipBlocks.cs`, `ExecutionMode.cs`, `RunResult.cs` | the options of a run and how it ended (D53) |
 
-`State/` holds the state of a channel and its snapshots, `Handlers/` the word handlers, one class per group. `ExecuteMotion` hands each motion verb to its rules and keeps the resolved arc and the motions of an expanded cycle for the events of step 7; the validation list is P1-04's, the events P1-05's.
+`State/` holds the state of a channel and its snapshots, `Handlers/` the word handlers, one class per group, `Validation/` the validation list of virtual machine 5: one file per family with the rows of the table that `docs/spec/generated/diagnostics.md` is written from, and `RunValidation`, which checks the rules the steps do not raise themselves before and after each block and in a pre-pass over the file. `ExecuteMotion` hands each motion verb to its rules and keeps the resolved arc and the motions of an expanded cycle for the events of step 7, which are P1-05's.
 
 Never here: parsing (the program arrives parsed), the output of a controller, reading a machine file (the caller passes a loaded `MachineConfig`, or `DefaultMachine` of `Ncx.Config` without a file, D103).

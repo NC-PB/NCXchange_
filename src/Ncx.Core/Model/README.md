@@ -4,6 +4,6 @@ A parsed program as immutable records (architecture 4; language 3, 4.13): `NcxPr
 
 Start with `NcxProgram.cs`, `Block.cs` and `Word.cs`, then `Value.cs` for the value types and `Diagnostics.cs` for how every stage reports what it finds.
 
-`DiagnosticCodes.cs` lists the ranges of every `PAR` and `VM` code of `Ncx.Core`; each component keeps its codes in a part of its own in this folder, `DiagnosticCodes.Parsing.cs`, `DiagnosticCodes.Vm.cs`, and a code is never renumbered (D98).
+`DiagnosticCodes.cs` lists the ranges of every `PAR` and `VM` code of `Ncx.Core`; each component keeps its codes in a part of its own in this folder, `DiagnosticCodes.Parsing.cs`, `DiagnosticCodes.Vm.cs`, `DiagnosticCodes.Validation.cs`, and a code is never renumbered (D98). Every code has its row, with severity, rule and section, in the table of the validation (`../VirtualMachine/Validation/`), written out as `docs/spec/generated/diagnostics.md`.
 
 Never here: parsing, writing, checking a word against the catalog, executing a block. A block never sorts its words; the writer does.

@@ -77,7 +77,8 @@ public sealed class PolarCylinderTests
     public void Polar_FirstMotion_KnowsXAndCInThePolarFrameUntilPolarOff()
     {
         VmHarness vm = new VmHarness(VmMachines.Default()).Execute(
-            "UNITS=MM DIAMETER=ON SPINDLE_MODE:MAIN=AXIS", "RAPID X=54 Z=2 C=0", "POLAR=ON", "LINE X=54 C=-12 F=4000");
+            "UNITS=MM DIAMETER=ON SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW", "RAPID X=54 Z=2 C=0", "POLAR=ON",
+            "LINE X=54 C=-12 F=4000");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(27m, PositionFrame.Polar, Known: true), vm.Position("X"));
@@ -109,7 +110,7 @@ public sealed class PolarCylinderTests
         string axis, string incremental)
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "RAPID X=40 Z=2 C=0", "POLAR=ON", motion);
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "RAPID X=40 Z=2 C=0", "POLAR=ON", motion);
 
         vm.AssertNoDiagnostics();
         Assert.Equal(AxisPosition.Unknown, vm.Position(axis));
@@ -125,7 +126,7 @@ public sealed class PolarCylinderTests
     public void Polar_FirstMotionThatDoesNotNameAnAxisKnownInTheMachineFrame_LeavesItUnknown()
     {
         VmHarness vm = new VmHarness(VmMachines.MillTurn())
-            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "HOME X", "POLAR=ON", "LINE C=5");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "HOME X", "POLAR=ON", "LINE C=5");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
@@ -138,7 +139,8 @@ public sealed class PolarCylinderTests
     public void Polar_MotionThatDoesNotNameAnAxisKnownInThePolarFrame_KeepsItThere()
     {
         VmHarness vm = new VmHarness(VmMachines.Default()).Execute(
-            "UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "POLAR=ON", "LINE X=10 C=0", "LINE C=5", "LINE Z=-1");
+            "UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "POLAR=ON", "LINE X=10 C=0", "LINE C=5",
+            "LINE Z=-1");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(10m, PositionFrame.Polar, Known: true), vm.Position("X"));
@@ -156,7 +158,8 @@ public sealed class PolarCylinderTests
         string axis, string incremental)
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "RAPID X=30 Z=0 C=0", "CYLINDER=30", motion);
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "RAPID X=30 Z=0 C=0", "CYLINDER=30",
+                motion);
 
         vm.AssertNoDiagnostics();
         Assert.Equal(AxisPosition.Unknown, vm.Position(axis));
@@ -173,7 +176,8 @@ public sealed class PolarCylinderTests
     public void Polar_IncrementalWordBeforeTheFirstMotionUnderIt_IsAnError()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "RAPID X=10 C=0", "POLAR=ON", "LINE IC=5");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "RAPID X=10 C=0", "POLAR=ON",
+                "LINE IC=5");
 
         Assert.Equal([DiagnosticCodes.IncrementalFromUnknownPosition], vm.Codes());
     }
@@ -183,7 +187,7 @@ public sealed class PolarCylinderTests
     public void Polar_IncrementalWordAfterAMotionUnderIt_AddsInThePolarFrame()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100", "POLAR=ON", "LINE X=10 C=0", "LINE IC=5");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100", "POLAR=ON", "LINE X=10 C=0", "LINE IC=5");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(5m, PositionFrame.Polar, Known: true), vm.Position("C"));
@@ -197,7 +201,7 @@ public sealed class PolarCylinderTests
     public void Polar_Arc_TurnsFromXTowardCIndependentOfTheWorkplane(string verb, double sweep)
     {
         VmHarness vm = new VmHarness(VmMachines.Default()).Execute(
-            "UNITS=MM WORKPLANE=ZX SPINDLE_MODE:MAIN=AXIS F=100",
+            "UNITS=MM WORKPLANE=ZX SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100",
             "POLAR=ON",
             "LINE X=5 C=0",
             verb + " X=0 C=5 CENTER:X=0 CENTER:C=0");
@@ -216,7 +220,7 @@ public sealed class PolarCylinderTests
     public void Cylinder_Arc_TurnsFromZTowardCAndXStaysInTheWorkpieceFrame()
     {
         VmHarness vm = new VmHarness(VmMachines.Default()).Execute(
-            "UNITS=MM SPINDLE_MODE:MAIN=AXIS F=100",
+            "UNITS=MM SPINDLE_MODE:MAIN=AXIS SPINDLE:TOOL=CW F=100",
             "RAPID X=30 Z=0 C=0",
             "CYLINDER=30",
             "LINE Z=10 C=0",

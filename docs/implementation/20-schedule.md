@@ -20,7 +20,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 10 | ✓ P1-01 VM state classes and snapshots | 11 | decision batch 2, answered 2026-09-11 |
 | 11 | ✓ P1-02 Block execution: state words, frames, tool change | 11 | |
 | 12 | ✓ P1-03 Block execution: motion, arcs, retract, cycles | 11 | |
-| 13 | P1-04 Validation rules and diagnostics | 11 | |
+| 13 | ✓ P1-04 Validation rules and diagnostics | 11 | |
 | 14 | P1-05 Events with Before and After | 11 | |
 | 15 | P1-06 Expander and generated blocks | 11 | |
 | 16 | P1-07 `ncx check`, `ncx trace`, `ncx annotate` | 11 | closes M2; then the `reading-the-code.md` tour of P0-07 |

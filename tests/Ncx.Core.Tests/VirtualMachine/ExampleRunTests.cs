@@ -6,8 +6,8 @@ namespace Ncx.Core.Tests.VirtualMachine;
 
 /// <summary>
 /// The five examples of the specification run in STATIC mode without a machine file, against the built-in default
-/// machine of D103: no ERROR, and the WARNINGs of block execution the notes and D100, D103 name. The validations of
-/// P1-04 add their own later.
+/// machine of D103: no ERROR, and the WARNINGs the notes, D100, D103 and the validation list of virtual machine 5 name.
+/// The whole text of the diagnostics of each is compared in Ncx.Acceptance (ExampleCheckTests).
 /// </summary>
 public sealed class ExampleRunTests
 {
@@ -38,13 +38,14 @@ public sealed class ExampleRunTests
         Assert.False(vm.State.Coolant["STANDARD"]);
     }
 
-    // PATTERN_LOOP: a variable set from an expression is UNKNOWN in STATIC mode (VM 1).
+    // PATTERN_LOOP: a variable set from an expression is UNKNOWN in STATIC mode (VM 1), and the four expressions of the
+    // loop are one WARNING, counted and reported once (VM 5).
     [Fact]
     public void PatternLoop_WithoutAMachineFile_LeavesTheLoopVariablesUnknown()
     {
         VmHarness vm = Run("PATTERN_LOOP.ncx");
 
-        vm.AssertNoDiagnostics();
+        Assert.Equal([DiagnosticCodes.UnresolvedExpressions], vm.Codes());
         Assert.True(vm.State.Vars.Get("Q1")?.IsUnknown);
         Assert.True(vm.State.Vars.Get("Q3")?.IsUnknown);
         Assert.Equal("5", vm.State.Vars.Get("Q2")?.ToString());
@@ -69,15 +70,28 @@ public sealed class ExampleRunTests
     }
 
     // MILLTURN_TRANSFER: the D103 WARNINGs name TURRET1, SUB, SUB_CHUCK, Z2 and MAIN_CHUCK, once each; the holder and
-    // the sub spindle are created on the spot, and C resolves to the sub spindle's own axis after WORKPIECE=SUB.
+    // the sub spindle are created on the spot, and C resolves to the sub spindle's own axis after WORKPIECE=SUB. The
+    // holder TURRET1 created on the spot has no spindle, so the LINEs of lines 13 and 14 find the default spindle, the
+    // tool spindle TOOL, still OFF: spindle OFF before a LINE (VM 5). Which spindle is the default one on the default
+    // machine is wave-1 question #53; at LINE C=90 the tool spindle runs.
     [Fact]
     public void MillturnTransfer_WithoutAMachineFile_WarnsNotCheckedOnceForEachMissingName()
     {
         VmHarness vm = Run("MILLTURN_TRANSFER.ncx");
 
         List<string> messages = vm.Messages(DiagnosticCodes.NotCheckedNoMachineFile);
-        Assert.Equal(5, vm.Codes().Count);
+        var spindleOffLines = new List<int>();
+        foreach (Diagnostic diagnostic in vm.Diagnostics.Items)
+        {
+            if (diagnostic.Code == DiagnosticCodes.SpindleOffBeforeLine)
+            {
+                spindleOffLines.Add(diagnostic.Line);
+            }
+        }
+
+        Assert.Equal(7, vm.Codes().Count);
         Assert.Equal(5, messages.Count);
+        Assert.Equal([13, 14], spindleOffLines);
         string[] names = ["role TURRET1", "role SUB", "function SUB_CHUCK", "axis Z2", "function MAIN_CHUCK"];
         for (int index = 0; index < names.Length; index++)
         {

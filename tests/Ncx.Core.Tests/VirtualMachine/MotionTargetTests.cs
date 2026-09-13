@@ -50,7 +50,8 @@ public sealed class MotionTargetTests
     [Fact]
     public void Line_IncrementalWordAfterHome_IsAnErrorInTheWorkpieceFrame()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM F=100", "HOME X", "LINE IX=5");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM F=100 SPINDLE:TOOL=CW", "HOME X", "LINE IX=5");
 
         Assert.Equal([DiagnosticCodes.IncrementalFromUnknownPosition], vm.Codes());
     }
@@ -94,7 +95,7 @@ public sealed class MotionTargetTests
     [InlineData("RETRACT")]
     public void Motion_BeforeUnits_IsAnError(string motion)
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute(motion);
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("SPINDLE:TOOL=CW", motion);
 
         Assert.Equal([DiagnosticCodes.MotionBeforeUnits], vm.Codes());
     }
@@ -144,7 +145,7 @@ public sealed class MotionTargetTests
     public void Line_AfterSetposAgainstTheMachinePosition_StoresTheCoordinateThroughTheShift()
     {
         VmHarness vm = new VmHarness(VmMachines.MillTurn())
-            .Execute("UNITS=MM F=100", "HOME X", "SETPOS X=100", "LINE X=50");
+            .Execute("UNITS=MM F=100 SPINDLE:TOOL=CW", "HOME X", "SETPOS X=100", "LINE X=50");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(250m, PositionFrame.Workpiece, Known: true), vm.Position("X"));
@@ -169,7 +170,7 @@ public sealed class MotionTargetTests
     public void CalledSub_IncrementalWordFromAnUnknownPosition_IsAnError()
     {
         string text = VmHarness.File(
-            "UNITS=MM", "CALL=10", "PROGRAM=END", "SUB=BEGIN NAME=10", "LINE IX=30 F=100", "SUB=END");
+            "UNITS=MM SPINDLE=CW", "CALL=10", "PROGRAM=END", "SUB=BEGIN NAME=10", "LINE IX=30 F=100", "SUB=END");
 
         VmHarness vm = VmHarness.Run(text, VmMachines.Default());
 
@@ -184,6 +185,7 @@ public sealed class MotionTargetTests
     {
         string text = VmHarness.File(
             "FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF",
+            "SPINDLE=CW",
             "RAPID X=0 Y=0",
             "RAPID Z=2",
             "CALL=100 TIMES=4",
@@ -223,9 +225,10 @@ public sealed class MotionTargetTests
         Assert.Equal(new AxisPosition(450m, PositionFrame.Machine, Known: true), vm.Position("Z"));
     }
 
-    // The default machine of D103 with the units set, the start of most tests here.
+    // The default machine of D103 with the units set and the spindle of its tool holder running, so that a LINE finds
+    // it on (virtual machine 5), the start of most tests here.
     private static VmHarness Mill()
     {
-        return new VmHarness(VmMachines.Default()).Execute("UNITS=MM");
+        return new VmHarness(VmMachines.Default()).Execute("UNITS=MM SPINDLE=CW");
     }
 }

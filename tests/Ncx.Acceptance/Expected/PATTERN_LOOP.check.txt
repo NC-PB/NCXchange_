@@ -1,0 +1,1 @@
+PATTERN_LOOP.ncx(17): WARNING VM540: 4 expressions are not evaluated in STATIC mode, the first in this block; what they set is UNKNOWN (virtual machine 1, 5).
