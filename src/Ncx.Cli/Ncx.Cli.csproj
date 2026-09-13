@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The command line application ncx: convert, compile, format, check, analyze, trace, annotate, plugin. Depends on
+    everything (architecture 3, 10; D74); tested from Ncx.Acceptance until it has a test project of its own
+    (implementation 00-method 4).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ncx</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+    <ProjectReference Include="../Ncx.Config/Ncx.Config.csproj" />
+    <ProjectReference Include="../Ncx.Readers/Ncx.Readers.csproj" />
+    <ProjectReference Include="../Ncx.Compilers/Ncx.Compilers.csproj" />
+    <ProjectReference Include="../Ncx.Analytics/Ncx.Analytics.csproj" />
+    <ProjectReference Include="../Ncx.Plugins/Ncx.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Acceptance" />
+  </ItemGroup>
+
+</Project>

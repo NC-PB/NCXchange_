@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Model, word catalog, lexer, parser, expressions, expander, virtual machine, events, diagnostics, canonical
+    writer, small geometry, and the records of the machine model and the job manifest. Depends on nothing but the
+    .NET base library (architecture 3, D107).
+  -->
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Core.Tests" />
+  </ItemGroup>
+
+</Project>

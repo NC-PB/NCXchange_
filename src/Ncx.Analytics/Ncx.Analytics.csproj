@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Event subscribers that produce text: tool list, runtime, limits, segments, loops, timeline. Depends on Ncx.Core
+    (architecture 3); tested from Ncx.Acceptance until it has a test project of its own (implementation 00-method 4).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Acceptance" />
+  </ItemGroup>
+
+</Project>

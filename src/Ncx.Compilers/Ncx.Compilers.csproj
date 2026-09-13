@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ICompiler, the Fanuc, Heidenhain and Siemens compilers, number formatting, the job compiler, and IBlockWriter for
+    plugins. Depends on Ncx.Core and Ncx.Config (architecture 3, D106).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+    <ProjectReference Include="../Ncx.Config/Ncx.Config.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Compilers.Tests" />
+  </ItemGroup>
+
+</Project>

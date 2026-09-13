@@ -1,0 +1,5 @@
+# NCXchange
+
+[![CI](https://github.com/NC-PB/NCXchange_/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NC-PB/NCXchange_/actions/workflows/ci.yml)
+
+NCXchange is NCX, a controller-independent NC program format, and `ncx`, the command line tool around it, written in C# on .NET: one virtual machine that resolves the full state of a program at every block, readers for Fanuc, Heidenhain and Siemens programs, compilers driven by TOML machine configurations, analytics and plugins. The format has three uses: converting a program from one controller to another (Fanuc G-code in, Heidenhain Klartext out, and every other pair), writing machine-independent programs by hand, and letting a CAM postprocessor emit NCX once so that one postprocessor covers every machine; in all three a program means the same thing on every machine, and every machine specific detail lives in the machine configuration. The specification, the architecture and the plan are in [`docs/`](docs/README.md); the code is under the MIT license ([`LICENSE`](LICENSE)).

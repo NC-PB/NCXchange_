@@ -1,0 +1,6 @@
+# The test projects inherit every setting of the repository root and override only the rules that fight the test
+# style of code-guidelines 8 (phase 0, P0-01, risks; recorded in the log of P0-01).
+
+[*.cs]
+# CA1707: test names are Rule_Scenario_Expectation, with underscores (code-guidelines 8).
+dotnet_diagnostic.CA1707.severity = none

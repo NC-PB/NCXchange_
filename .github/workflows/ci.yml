@@ -1,0 +1,32 @@
+# Restore, build with warnings as errors, check the formatting and run the tests on every push and pull request,
+# on Linux and on Windows, so that the line-ending handling holds on both (implementation 00-method 3,
+# code-guidelines 9, phase 0 P0-01).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore NCXchange.sln
+      - run: dotnet build NCXchange.sln --no-restore -warnaserror
+      - run: dotnet format NCXchange.sln --verify-no-changes --no-restore
+      - run: dotnet test NCXchange.sln --no-build

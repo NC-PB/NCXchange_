@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Loading of the machine file (TOML) into the machine model of Ncx.Core, templates, cycle catalogs, job manifest
+    and vars files, the DefaultMachine. Depends on Ncx.Core and the TOML parser (architecture 3, D103, D107).
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Config.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+# Every text file is LF in the repository and in every checkout, on Linux and on Windows alike, so that a
+# string-in string-out test reads the same text on both operating systems of CI (implementation 00-method 3).
+* text=auto eol=lf
+
+# Windows command scripts keep CRLF, as .editorconfig says.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# The example files of the specification are kept byte for byte as written, line endings and all
+# (docs/spec/examples/sources/README.md): git never converts them. A test fixture whose line endings matter is
+# added here the same way.
+docs/spec/examples/** -text

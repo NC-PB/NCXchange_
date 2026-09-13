@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    IReader, the Fanuc, Heidenhain and Siemens readers, source tokenizers, source-side modal state, and ISourceRule
+    for plugins. Depends on Ncx.Core and Ncx.Config (architecture 3, D106).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+    <ProjectReference Include="../Ncx.Config/Ncx.Config.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Readers.Tests" />
+  </ItemGroup>
+
+</Project>

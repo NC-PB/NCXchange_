@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The acceptance tests: the example files of the specification end to end, the rules of the repository itself
+    (dependency diagram, packages, fixtures), and the tests of Ncx.Analytics, Ncx.Plugins and Ncx.Cli until those
+    have a test project of their own (implementation 00-method 4).
+  -->
+
+  <Import Project="../Fixtures.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ncx.Analytics/Ncx.Analytics.csproj" />
+    <ProjectReference Include="../../src/Ncx.Plugins/Ncx.Plugins.csproj" />
+    <ProjectReference Include="../../src/Ncx.Cli/Ncx.Cli.csproj" />
+  </ItemGroup>
+
+</Project>

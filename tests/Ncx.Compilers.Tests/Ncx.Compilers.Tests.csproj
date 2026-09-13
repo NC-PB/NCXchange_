@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of Ncx.Compilers: NCX text in, NC text out, per machine file (architecture 3, 11). The fixture mechanism
+    is tests/README.md.
+  -->
+
+  <Import Project="../Fixtures.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ncx.Compilers/Ncx.Compilers.csproj" />
+  </ItemGroup>
+
+</Project>

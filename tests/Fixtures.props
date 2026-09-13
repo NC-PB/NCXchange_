@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    The fixture mechanism of every test project (tests/README.md); each test project imports this file.
+
+    The example files of the specification are embedded straight from docs/spec/examples, so the specification
+    folder stays the single source of truth and there is no second copy to go stale (implementation 00-method 4).
+    The logical name of each is its path from the repository root with forward slashes, the same on every operating
+    system: docs/spec/examples/sources/BOHREN.h. Hidden files such as .DS_Store are not examples. WithCulture is
+    off, so that no file name is ever read as a culture and moved into a satellite assembly.
+
+    The helper Fixture and the test that checks this mechanism in every test project are linked from
+    tests/Fixtures; the linked test needs the global using of Xunit that every test project declares.
+  -->
+  <PropertyGroup>
+    <NcxRepositoryRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</NcxRepositoryRoot>
+    <NcxExamplesFolder>$(NcxRepositoryRoot)docs/spec/examples/</NcxExamplesFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(NcxExamplesFolder)**/*" Exclude="$(NcxExamplesFolder)**/.*" WithCulture="false">
+      <NcxRelativeFolder>$([System.String]::Copy('%(RecursiveDir)').Replace('\', '/'))</NcxRelativeFolder>
+      <LogicalName>docs/spec/examples/%(NcxRelativeFolder)%(Filename)%(Extension)</LogicalName>
+      <Link>Examples/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </EmbeddedResource>
+    <Compile Include="$(MSBuildThisFileDirectory)Fixtures/*.cs" Link="Fixtures/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

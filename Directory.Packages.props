@@ -1,0 +1,20 @@
+<Project>
+
+  <!--
+    Central package versions (implementation 00-method 3). These five are the only packages of the repository:
+    Tomlyn for TOML, System.CommandLine for the command line, xUnit with its runner and the test SDK; another one
+    needs a decision in the log (code-guidelines 4 and 9). This file imports nothing from above the repository root.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.12" />
+    <PackageVersion Include="Tomlyn" Version="2.10.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

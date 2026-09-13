@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The plugin loader, the concrete RewriteContext built from the D80 settings and the plugin-facing diagnostics
+    helpers. Depends on Ncx.Core, Ncx.Readers and Ncx.Compilers, where the four plugin interfaces live with their
+    callers, so that a plugin references Ncx.Plugins alone (architecture 3, D106); tested from Ncx.Acceptance until it
+    has a test project of its own (implementation 00-method 4).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Ncx.Core/Ncx.Core.csproj" />
+    <ProjectReference Include="../Ncx.Readers/Ncx.Readers.csproj" />
+    <ProjectReference Include="../Ncx.Compilers/Ncx.Compilers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ncx.Acceptance" />
+  </ItemGroup>
+
+</Project>

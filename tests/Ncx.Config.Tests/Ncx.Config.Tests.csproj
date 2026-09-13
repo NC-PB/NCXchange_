@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of Ncx.Config: machine files load, templates render and match, cycle catalogs (implementation 00-method 4
+    adds this project to the layout of architecture 3). The fixture mechanism is tests/README.md.
+  -->
+
+  <Import Project="../Fixtures.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ncx.Config/Ncx.Config.csproj" />
+  </ItemGroup>
+
+</Project>
