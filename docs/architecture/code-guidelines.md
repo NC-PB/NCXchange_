@@ -37,9 +37,9 @@ internal static class ToolChangeRules
     // TOOL=n puts n into the spindle. The preload is consumed only when it names the
     // tool that arrives; a different preload is a WARNING because the magazine has to
     // cycle twice (virtual machine 3.5, row TOOL=n).
-    public static void ApplyTool(HolderState holder, int tool, Block block, Diagnostics diagnostics)
+    public static void ApplyTool(HolderState holder, ToolRef tool, Block block, Diagnostics diagnostics)
     {
-        if (holder.Preloaded is int preloaded && preloaded != tool)
+        if (holder.Preloaded is ToolRef preloaded && preloaded != tool)
         {
             diagnostics.Warning(block.Line, DiagnosticCodes.PreloadMismatch,
                 $"Tool {preloaded} was preloaded but tool {tool} is called (virtual machine 3.5).");
@@ -55,7 +55,7 @@ internal static class ToolChangeRules
     // preloaded (virtual machine 3.5, row TOOL).
     public static void ApplyBareTool(HolderState holder, Block block, Diagnostics diagnostics)
     {
-        if (holder.Preloaded is not int preloaded)
+        if (holder.Preloaded is not ToolRef preloaded)
         {
             diagnostics.Error(block.Line, DiagnosticCodes.NothingPreloaded,
                 "TOOL without a value needs a preloaded tool (virtual machine 3.5).");

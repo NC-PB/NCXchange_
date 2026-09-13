@@ -1,0 +1,47 @@
+# P1-01 VM state classes and snapshots
+
+Phase: 1 | Milestone: M2 | Depends on: `P0-06`, `P2-01`, `P2-02` | Size: M (S: a day or two, M: up to a week, L: more)
+
+## Goal
+
+The mutable state of one channel exactly as section 2 of the virtual machine lists it, with a cheap snapshot for Before and After.
+
+## Scope
+
+- `ChannelState` with `ProgramState`, `FrameState` (units, workplane, origin, the transform chain as an ordered list of `TransformEntry`, setpos shifts, diameter, cylinder (the reference radius or OFF, D96), polar, tcpm, rotary path and feed, tolerance, workpiece holder, machine-frame block flag), `MotionState` (positions with frame and known flag, feed and mode, compensation, block verb, tool vector and surface normal), `HolderState` (the tool as a number or a name, language 4.4), `SpindleState`, `CycleState`, `FlowState`, `VariableStore`, coolant and function tables.
+- `Snapshot()` returns an immutable copy (records or a copy-on-write list), used for `Before`/`After` on every event.
+- Initial values per the tables of section 2, from the machine configuration where the table says so (the `MachineConfig` loaded by P2-01, or the `DefaultMachine` of D103 when no file is given).
+
+## References
+
+- ncx-virtual-machine.md section 2 (every table)
+- architecture.md section 5 (VM class diagram)
+
+## Done when
+
+- A test sets every variable and reads it back from a snapshot while the live state changes.
+- The start position rule holds: an axis with `home` in the configuration starts known in the MACHINE frame at that reference point and unknown in the workpiece frame; an axis without `home` starts unknown in every frame (VM 2.2, 3.4, D35, D100).
+
+## Log
+
+(who, when, what was decided while doing it; a decision that changes the specification gets a row in `../../../decisions/decisions.md`)
+
+Claude (agent), 2026-09-13. Built on `main` at P2-01 (the model of P0-02, the machine records of P2-01 in `src/Ncx.Core/Machine/`, `DefaultMachine`, the planes of P1-03a). All of section P1-01 of `implementation/11-phase-1-virtual-machine.md`. Decisions implemented: D35 and D100 (the start position, with the clarification of 2026-09-13), D103 (the caller passes the `DefaultMachine` when there is no machine file; `Ncx.Core` does not reference `Ncx.Config`), D31 and D82 (`TransformEntry`), D85, D86, D96 (tolerance, rotary path and feed, the cylinder radius), D94 (native cycles), D95 (the restore stack), D38 (unassigned variables), D51 (SYS_ names), D57, D81. The specification is unchanged apart from the document fixes F19 and F20; everything below is a reading of it.
+
+- Files in `src/Ncx.Core/VirtualMachine/State/`, one type per file. The mutable state, one internal sealed class per VM 2 table, each with `Snapshot()`: `ChannelState` (lastHolder of 2.3, coolant and functions of 2.5, channel.id, waitingAt, finished and the resources of 2.8), `ProgramState`, `FrameState`, `MotionState`, `HolderState`, `SpindleState`, `CycleState`, `FlowState` (with file.programs and file.subs of 2.1 and the restore stack of 3.10), `VariableStore`. `ChannelState.Snapshot()` returns `ChannelSnapshot`, an immutable deep copy made of the public sealed records `ProgramSnapshot`, `FrameSnapshot`, `MotionSnapshot`, `HolderSnapshot`, `SpindleSnapshot`, `CycleSnapshot`, `FlowSnapshot` with read-only copies behind `IReadOnlyList` and `IReadOnlyDictionary`, the Before and After of P1-05. The parts that never change in place are immutable and shared by state and snapshot: `TransformEntry` and `ToleranceState` (records), `AxisPosition` (readonly record struct), `CallFrame`, `RepeatFrame`, `RestoreEntry`, `VariableValue`. Enumerations for the closed sets (code-guidelines 7): `Units` (with `Unknown`), `Workplane`, `FeedMode`, `Compensation`, `RotaryPath`, `RotaryFeed`, `ToleranceMode`, `TransformKind`, `TiltMove`, `TiltRot`, `PositionFrame` (`Unknown`, `Workpiece`, `Machine`, `Polar`, `Cylinder`), `Verb`, `SpindleDirection`, `SpindleMode`, `ToolChangeState`.
+- The state classes are internal (code-guidelines 3.4: only the VM mutates them; listeners get snapshots, D61, D106); the snapshots, the parts and the enumerations are public, the plugin surface of D106. Whether the VM exposes `ChannelState` itself (`VirtualMachine.State` in architecture 5) is P1-02's.
+- `ChannelState(MachineConfig machine, int channelId = 1, IReadOnlyDictionary<string, Value>? startValues = null)` gives the start values of the VM 2 tables. From the machine: the setpos shift (0) and the position of every axis, keyed by the NCX name of its `[[axis]]` entry (the name a program writes, `home` belongs to and `[positions]` uses); one `SpindleState` per work or tool spindle and one `HolderState` per tool holder, by resource id; `LastHolder` from `ResolveDefaultHolder()` (default_holder, or the only holder, VM 3.8 rule 2); `WorkpieceHolder` from default_workpiece; the channels of `[coolant]` all OFF with STANDARD always among them (VM 2.5); the functions of `[func]`; `[variables] unassigned` and `[system_variables]` for the store. The cycle axis starts at the tool axis of the start workplane, taken from `Geometry.Plane`. `units_default` is not read: configuration defaults apply to source readers only (D11, D34), so the `UnitsDefault` TODO in `MachineIdentity` stays with its owner.
+- Start position (VM 2.2, 3.4, D35, D100): an axis with `home` starts as `AxisPosition(home, Machine, Known: true)`, which leaves it unknown in the workpiece frame; an axis without `home` starts as `AxisPosition.Unknown` (frame UNKNOWN, not known); `home2` plays no part at the start.
+- The PRELOAD=0 return (architecture 5.2) is state without a field of its own: `HolderState.ToolChange` is Pending while a preload is set, otherwise Loaded or Empty by the tool in the spindle. PRELOAD never changes the spindle (VM 3.5), so that tool is what Pending remembers; the `PendingRememberedTool` of the phase file would be a second copy of the same fact and is left out. Tool 0 is the empty spindle; `ToolRef("0")` is a tool by name.
+- `VariableStore`: `Get` (the value, UNKNOWN included; 0 under `unassigned = 0`; null for an unassigned variable, the ERROR the caller reports, VM 3.6, D38), `Set` (a SYS_ name throws `InvalidOperationException`, because the VM reports the ERROR first, VM 2.7, 5), `GetSystem(name, index)` (UNKNOWN for a name `[system_variables]` does not map or maps to an empty template; `SYS_TOOL` is the tool in the spindle of the last holder; every other name UNKNOWN), `PushLocals` and `PopLocals` (V1 to V33 per call), `IsSystem`, `IsLocal`, `Snapshot` (the variables the block sees). `VariableValue` is a number or a string (`IntegerValue`, `DecimalValue`, `StringValue` as written) or `VariableValue.Unknown`. The vars file seeds the store; a SYS_ start value is kept apart for INTERPRETED mode (TODO for phase 4).
+- Left to the tasks that apply the words, not decided here: the unknown setpos shift of D101 (`SetposShift` is `decimal`, as the diagram draws it; P1-02), the form of UNKNOWN for the other numeric state words set from an expression in STATIC mode (VM 1; P1-02), `SYS_POS_` and `SYS_MPOS_` (TODO in `GetSystem`: they wait for how P1-02 stores SETPOS and HOME, and P4-01 completes the SYS_ reading), the fields of `CallFrame` and `RepeatFrame` beyond return pc, target, label and passes (P1-02, P4-01). mfunctions of VM 2.5 is an event, not state (F18, P1-05); the diagnostics of VM 2.9 belong to the `VirtualMachine` (P1-02).
+- Open questions, marked `TODO(question)` in the files: the start workplane and origin "from TOML" with no key in machine-config (XY and 0); the start state of a named function "from TOML" with no key (none until `FUNC` sets one); whether the locals of a callee start unassigned or as a copy of the caller's (unassigned, as in a Fanuc G65 call).
+- Document fixes: F19 in the architecture 5 diagram (`LastHolder`, `WaitingAt`, `Finished` in `ChannelState`, `Snapshot()` returning `ChannelSnapshot` as the phase file names it, `ToleranceState` drawn with its relation to `FrameState`, `Programs` for file.programs in `FlowState`); F20 (`ToolRef SpindleTool` and `ToolRef? Preloaded` in the `HolderState` of the diagram; the code-guidelines 2 sample takes a `ToolRef` and matches `ToolRef preloaded`).
+- No shared file changed. The folder README of `VirtualMachine/State/` is P0-07's.
+
+Done when:
+
+- A test sets every variable and reads it back from a snapshot while the live state changes: holds, one `..._ChangedAfterASnapshot_SnapshotKeeps...` test per row of the VM 2 tables next to its start value `..._AtStart_...` in `tests/Ncx.Core.Tests/VirtualMachine/State/`.
+- The start position rule holds: holds for the state at the start (`StartPositionTests`: with `home` known in the MACHINE frame at the reference point and not in the workpiece frame, without `home` unknown in every frame, the D103 default machine unknown on every axis). The part of the phase file's test that executes a `HOME` block (with `nakamura-ntjx.toml` a `HOME` makes the axis known in the MACHINE frame, without `home` the D100 WARNING and still unknown) waits for P1-02 (the execution loop), P1-03 (`HomeRules`) and P2-04 (the machine files); `Ncx.Core.Tests` loads no TOML, so the machines of these tests are built by hand in the shape of D103 and `millturn1.toml`.
+
+Gate: `dotnet build -warnaserror` with 0 warnings, 717 tests passing (434 in `Ncx.Core.Tests`), `dotnet format --verify-no-changes` clean.

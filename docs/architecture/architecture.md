@@ -314,9 +314,12 @@ classDiagram
         +VariableStore Vars
         +Dictionary~string,SpindleState~ Spindles
         +Dictionary~string,HolderState~ Holders
+        +string LastHolder
         +Dictionary~string,bool~ Coolant
         +Dictionary~string,string~ Functions
-        +ChannelState Snapshot()
+        +int? WaitingAt
+        +bool Finished
+        +ChannelSnapshot Snapshot()
     }
     class ProgramState {
         +Section Section
@@ -350,6 +353,11 @@ classDiagram
         +TiltMove Move
         +TiltRot Rot
     }
+    class ToleranceState {
+        +decimal? Value
+        +decimal? Rotary
+        +ToleranceMode Mode
+    }
     class MotionState {
         +Dictionary~string,AxisPosition~ Position
         +decimal Feed
@@ -365,8 +373,8 @@ classDiagram
         +bool Known
     }
     class HolderState {
-        +int SpindleTool
-        +int? Preloaded
+        +ToolRef SpindleTool
+        +ToolRef? Preloaded
         +int OffsetLen
         +int OffsetRad
         +int OffsetCombined
@@ -393,6 +401,7 @@ classDiagram
         +Stack~CallFrame~ Calls
         +Stack~RepeatFrame~ Repeats
         +Dictionary~string,int~ Labels
+        +List~Section~ Programs
         +Dictionary~string,Section~ Subs
         +long BlocksExecuted
     }
@@ -409,6 +418,7 @@ classDiagram
     ChannelState *-- ProgramState
     ChannelState *-- FrameState
     FrameState "1" *-- "*" TransformEntry
+    FrameState *-- ToleranceState
     ChannelState *-- MotionState
     ChannelState *-- CycleState
     ChannelState *-- FlowState
