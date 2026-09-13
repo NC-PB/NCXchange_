@@ -12,7 +12,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_AxesWithAReferencePoint_AreKnownInTheMachineFrameAtIt()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X Z");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X Z");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
@@ -23,7 +23,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_Point2_GoesToTheSecondReferencePoint()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X POINT=2");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X POINT=2");
 
         Assert.Equal(new AxisPosition(150m, PositionFrame.Machine, Known: true), vm.Position("X"));
     }
@@ -32,7 +32,9 @@ public sealed class HomeTests
     [Fact]
     public void Home_AxisWithoutAReferencePoint_WarnsAndIsUnknownInEveryFrame()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).At("Y", 5m, PositionFrame.Workpiece).Execute("HOME Y");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .At("Y", 5m, PositionFrame.Workpiece)
+            .Execute("UNITS=MM", "HOME Y");
 
         Assert.Equal([DiagnosticCodes.HomeWithoutReferencePoint], vm.Codes());
         Assert.Equal(AxisPosition.Unknown, vm.Position("Y"));
@@ -42,7 +44,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_TheSameAxisSeveralTimesInARun_WarnsOncePerAxis()
     {
-        string text = VmHarness.File("HOME Y", "HOME Y", "HOME X Y", "PROGRAM=END");
+        string text = VmHarness.File("UNITS=MM", "HOME Y", "HOME Y", "HOME X Y", "PROGRAM=END");
 
         VmHarness vm = VmHarness.Run(text, VmMachines.MillTurn());
 
@@ -53,7 +55,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_Point2OnAnAxisWithoutASecondReferencePoint_Warns()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME Z POINT=2");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME Z POINT=2");
 
         Assert.Equal([DiagnosticCodes.HomeWithoutReferencePoint], vm.Codes());
         Assert.Equal(AxisPosition.Unknown, vm.Position("Z"));
@@ -63,7 +65,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_WithoutAnAxisName_IsAnError()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME");
 
         Assert.Equal([DiagnosticCodes.HomeWithoutAxis], vm.Codes());
     }
@@ -72,7 +74,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_MachineAxisName_ResolvesThroughTheAxisList()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME Z2");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME Z2");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(0m, PositionFrame.Machine, Known: true), vm.Position("Z2"));
@@ -82,7 +84,7 @@ public sealed class HomeTests
     [Fact]
     public void Home_DefaultMachine_WarnsForEveryAxis()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("HOME X Y Z");
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "HOME X Y Z");
 
         Assert.Equal(3, vm.Count(DiagnosticCodes.HomeWithoutReferencePoint));
     }

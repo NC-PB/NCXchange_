@@ -110,7 +110,7 @@ public sealed class ResourceResolutionTests
     public void CreatedWorkSpindle_HoldsTheWorkpiece_CResolvesToItsOwnRotaryAxis()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("SPINDLE_MODE:SUB=AXIS WORKPIECE=SUB", "HOME C", "SETPOS C=10");
+            .Execute("UNITS=MM SPINDLE_MODE:SUB=AXIS WORKPIECE=SUB", "HOME C", "SETPOS C=10");
 
         Assert.Equal(1, vm.Count(DiagnosticCodes.NotCheckedNoMachineFile));
         Assert.Equal(1, vm.Count(DiagnosticCodes.HomeWithoutReferencePoint));
@@ -123,7 +123,8 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void CWord_WorkpieceHolderWithARotaryAxis_ResolvesToIt()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("SPINDLE_MODE:SUB=AXIS WORKPIECE=SUB", "HOME C");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM SPINDLE_MODE:SUB=AXIS WORKPIECE=SUB", "HOME C");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(0m, PositionFrame.Machine, Known: true), vm.Position("C2"));
@@ -134,7 +135,7 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void UnknownMachineAxis_WithAMachineFile_IsAnError()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME W");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME W");
 
         Assert.Equal([DiagnosticCodes.UnknownMachineAxis], vm.Codes());
     }
@@ -144,10 +145,10 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void UnknownMachineAxis_WithoutAMachineFile_WarnsOnceAndCreatesTheAxis()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("RAPID Z2=-58", "RAPID Z2=-5");
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "RAPID Z2=-58", "RAPID Z2=-5");
 
         Assert.Equal([DiagnosticCodes.NotCheckedNoMachineFile], vm.Codes());
-        Assert.Equal(AxisPosition.Unknown, vm.Position("Z2"));
+        Assert.Equal(new AxisPosition(-5m, PositionFrame.Workpiece, Known: true), vm.Position("Z2"));
         Assert.Equal(0m, vm.State.Frame.SetposShift["Z2"]);
     }
 
@@ -175,7 +176,7 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void CWord_SpindleInSpindleMode_IsAnError()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("RAPID C=10");
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "RAPID C=10");
 
         Assert.Equal([DiagnosticCodes.AxisOfSpindleInSpindleMode], vm.Codes());
     }
@@ -184,7 +185,7 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void CWord_SpindleInAxisModeFromTheSameBlock_IsAllowed()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("RAPID C=10 SPINDLE_MODE:MAIN=AXIS");
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "RAPID C=10 SPINDLE_MODE:MAIN=AXIS");
 
         vm.AssertNoDiagnostics();
     }
@@ -193,7 +194,7 @@ public sealed class ResourceResolutionTests
     [Fact]
     public void HomeC_SpindleInSpindleMode_IsNoCWord()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME C");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME C");
 
         vm.AssertNoDiagnostics();
     }

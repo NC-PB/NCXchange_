@@ -8,12 +8,17 @@ Start with `VirtualMachine.cs`: `Execute(block)` runs the seven steps of virtual
 |---|---|
 | `ResourceResolver.cs` | roles, default resources, axis names, functions, coolant channels, spindle rules 4 and 5 (virtual machine 3.8); the default machine without a file (D103) |
 | `FrameRules.cs` | the frame chain and the setpos shifts (virtual machine 2.1, 3.4; D31, D35, D55, D101) |
+| `MotionRules.cs` | `RAPID` and `LINE`: the targets of absolute and incremental words in the frame they program in, `UNITS` before the first motion, a feed for `LINE`, one form per axis (virtual machine 3.1; D35, D60, D99, D102) |
+| `ArcRules.cs`, `ArcWords.cs`, `PlaneArc.cs` | `ARC` in its working plane with the geometry of `../Geometry/` (virtual machine 3.2; D36, D60, D84, D102) |
+| `ToolVectorRules.cs` | the vector words `TX TY TZ`, `NX NY NZ` under `TCPM=ON` (virtual machine 2.2, 3.1; D81) |
+| `RetractRules.cs` | `RETRACT` along the tool axis (virtual machine 3.1a, D83) |
+| `CycleRules.cs`, `CycleMotion.cs` | `CYCLE_CALL`, the sequence of the drilling family and its motions under `ExpandCycles` (virtual machine 3.3; D37, D59, D94) |
 | `HomeRules.cs` | `HOME` (virtual machine 3 step 5, D100) |
 | `DiameterRules.cs` | diameter programming (language 4.2, D60) |
 | `ProgramEndRules.cs` | what `PROGRAM=END` resets (virtual machine 4) |
 | `BlockContext.cs`, `BlockFlow.cs` | one block while it executes, and where the flow goes after it |
 | `VmOptions.cs`, `SkipBlocks.cs`, `ExecutionMode.cs`, `RunResult.cs` | the options of a run and how it ended (D53) |
 
-`State/` holds the state of a channel and its snapshots, `Handlers/` the word handlers, one class per group. `ExecuteMotion` executes `HOME`; the other motion verbs are P1-03's, the validation list P1-04's, the events P1-05's.
+`State/` holds the state of a channel and its snapshots, `Handlers/` the word handlers, one class per group. `ExecuteMotion` hands each motion verb to its rules and keeps the resolved arc and the motions of an expanded cycle for the events of step 7; the validation list is P1-04's, the events P1-05's.
 
 Never here: parsing (the program arrives parsed), the output of a controller, reading a machine file (the caller passes a loaded `MachineConfig`, or `DefaultMachine` of `Ncx.Config` without a file, D103).

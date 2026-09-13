@@ -24,6 +24,22 @@ public sealed class FrameChainTests
         Assert.Equal(45m, shiftFirst.Chain[1].Angles["B"]);
     }
 
+    // VM 1, 3.4, wave-1 question #100: the chain entry of a SHIFT from an expression names the axes whose shift is
+    // unknown; removing it folds an unknown shift back, so an axis known in the workpiece frame is unknown afterwards,
+    // as appending it left it.
+    [Fact]
+    public void ShiftReset_OfAShiftFromAnExpression_LeavesTheShiftedAxisUnknown()
+    {
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "SHIFT X={$Q1} Y=5", "RAPID X=50 Y=7");
+
+        Assert.Equal(["X"], vm.State.Frame.Chain[0].UnknownShift);
+
+        vm.Execute("SHIFT=RESET");
+
+        Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
+        Assert.Equal(new AxisPosition(12m, PositionFrame.Workpiece, Known: true), vm.Position("Y"));
+    }
+
     // Language 4.2, VM 2.1: SHIFT=RESET after a tilt removes the shift and the tilt appended after it.
     [Fact]
     public void ShiftReset_AfterATilt_RemovesTheShiftAndTheTiltAfterIt()

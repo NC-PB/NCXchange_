@@ -99,7 +99,10 @@ public sealed class ExampleRunTests
 
         Assert.Equal([DiagnosticCodes.HomeWithoutReferencePoint], vm.Codes());
         Assert.Contains("SETPOS:C", vm.State.Unknown);
-        Assert.Equal(new AxisPosition(0m, PositionFrame.Workpiece, Known: true), vm.Position("C"));
+
+        // C ends where the last cross hole put it, CYCLE_CALL C=240, read through the shift that stayed unknown (VM
+        // 3.3, 3.4, D101).
+        Assert.Equal(new AxisPosition(240m, PositionFrame.Workpiece, Known: true), vm.Position("C"));
     }
 
     private static VmHarness Run(string example)

@@ -20,9 +20,22 @@ public sealed record TransformEntry
     public IReadOnlyDictionary<string, decimal> Shift { get; init; } = ReadOnlyDictionary<string, decimal>.Empty;
 
     /// <summary>
+    /// SHIFT: the axes whose shift came from an expression, which STATIC mode does not evaluate (virtual machine 1);
+    /// their entry in <see cref="Shift"/> is 0 (wave-1 question #100). Empty for the other kinds.
+    /// </summary>
+    public IReadOnlyList<string> UnknownShift { get; init; } = [];
+
+    /// <summary>
     /// ROTATE: the rotation of the working plane about the tool axis in degrees (language 4.2); 0 for the other kinds.
     /// </summary>
     public decimal Angle { get; init; }
+
+    /// <summary>
+    /// ROTATE: the working plane where the word stands, whose two axes the rotation turns about its tool axis; every
+    /// chain entry applies to the frame active where it stands, so a later WORKPLANE does not change it (language 4.2,
+    /// D31). XY for the other kinds.
+    /// </summary>
+    public Workplane Workplane { get; init; } = Workplane.XY;
 
     /// <summary>
     /// MIRROR: the mirrored axes by their NCX names (language 4.2). Empty for the other kinds.

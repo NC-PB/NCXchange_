@@ -122,7 +122,7 @@ public sealed class StaticRunTests
     [Fact]
     public void ExternalCall_AfterSetposAgainstTheMachinePosition_LeavesTheAxisUnknownWithoutTheRecord()
     {
-        string text = VmHarness.File("HOME X", "SETPOS X=100", "CALL=\"O9010\"", "PROGRAM=END");
+        string text = VmHarness.File("UNITS=MM", "HOME X", "SETPOS X=100", "CALL=\"O9010\"", "PROGRAM=END");
 
         VmHarness vm = VmHarness.Run(text, VmMachines.MillTurn());
 

@@ -56,7 +56,7 @@ public sealed class ModalSummaryTests
     [Fact]
     public void VerbFrameIfArgTimesWith_BlockScoped_EndWithTheirBlock()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("RAPID Z=0 FRAME=MACHINE");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "RAPID Z=0 FRAME=MACHINE");
 
         Assert.Null(vm.State.Motion.BlockVerb);
         Assert.False(vm.State.Frame.MachineFrameBlock);

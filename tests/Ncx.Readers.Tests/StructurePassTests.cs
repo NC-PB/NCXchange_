@@ -189,7 +189,10 @@ public sealed class StructurePassTests
             text);
         Assert.True(program.Diagnostics.Items.Count == 0, program.Diagnostics.ToText());
         AssertFormatsToItself(text);
-        Diagnostics check = Check(text);
+        // The fake reader knows no G21: check runs the text with the UNITS a real reader takes from the source, as
+        // the subprogram's motion needs it (VM200).
+        Diagnostics check = Check(text.Replace("PROGRAM=BEGIN NUMBER=1\n", "PROGRAM=BEGIN NUMBER=1\nUNITS=MM\n",
+            StringComparison.Ordinal));
         Assert.DoesNotContain(Core.Model.DiagnosticCodes.CallOfProgram, Codes(check));
         Assert.False(check.HasErrors, check.ToText());
     }
@@ -238,7 +241,10 @@ public sealed class StructurePassTests
                 "FILE=END"),
             text);
         AssertFormatsToItself(text);
-        Diagnostics check = Check(text);
+        // The fake reader knows no G21: check runs the text with the UNITS a real reader takes from the source, as
+        // the subprogram's motion needs it (VM200).
+        Diagnostics check = Check(text.Replace("PROGRAM=BEGIN NUMBER=1\n", "PROGRAM=BEGIN NUMBER=1\nUNITS=MM\n",
+            StringComparison.Ordinal));
         Assert.DoesNotContain(Core.Model.DiagnosticCodes.CallOfProgram, Codes(check));
         Assert.False(check.HasErrors, check.ToText());
     }

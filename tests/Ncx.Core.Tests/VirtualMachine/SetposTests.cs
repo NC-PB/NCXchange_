@@ -29,7 +29,8 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_AfterHomeWithAReferencePoint_RecordsTheShiftAgainstTheMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(90m, vm.State.Frame.SetposShift["C"]);
@@ -43,7 +44,8 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_DirectlyAfterHomeWithoutAReferencePoint_ShiftStaysUnknownAndTheAxisReadsAsDeclared()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
+        VmHarness vm = new VmHarness(VmMachines.Default())
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
 
         Assert.Equal([DiagnosticCodes.HomeWithoutReferencePoint], vm.Codes());
         Assert.False(vm.Diagnostics.HasErrors);
@@ -67,7 +69,7 @@ public sealed class SetposTests
     public void Setpos_NotDirectlyAfterTheHome_IsAnError()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SHIFT C=5", "SETPOS C=0");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SHIFT C=5", "SETPOS C=0");
 
         Assert.Equal(1, vm.Count(DiagnosticCodes.SetposAxisUnknown));
     }
@@ -76,7 +78,8 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_TheSameAxisAgain_TheSecondReplacesTheShift()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100", "SETPOS X=40");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SETPOS X=100", "SETPOS X=40");
 
         Assert.Equal(260m, vm.State.Frame.SetposShift["X"]);
         Assert.Equal(40m, FrameRules.WorkpieceCoordinate(vm.State, "X"));
@@ -86,7 +89,7 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_UnderDiameterOnInTheSameBlock_TheXWordIsADiameter()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "DIAMETER=ON SETPOS X=100");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "DIAMETER=ON SETPOS X=100");
 
         Assert.Equal(250m, vm.State.Frame.SetposShift["X"]);
         Assert.Equal(50m, FrameRules.WorkpieceCoordinate(vm.State, "X"));
@@ -97,7 +100,7 @@ public sealed class SetposTests
     public void Origin_AfterSetposWithAnUnknownShift_LeavesTheAxisUnknown()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "ORIGIN=1");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "ORIGIN=1");
 
         Assert.Equal(AxisPosition.Unknown, vm.Position("C"));
         Assert.DoesNotContain("SETPOS:C", vm.State.Unknown);
@@ -109,7 +112,7 @@ public sealed class SetposTests
     [Fact]
     public void Origin_AfterSetposAgainstTheMachinePosition_LeavesTheAxisKnownInTheMachineFrameOnly()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X=100");
         Assert.Contains("X", vm.State.Frame.SetposAgainstMachine);
 
         vm.Execute("ORIGIN=1");
@@ -126,7 +129,8 @@ public sealed class SetposTests
     [Fact]
     public void Origin_AfterSetposAgainstTheMachinePositionAndAShift_LeavesTheAxisAtItsMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100", "SHIFT X=5", "ORIGIN=1");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SETPOS X=100", "SHIFT X=5", "ORIGIN=1");
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
     }
@@ -137,7 +141,7 @@ public sealed class SetposTests
     public void Setpos_AgainAfterSetposWithAnUnknownShift_ShiftStaysUnknownAndTheAxisReadsAsDeclared()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "SETPOS C=10");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "SETPOS C=10");
 
         Assert.False(vm.Diagnostics.HasErrors);
         Assert.Contains("SETPOS:C", vm.State.Unknown);
@@ -152,7 +156,7 @@ public sealed class SetposTests
     public void Origin_AfterASecondSetposOnAnAxisWithAnUnknownShift_LeavesTheAxisUnknown()
     {
         VmHarness vm = new VmHarness(VmMachines.Default())
-            .Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "SETPOS C=10", "ORIGIN=1");
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0", "SETPOS C=10", "ORIGIN=1");
 
         Assert.Equal(AxisPosition.Unknown, vm.Position("C"));
         Assert.Null(FrameRules.WorkpieceCoordinate(vm.State, "C"));
@@ -165,7 +169,8 @@ public sealed class SetposTests
     [Fact]
     public void Origin_AxisKnownInTheMachineFrameWithAnUnknownShift_KeepsTheMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X={$Q1}", "HOME X", "ORIGIN=1");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SETPOS X={$Q1}", "HOME X", "ORIGIN=1");
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
         Assert.DoesNotContain("SETPOS:X", vm.State.Unknown);
@@ -176,7 +181,7 @@ public sealed class SetposTests
     [Fact]
     public void SetposAgainstMachine_ClearedAfterASnapshot_SnapshotKeepsTheAxis()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X=100");
 
         ChannelSnapshot snapshot = vm.State.Snapshot();
         vm.Execute("ORIGIN=1");
@@ -190,7 +195,7 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_FromAnExpression_LeavesTheShiftUnknownAndTheAxisAtItsMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X={$Q1}");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X={$Q1}");
 
         Assert.Contains("SETPOS:X", vm.State.Unknown);
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
@@ -202,7 +207,7 @@ public sealed class SetposTests
     [Fact]
     public void Origin_AfterSetposFromAnExpression_KeepsTheMachinePositionForTheNextSetpos()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X={$Q1}", "ORIGIN=1");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X={$Q1}", "ORIGIN=1");
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
 
@@ -220,7 +225,7 @@ public sealed class SetposTests
     public void Setpos_FromAnExpressionAfterSetposAgainstTheMachinePosition_ReturnsTheAxisToItsMachinePosition()
     {
         VmHarness vm = new VmHarness(VmMachines.MillTurn())
-            .Execute("HOME X", "SETPOS X=100", "SHIFT X=5", "SETPOS X={$Q1}");
+            .Execute("UNITS=MM", "HOME X", "SETPOS X=100", "SHIFT X=5", "SETPOS X={$Q1}");
 
         Assert.Contains("SETPOS:X", vm.State.Unknown);
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
@@ -230,6 +235,7 @@ public sealed class SetposTests
     // VM 3.4, D35, D101: TILT, TILT_AXIS, ROTATE and MIRROR, and their RESET forms, mark the position unknown in the
     // new frame; the machine frame does not move with it, so an axis whose setpos shift was recorded against the
     // machine position is back at that position in the MACHINE frame, and the next SETPOS records against it again.
+    // The record stays as long as the setpos shift does (second review of P1-03, finding 2).
     [Theory]
     [InlineData("ROTATE=30", "ROTATE=RESET")]
     [InlineData("MIRROR=X", "MIRROR=OFF")]
@@ -238,10 +244,10 @@ public sealed class SetposTests
     public void FrameChange_AfterSetposAgainstTheMachinePosition_ReturnsTheAxisToItsMachinePosition(string change,
         string reset)
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100", change);
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X=100", change);
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
-        Assert.DoesNotContain("X", vm.State.Frame.SetposAgainstMachine);
+        Assert.Contains("X", vm.State.Frame.SetposAgainstMachine);
 
         vm.Execute(reset);
 
@@ -262,7 +268,7 @@ public sealed class SetposTests
     public void Tilt_AfterSetposAgainstTheMachinePositionAndAShift_ReturnsTheAxisToItsMachinePosition(string first,
         string second)
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", first, second, "TILT B=45");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", first, second, "TILT B=45");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
@@ -272,7 +278,8 @@ public sealed class SetposTests
     [Fact]
     public void Workpiece_AnotherHolderAfterSetposAgainstTheMachinePosition_ReturnsTheAxisToItsMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100", "WORKPIECE=SUB");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SETPOS X=100", "WORKPIECE=SUB");
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
 
@@ -287,7 +294,8 @@ public sealed class SetposTests
     [Fact]
     public void Shift_FromAnExpressionAfterSetposAgainstTheMachinePosition_ReturnsTheAxisToItsMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100", "SHIFT X={$Q1}");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SETPOS X=100", "SHIFT X={$Q1}");
 
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
 
@@ -301,7 +309,7 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_AgainAfterAWorkpieceChangeInAStaticRun_IsNoErrorAndTheRunGoesOn()
     {
-        string text = VmHarness.File("HOME X Z", "SETPOS X=100 Z=0", "WORKPIECE=SUB", "SETPOS X=100 Z=0",
+        string text = VmHarness.File("UNITS=MM", "HOME X Z", "SETPOS X=100 Z=0", "WORKPIECE=SUB", "SETPOS X=100 Z=0",
             "PROGRAM=END");
 
         VmHarness vm = VmHarness.Run(text, VmMachines.MillTurn());
@@ -316,12 +324,12 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_AgainstTheMachinePositionAfterAShift_RecordsTheShiftsThatStoodBeforeIt()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SHIFT X=5", "SETPOS X=100");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SHIFT X=5", "SETPOS X=100");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(200m, vm.State.Frame.SetposShift["X"]);
         Assert.Equal(100m, FrameRules.WorkpieceCoordinate(vm.State, "X"));
-        Assert.Equal(5m, vm.State.Frame.SetposAgainstMachine["X"]);
+        Assert.Equal(5m, vm.State.Frame.SetposAgainstMachine["X"].ChainShift);
     }
 
     // VM 3.4, D101: a SHIFT that stood in the chain before the SETPOS was never folded into the axis, which was known
@@ -330,7 +338,8 @@ public sealed class SetposTests
     [Fact]
     public void Origin_AfterAShiftThenSetposAgainstTheMachinePosition_LeavesTheAxisAtItsMachinePosition()
     {
-        VmHarness vm = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SHIFT X=5", "SETPOS X=100", "ORIGIN=1");
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SHIFT X=5", "SETPOS X=100", "ORIGIN=1");
 
         vm.AssertNoDiagnostics();
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
@@ -342,7 +351,7 @@ public sealed class SetposTests
     public void Origin_AfterAShiftThenSetposAgainstTheMachinePositionAndShiftReset_LeavesTheAxisAtItsMachinePosition()
     {
         VmHarness vm = new VmHarness(VmMachines.MillTurn())
-            .Execute("HOME X", "SHIFT X=5", "SETPOS X=100", "SHIFT=RESET");
+            .Execute("UNITS=MM", "HOME X", "SHIFT X=5", "SETPOS X=100", "SHIFT=RESET");
 
         Assert.Equal(105m, FrameRules.WorkpieceCoordinate(vm.State, "X"));
 
@@ -356,7 +365,8 @@ public sealed class SetposTests
     [Fact]
     public void Setpos_AfterAShiftASetposAndOriginInAStaticRun_RecordsAgainstTheMachinePosition()
     {
-        string text = VmHarness.File("HOME X", "SHIFT X=5", "SETPOS X=100", "ORIGIN=1", "SETPOS X=0", "PROGRAM=END");
+        string text = VmHarness.File(
+            "UNITS=MM", "HOME X", "SHIFT X=5", "SETPOS X=100", "ORIGIN=1", "SETPOS X=0", "PROGRAM=END");
 
         VmHarness vm = VmHarness.Run(text, VmMachines.MillTurn());
 
@@ -369,8 +379,9 @@ public sealed class SetposTests
     [Fact]
     public void WorkpiecePosition_Coordinate_IsStoredThroughTheSetposShift()
     {
-        VmHarness known = new VmHarness(VmMachines.MillTurn()).Execute("HOME X", "SETPOS X=100");
-        VmHarness unknown = new VmHarness(VmMachines.Default()).Execute("SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
+        VmHarness known = new VmHarness(VmMachines.MillTurn()).Execute("UNITS=MM", "HOME X", "SETPOS X=100");
+        VmHarness unknown = new VmHarness(VmMachines.Default())
+            .Execute("UNITS=MM SPINDLE_MODE:MAIN=AXIS", "HOME C", "SETPOS C=0");
 
         Assert.Equal(220m, FrameRules.WorkpiecePosition(known.State, "X", 20m).Value);
         Assert.Equal(20m, FrameRules.WorkpiecePosition(unknown.State, "C", 20m).Value);

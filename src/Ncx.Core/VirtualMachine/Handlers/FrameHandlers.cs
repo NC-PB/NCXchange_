@@ -46,7 +46,12 @@ internal static class FrameHandlers
     // WORKPLANE=XY, ZX or YZ, the tool axis perpendicular to it (language 4.2).
     private static void ApplyWorkplane(Word word, BlockContext context)
     {
-        context.State.Frame.Workplane = BlockContext.IdentOf(word) switch
+        context.State.Frame.Workplane = WorkplaneOf(word);
+    }
+
+    private static Workplane WorkplaneOf(Word word)
+    {
+        return BlockContext.IdentOf(word) switch
         {
             "ZX" => Workplane.ZX,
             "YZ" => Workplane.YZ,
@@ -117,7 +122,14 @@ internal static class FrameHandlers
         // TODO(question): a chain entry has no UNKNOWN form for an angle from an expression in STATIC mode (virtual
         // machine 1); the entry keeps 0 for it, and the position is unknown after the rotation anyway (3.4).
         decimal angle = NumberOf(word) ?? 0m;
-        FrameRules.AppendTransform(context.State, new TransformEntry { Kind = TransformKind.Rotate, Angle = angle });
+
+        // The rotation turns the working plane where it stands (language 4.2, D31): the state words of a block do not
+        // depend on each other (virtual machine 3 step 3), so a WORKPLANE of the same block counts in either order.
+        Workplane plane = context.Block.Find("WORKPLANE") is Word workplane
+            ? WorkplaneOf(workplane)
+            : context.State.Frame.Workplane;
+        FrameRules.AppendTransform(context.State,
+            new TransformEntry { Kind = TransformKind.Rotate, Angle = angle, Workplane = plane });
     }
 
     // MIRROR=X or MIRROR=X,Y appends the mirrored axes to the chain (language 4.2, virtual machine 2.1).
@@ -159,7 +171,8 @@ internal static class FrameHandlers
     }
 
     // POLAR=ON or OFF: the face transformation. Going off leaves X and C unknown in the workpiece frame until the next
-    // motion with known coordinates (language 4.2, virtual machine 3.4, D102); the first motion under it is P1-03's.
+    // motion with known coordinates (language 4.2, virtual machine 3.4, D102); the first motion under it puts them into
+    // the polar frame (MotionRules.EnterTransformation).
     private static void ApplyPolar(Word word, BlockContext context)
     {
         bool on = BlockContext.IdentOf(word) == "ON";

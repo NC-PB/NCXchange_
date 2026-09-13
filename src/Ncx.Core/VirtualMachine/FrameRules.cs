@@ -1,3 +1,4 @@
+using Ncx.Core.Geometry;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine.State;
 
@@ -21,14 +22,24 @@ internal static class FrameRules
     /// <summary>
     /// SHIFT appends an entry to the chain in program order, in the frame that is active where the word stands, and is
     /// folded into the position: newPos = oldPos - shift (language 4.2, virtual machine 2.1, 3.4, D31). Omitted axes
-    /// are 0.
+    /// are 0. A shift from an expression is not evaluated in STATIC mode (virtual machine 1): the entry keeps 0 for it
+    /// and names the axis (wave-1 question #100), and the workpiece coordinate of the axis is unknown. Nothing moves, so
+    /// an axis known in the MACHINE frame stays there, and one whose setpos shift was recorded against the machine
+    /// position returns to that position (virtual machine 3.4, D35, D101).
     /// </summary>
     /// <param name="state">The channel state.</param>
     /// <param name="shift">The shift of each axis by its key in the position store.</param>
-    public static void AppendShift(ChannelState state, IReadOnlyDictionary<string, decimal> shift)
+    /// <param name="unknownAxes">The axes whose shift came from an expression; their shift is 0.</param>
+    public static void AppendShift(ChannelState state, IReadOnlyDictionary<string, decimal> shift,
+        IReadOnlyList<string> unknownAxes)
     {
-        state.Frame.Chain.Add(new TransformEntry { Kind = TransformKind.Shift, Shift = shift });
+        state.Frame.Chain.Add(
+            new TransformEntry { Kind = TransformKind.Shift, Shift = shift, UnknownShift = unknownAxes });
         Fold(state, shift, sign: -1m);
+        foreach (string axis in unknownAxes)
+        {
+            MarkUnknownOutsideMachineFrame(state, axis);
+        }
     }
 
     /// <summary>
@@ -63,15 +74,15 @@ internal static class FrameRules
     /// <summary>
     /// ORIGIN selects the workpiece datum: it starts an empty chain and clears the setpos shifts (language 4.2,
     /// virtual machine 2.1, 3.4, 4, D31, D55). An axis whose workpiece coordinate came from a setpos shift loses it:
-    /// back to the MACHINE frame at its machine position when the shift was recorded against the machine position,
-    /// unknown when the shift was unknown (D35, D101).
+    /// back to the MACHINE frame at its machine position when the shift was recorded against the machine position and
+    /// that position is known, unknown otherwise (D35, D101).
     /// </summary>
     public static void SelectOrigin(ChannelState state, int origin)
     {
         // TODO(question): virtual machine 3.4 lists the frame changes that mark the position unknown and does not list
         // ORIGIN; without a datum table the coordinates in another datum are not known (D35). An axis known in the
         // workpiece frame of the datum keeps its value here, with the chain removed as by a RESET, until that is
-        // answered.
+        // answered (wave-1 question #111).
         state.Frame.Origin = origin;
         if (state.Frame.Chain.Count > 0)
         {
@@ -80,7 +91,7 @@ internal static class FrameRules
 
         // The next ORIGIN clears the setpos shift, as G54 cancels a G50 or G92 setting (virtual machine 3.4). The
         // chain is folded back above, shifts that stood before a SETPOS included; the record of the SETPOS takes those
-        // out again (ReturnToMachineFrame).
+        // out again (ReturnToMachineFrame), and it goes with the shift it belongs to.
         foreach (string axis in new List<string>(state.Frame.SetposShift.Keys))
         {
             state.Frame.SetposShift[axis] = 0m;
@@ -89,7 +100,9 @@ internal static class FrameRules
             // A shift recorded against the machine position: without the shift the axis is known in the MACHINE frame
             // at its machine position and unknown in the workpiece frame, as after HOME or a machine-frame move
             // (virtual machine 3.4, D35, D101).
-            if (ReturnToMachineFrame(state, axis))
+            bool returned = ReturnToMachineFrame(state, axis);
+            bool recorded = state.Frame.SetposAgainstMachine.Remove(axis);
+            if (returned)
             {
                 continue;
             }
@@ -104,8 +117,10 @@ internal static class FrameRules
             }
 
             // A shift that is unknown (D101): the store holds the coordinate itself, and the machine position is not
-            // known; without the shift the axis is unknown in every frame (D100, D101).
-            if (shiftUnknown)
+            // known. A shift recorded against the machine position after a motion that left the machine position
+            // unknown (FollowMotion): the workpiece coordinate came from the shift. Without the shift the axis is
+            // unknown in every frame (D100, D101).
+            if (shiftUnknown || recorded)
             {
                 state.Motion.Position[axis] = AxisPosition.Unknown;
             }
@@ -141,12 +156,13 @@ internal static class FrameRules
         // A declared value from an expression is not evaluated in STATIC mode: the shift is UNKNOWN, and with it the
         // position the axis reads as (virtual machine 1). SETPOS moves nothing: an axis known in the MACHINE frame
         // keeps its machine position, and one whose setpos shift was recorded against the machine position returns to
-        // it (virtual machine 3.4, D35, D101).
+        // it; the record goes with the shift it belongs to (virtual machine 3.4, D35, D101).
         string key = SetposKey(axis);
         if (declared is not decimal value)
         {
             state.Unknown.Add(key);
             MarkUnknownOutsideMachineFrame(state, axis);
+            state.Frame.SetposAgainstMachine.Remove(axis);
             return;
         }
 
@@ -161,10 +177,12 @@ internal static class FrameRules
 
         // Known in some frame: newSetposShift = oldPos - declared. Known in the MACHINE frame only (after HOME or a
         // machine-frame move), the shift is recorded against the machine position and the axis becomes known in the
-        // workpiece frame with the declared value (D101). The store keeps the machine position; the record keeps the
-        // shifts of the chain on the axis, which the store never took in, so that ORIGIN and a change of the frame
-        // find the machine position again (ReturnToMachineFrame). A later SETPOS on the axis records against the same
-        // store and keeps the record.
+        // workpiece frame with the declared value (D101). The store keeps the machine position; nothing moved, so it is
+        // known. The record keeps the shifts of the chain on the axis, which the store never took in, so that ORIGIN
+        // and a change of the frame find the machine position again (ReturnToMachineFrame). It also keeps what the frame
+        // of the declared value holds besides known shifts, the shifts from an expression on the axis and the workpiece
+        // holder, so that a later motion tells whether it moved the machine by as much as the workpiece coordinate
+        // (FollowMotion).
         if (position.Known)
         {
             state.Frame.SetposShift[axis] = position.Value - value;
@@ -172,7 +190,19 @@ internal static class FrameRules
             if (position.Frame == PositionFrame.Machine)
             {
                 state.Motion.Position[axis] = position with { Frame = PositionFrame.Workpiece };
-                state.Frame.SetposAgainstMachine[axis] = ChainShift(state, axis);
+                state.Frame.SetposAgainstMachine[axis] = new SetposRecord(ChainShift(state, axis),
+                    UnknownShiftsOn(state, axis), state.Frame.WorkpieceHolder, MachinePositionKnown: true);
+                return;
+            }
+
+            // A later SETPOS on an axis known in the workpiece frame, with its machine position known through the
+            // record, records against the same store and keeps the record. On any other position the new shift is not
+            // recorded against the machine position: a position known in the polar or cylinder frame, or one whose
+            // machine position a motion left unknown (FollowMotion). The record of the earlier shift goes with that
+            // shift (D101).
+            if (!MachinePositionThroughRecord(state, axis, position, out _))
+            {
+                state.Frame.SetposAgainstMachine.Remove(axis);
             }
 
             return;
@@ -220,6 +250,55 @@ internal static class FrameRules
     }
 
     /// <summary>
+    /// After a motion block that moves in the workpiece frame (virtual machine 3.1 to 3.3), for every axis whose setpos
+    /// shift was recorded against the machine position and that is known in the workpiece frame. A motion that names
+    /// some axes leaves the others as they were (3.4), so only an axis whose machine position the block can have
+    /// changed is looked at: an axis whose stored position the block changed, and an axis the frame couples with such
+    /// an axis (Couples). The machine position of the axis stays known through the record when the block moved the
+    /// machine by as much as the workpiece coordinate of the axis alone (MovesAsItsWorkpieceCoordinate); otherwise the
+    /// amount is one that only the kinematics module or the machine's convention for another holder gives, or that
+    /// comes from an expression, and the machine position is unknown until a motion of the axis that moves it by as
+    /// much (virtual machine 1, 3.4, 10, D57, D101).
+    /// </summary>
+    /// <param name="context">The motion block, after its verb moved the axes.</param>
+    /// <param name="before">The position store before the block moved anything.</param>
+    public static void FollowMotion(BlockContext context, IReadOnlyDictionary<string, AxisPosition> before)
+    {
+        ChannelState state = context.State;
+        var moved = new List<string>();
+        foreach (KeyValuePair<string, AxisPosition> axisPosition in state.Motion.Position)
+        {
+            if (!before.TryGetValue(axisPosition.Key, out AxisPosition was) || was != axisPosition.Value)
+            {
+                moved.Add(axisPosition.Key);
+            }
+        }
+
+        foreach (string axis in new List<string>(state.Frame.SetposAgainstMachine.Keys))
+        {
+            if (!state.Motion.Position.TryGetValue(axis, out AxisPosition position)
+                || !position.Known
+                || position.Frame != PositionFrame.Workpiece)
+            {
+                continue;
+            }
+
+            bool changed = moved.Contains(axis);
+            bool coupled = Couples(context, axis, moved);
+            if (!changed && !coupled)
+            {
+                continue;
+            }
+
+            SetposRecord record = state.Frame.SetposAgainstMachine[axis];
+            state.Frame.SetposAgainstMachine[axis] = record with
+            {
+                MachinePositionKnown = !coupled && MovesAsItsWorkpieceCoordinate(context, axis, record),
+            };
+        }
+    }
+
+    /// <summary>
     /// WORKPIECE changes mark the position unknown in the new holder's frame until the next ORIGIN or motion with known
     /// coordinates; the frame of a holder is its own right-handed frame with +Z out of its chuck (virtual machine 3.4,
     /// D57). Selecting the holder that already holds the part changes nothing.
@@ -238,7 +317,7 @@ internal static class FrameRules
     /// <summary>
     /// POLAR=OFF and CYLINDER=OFF leave the axes of the transformation unknown in the workpiece frame until the next
     /// motion with known coordinates (virtual machine 3.4, D35, D102): a position known in the polar or cylinder frame
-    /// becomes unknown.
+    /// becomes unknown. The record of a setpos shift taken against the machine position stays with the shift (D101).
     /// </summary>
     public static void LeaveTransformation(ChannelState state, PositionFrame frame)
     {
@@ -266,8 +345,8 @@ internal static class FrameRules
     /// <summary>
     /// The frame of an axis changes while nothing moves: known in the workpiece, polar or cylinder frame, it becomes
     /// unknown; known in the MACHINE frame, it stays known there, because the machine frame does not move with the
-    /// workpiece frame; with a setpos shift recorded against the machine position, it returns to that position in the
-    /// MACHINE frame (virtual machine 3.4, D35, D101).
+    /// workpiece frame; with a setpos shift recorded against the machine position and that position known through the
+    /// record, it returns to that position in the MACHINE frame (virtual machine 3.4, D35, D101).
     /// </summary>
     public static void MarkUnknownOutsideMachineFrame(ChannelState state, string axis)
     {
@@ -286,27 +365,171 @@ internal static class FrameRules
 
     // D101: the setpos shift of the axis was recorded against its machine position, and the store kept that position.
     // Since then Fold has taken the SHIFT entries appended to the chain out of the store and given the removed ones
-    // back, the ones that stood before the SETPOS among them; the record holds the sum of those. So the machine
-    // position is the store plus the shifts of the chain on the axis minus the record. The axis returns to the MACHINE
-    // frame there and leaves the record. False, with the record dropped, for an axis no longer known in the workpiece
-    // frame, and for one without a record (virtual machine 3.4, D35, D101).
+    // back, the ones that stood before the SETPOS among them, and the motions that kept the machine position known moved
+    // the store by as much as the machine (FollowMotion); the record holds the sum of the shifts at the SETPOS. So the
+    // machine position is the store plus the shifts of the chain on the axis minus that sum. A shift from an expression
+    // counts as its 0 on both sides: appending or removing one returns the axis here at once, before any motion, and a
+    // motion keeps the machine position known only while the chain holds the ones of the SETPOS and no other, so its
+    // unknown shift cancels out. The axis returns to the MACHINE frame there, and the record stays with the setpos
+    // shift. False for an axis not known in the workpiece frame, for one whose machine position a motion left unknown,
+    // and for one without a record (virtual machine 1, 3.4, D35, D101).
     private static bool ReturnToMachineFrame(ChannelState state, string axis)
     {
-        if (!state.Frame.SetposAgainstMachine.Remove(axis, out decimal shiftAtSetpos)
-            || !state.Motion.Position.TryGetValue(axis, out AxisPosition position)
-            || !position.Known
-            || position.Frame != PositionFrame.Workpiece)
+        if (!state.Motion.Position.TryGetValue(axis, out AxisPosition position)
+            || !MachinePositionThroughRecord(state, axis, position, out SetposRecord record))
         {
             return false;
         }
 
-        decimal machine = position.Value + ChainShift(state, axis) - shiftAtSetpos;
+        decimal machine = position.Value + ChainShift(state, axis) - record.ChainShift;
         state.Motion.Position[axis] = new AxisPosition(machine, PositionFrame.Machine, Known: true);
         return true;
     }
 
+    // The axis is known in the workpiece frame, and its machine position is known through the record of its setpos
+    // shift (D101).
+    private static bool MachinePositionThroughRecord(ChannelState state, string axis, AxisPosition position,
+        out SetposRecord record)
+    {
+        return state.Frame.SetposAgainstMachine.TryGetValue(axis, out record)
+            && record.MachinePositionKnown
+            && position.Known
+            && position.Frame == PositionFrame.Workpiece;
+    }
+
+    // The block moved the machine position of the axis by as much as its workpiece coordinate, and the machine position
+    // follows from the store through the record (D101), when the workpiece frame relates to the machine frame on this
+    // axis as the frame of the SETPOS did, through shifts alone (virtual machine 3.4):
+    // - The holder of the SETPOS and of the motion is the machine's default workpiece holder. The frame of any other
+    //   holder has +Z out of its own chuck, and the machine reaches it through its mirror or datum convention, which
+    //   readers and compilers apply outside the VM (virtual machine 3.4, D57).
+    // - No ROTATE turns a plane the axis is in, no MIRROR names the axis, and no TILT or TILT_AXIS stands; those only the
+    //   kinematics module converts (virtual machine 3.4, 10). A ROTATE turns the working plane where it stood about its
+    //   tool axis, and a MIRROR mirrors the axes it names (language 4.2).
+    // - The SHIFT entries from an expression on the axis are those of the SETPOS: their unknown shift is in the frame of
+    //   the SETPOS and of the motion alike, and it cancels out. Any other is unknown (virtual machine 1).
+    private static bool MovesAsItsWorkpieceCoordinate(BlockContext context, string axis, SetposRecord record)
+    {
+        ChannelState state = context.State;
+        string? defaultHolder = context.Machine.Machine.DefaultWorkpiece;
+        if (record.Holder != defaultHolder || state.Frame.WorkpieceHolder != defaultHolder)
+        {
+            return false;
+        }
+
+        int unknownShiftsOfTheSetpos = 0;
+        foreach (TransformEntry entry in state.Frame.Chain)
+        {
+            if (entry.Kind == TransformKind.Shift && entry.UnknownShift.Contains(axis))
+            {
+                if (!record.UnknownShifts.Contains(entry, ReferenceEqualityComparer.Instance))
+                {
+                    return false;
+                }
+
+                unknownShiftsOfTheSetpos++;
+            }
+
+            if ((entry.Kind == TransformKind.Rotate && PlaneAxes(context, entry.Workplane).Contains(axis))
+                || (entry.Kind == TransformKind.Mirror && Mirrors(context, entry, axis)))
+            {
+                return false;
+            }
+
+            // TODO(question): language 4.2 tilts the frame and names spatial angles about its axes, and says nothing of
+            // a rotary axis word under a TILT or TILT_AXIS; whether a rotary axis moves in the machine frame by as much
+            // as in the tilted frame is not said, so under a tilt no axis moves by as much until that is answered.
+            if (entry.Kind is TransformKind.Tilt or TransformKind.TiltAxis)
+            {
+                return false;
+            }
+        }
+
+        return unknownShiftsOfTheSetpos == record.UnknownShifts.Count;
+    }
+
+    // A frame that turns the working plane moves an axis in the machine frame with the workpiece coordinate of another:
+    // under a ROTATE a motion of one axis of its plane moves the other one too, under a TILT or TILT_AXIS a motion of a
+    // linear axis moves every linear axis (language 4.2, virtual machine 3.4, 10). A MIRROR and a SHIFT act on each
+    // axis by itself, and a rotary axis moves no linear axis.
+    private static bool Couples(BlockContext context, string axis, List<string> moved)
+    {
+        ResourceResolver resources = context.Resources;
+        foreach (TransformEntry entry in context.State.Frame.Chain)
+        {
+            if (entry.Kind == TransformKind.Rotate)
+            {
+                string[] plane = PlaneAxes(context, entry.Workplane);
+                if (plane.Contains(axis) && moved.Exists(other => other != axis && plane.Contains(other)))
+                {
+                    return true;
+                }
+            }
+
+            if (entry.Kind is TransformKind.Tilt or TransformKind.TiltAxis
+                && !resources.IsRotary(axis)
+                && moved.Exists(other => other != axis && !resources.IsRotary(other)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The keys of the two axes of a working plane in the position store (language 4.2, virtual machine 3.8 rule 3).
+    private static string[] PlaneAxes(BlockContext context, Workplane workplane)
+    {
+        Plane plane = workplane switch
+        {
+            Workplane.ZX => Plane.ZX,
+            Workplane.YZ => Plane.YZ,
+            _ => Plane.XY,
+        };
+        return [KeyOf(context, plane.FirstAxis), KeyOf(context, plane.SecondAxis)];
+    }
+
+    // A MIRROR names the axis among the axes it mirrors (language 4.2).
+    private static bool Mirrors(BlockContext context, TransformEntry mirror, string axis)
+    {
+        foreach (string name in mirror.Mirrored)
+        {
+            if (KeyOf(context, name) == axis)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The key of the position store an axis name resolves to, quietly (virtual machine 3.8 rule 3); the name itself for
+    // one no axis of the run carries.
+    private static string KeyOf(BlockContext context, string name)
+    {
+        return context.Resources.KeyOfAxis(name, context.State) ?? name;
+    }
+
+    // The SHIFT entries of the chain whose shift on the axis came from an expression (virtual machine 1, wave-1
+    // question #100).
+    private static TransformEntry[] UnknownShiftsOn(ChannelState state, string axis)
+    {
+        var entries = new List<TransformEntry>();
+        foreach (TransformEntry entry in state.Frame.Chain)
+        {
+            if (entry.Kind == TransformKind.Shift && entry.UnknownShift.Contains(axis))
+            {
+                entries.Add(entry);
+            }
+        }
+
+        return [.. entries];
+    }
+
     // The chain is unwound from the end: the entry at the index and everything after it go; removed shifts are folded
     // back into the position, and a removed rotation, mirror or tilt marks the position unknown (virtual machine 3.4).
+    // A removed shift from an expression folds an unknown shift back, so its axes are unknown outside the MACHINE frame,
+    // as appending it left them (virtual machine 1, wave-1 question #100).
     private static void CutAt(ChannelState state, int index)
     {
         List<TransformEntry> chain = state.Frame.Chain;
@@ -314,11 +537,13 @@ internal static class FrameRules
         chain.RemoveRange(index, chain.Count - index);
 
         bool frameTurned = false;
+        var unknownAxes = new List<string>();
         foreach (TransformEntry entry in removed)
         {
             if (entry.Kind == TransformKind.Shift)
             {
                 Fold(state, entry.Shift, sign: 1m);
+                unknownAxes.AddRange(entry.UnknownShift);
             }
             else
             {
@@ -329,6 +554,12 @@ internal static class FrameRules
         if (frameTurned)
         {
             MarkUnknownOutsideMachineFrame(state);
+            return;
+        }
+
+        foreach (string axis in unknownAxes)
+        {
+            MarkUnknownOutsideMachineFrame(state, axis);
         }
     }
 

@@ -94,6 +94,18 @@ public sealed partial class VirtualMachine
     internal ChannelState State => _state;
 
     /// <summary>
+    /// The arc the last block resolved in step 5, in the coordinates of its working plane: start, end, center and
+    /// sweep, which the MOTION event of step 7 carries (virtual machine 3.2, 7); null after any other block.
+    /// </summary>
+    internal PlaneArc? LastArc { get; private set; }
+
+    /// <summary>
+    /// The individual motions of the last block's CYCLE_CALL under the option ExpandCycles, raised as MOTION events in
+    /// step 7 (virtual machine 3.3, D37); empty after any other block.
+    /// </summary>
+    internal IReadOnlyList<CycleMotion> LastCycleMotions { get; private set; } = [];
+
+    /// <summary>
     /// An immutable copy of the state of the channel as it is now (virtual machine 7, architecture 5.3).
     /// </summary>
     public ChannelSnapshot Snapshot()
@@ -375,7 +387,8 @@ public sealed partial class VirtualMachine
             }
 
             // TODO(question): a chain entry has no UNKNOWN form for a shift from an expression in STATIC mode (virtual
-            // machine 1); the entry keeps 0 for it and the shifted axis becomes unknown outside the MACHINE frame.
+            // machine 1, wave-1 question #100); the entry keeps 0 for it and names the axis, which is unknown outside
+            // the MACHINE frame (FrameRules.AppendShift).
             if (NumberOf(word) is decimal value)
             {
                 shift[axis] = value;
@@ -387,14 +400,7 @@ public sealed partial class VirtualMachine
             }
         }
 
-        // An unknown shift leaves the workpiece coordinate of its axes unknown and moves nothing: an axis known in the
-        // MACHINE frame stays there, and one whose setpos shift was recorded against the machine position returns to
-        // that position (virtual machine 3.4, D35, D101).
-        FrameRules.AppendShift(_state, shift);
-        foreach (string axis in unknownAxes)
-        {
-            FrameRules.MarkUnknownOutsideMachineFrame(_state, axis);
-        }
+        FrameRules.AppendShift(_state, shift, unknownAxes);
     }
 
     // TILT A= B= C= by spatial angles and TILT_AXIS A= B= C= by the rotary axis positions of the machine, appended to
@@ -482,14 +488,58 @@ public sealed partial class VirtualMachine
         }
     }
 
-    // Step 5: HOME moves the named axes to the reference point of the configuration (virtual machine 3 step 5, D100).
-    // TODO: RAPID, LINE, ARC, RETRACT and CYCLE_CALL resolve and execute their targets here, with FRAME=MACHINE and the
-    // D60 halving of DiameterRules: MotionRules, RetractRules and CycleRules of P1-03 (virtual machine 3.1 to 3.4).
+    // Step 5: a motion verb resolves its target and executes it (virtual machine 3 step 5, 3.1 to 3.3): RAPID and LINE
+    // (MotionRules), ARC in its working plane (ArcRules, D102), RETRACT along the tool axis (RetractRules, D83), HOME
+    // to the reference point of the configuration (HomeRules, D100), CYCLE_CALL (CycleRules, D37). Every one of them
+    // needs UNITS and one form per axis; under POLAR=ON or CYLINDER=n it puts the axes of the transformation into its
+    // frame (3.4, D102); the vector words and the rotary words of the block set or forget the tool vector (2.2, 3.1,
+    // D81); and the machine position of an axis whose setpos shift was recorded against it follows the axes the motion
+    // moved and the frame it ran in (3.4, D101).
     private void ExecuteMotion(BlockContext context)
     {
-        if (context.Block.Verb?.Key == "HOME")
+        LastArc = null;
+        LastCycleMotions = [];
+        if (!MotionRules.IsMotion(context.Block))
         {
-            HomeRules.Home(context, _homeWarnings, _homedWithoutReference);
+            return;
+        }
+
+        // HOME and a FRAME=MACHINE block move in machine coordinates and leave the other axes where they are in the
+        // machine frame (virtual machine 3 step 5, 3.4, D35); every other motion moves in the workpiece frame, and the
+        // records of the setpos shifts follow the axes it moved, read against the position store before the block.
+        Dictionary<string, AxisPosition>? before = context.Block.Verb?.Key != "HOME"
+            && !_state.Frame.MachineFrameBlock
+            && _state.Frame.SetposAgainstMachine.Count > 0
+                ? new Dictionary<string, AxisPosition>(_state.Motion.Position)
+                : null;
+
+        MotionRules.CheckUnits(context);
+        MotionRules.CheckOneFormPerAxis(context);
+        MotionRules.EnterTransformation(context);
+        decimal arcTolerance = ArcRules.Tolerance(Options, _state.Frame.Units);
+        switch (context.Block.Verb?.Key)
+        {
+            case "RAPID" or "LINE":
+                MotionRules.MoveStraight(context);
+                break;
+            case "ARC":
+                LastArc = ArcRules.Execute(context, arcTolerance);
+                break;
+            case "RETRACT":
+                RetractRules.Retract(context);
+                break;
+            case "HOME":
+                HomeRules.Home(context, _homeWarnings, _homedWithoutReference);
+                break;
+            case "CYCLE_CALL":
+                LastCycleMotions = CycleRules.Call(context, Options.ExpandCycles);
+                break;
+        }
+
+        ToolVectorRules.Apply(context, arcTolerance);
+        if (before is not null)
+        {
+            FrameRules.FollowMotion(context, before);
         }
     }
 

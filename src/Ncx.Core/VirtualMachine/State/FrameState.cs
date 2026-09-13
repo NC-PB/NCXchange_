@@ -58,14 +58,17 @@ internal sealed class FrameState
     public Dictionary<string, decimal> SetposShift { get; } = new();
 
     /// <summary>
-    /// The axes whose setpos shift SETPOS recorded against the machine position, on an axis known in the MACHINE frame
-    /// only, each with the sum of the SHIFT entries of the chain on that axis at the SETPOS (virtual machine 3.4, D35,
-    /// D101). Nothing moves after it, and the store takes in only the shifts appended or removed since then, so the
-    /// machine position is the stored value plus the shifts of the chain on the axis minus that sum. ORIGIN, a change of
-    /// the frame, and a SHIFT or SETPOS from an expression return such an axis to the MACHINE frame at that position
-    /// and take it out. Empty at the start.
+    /// The setpos shifts that SETPOS recorded against the machine position, on an axis known in the MACHINE frame only,
+    /// by axis: each with the sum of the SHIFT entries of the chain on that axis at the SETPOS, the SHIFT entries from an
+    /// expression on it and the workpiece holder of the SETPOS (virtual machine 1, 3.4, D35, D57, D101). While the axis
+    /// is known in the workpiece frame with its
+    /// machine position known through the record, the machine position is the stored value plus the shifts of the
+    /// chain on the axis minus that sum, and ORIGIN and a change of the frame return the axis to it. A record stands as
+    /// long as its setpos shift does. ORIGIN takes it out, and so do the call of an external program and every SETPOS
+    /// whose new shift is not recorded against the machine position: one from an expression, one directly after a HOME
+    /// without a reference point, one on a position whose machine position is not known. Empty at the start.
     /// </summary>
-    public Dictionary<string, decimal> SetposAgainstMachine { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, SetposRecord> SetposAgainstMachine { get; } = new(StringComparer.Ordinal);
 
     public bool Diameter { get; set; }
 
@@ -108,7 +111,7 @@ internal sealed class FrameState
             Origin = Origin,
             Chain = new List<TransformEntry>(Chain).AsReadOnly(),
             SetposShift = new Dictionary<string, decimal>(SetposShift).AsReadOnly(),
-            SetposAgainstMachine = new Dictionary<string, decimal>(SetposAgainstMachine, StringComparer.Ordinal)
+            SetposAgainstMachine = new Dictionary<string, SetposRecord>(SetposAgainstMachine, StringComparer.Ordinal)
                 .AsReadOnly(),
             Diameter = Diameter,
             Cylinder = Cylinder,

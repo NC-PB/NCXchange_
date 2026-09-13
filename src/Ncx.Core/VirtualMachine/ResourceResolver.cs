@@ -147,6 +147,34 @@ internal sealed class ResourceResolver
     }
 
     /// <summary>
+    /// The key of the position store an axis name resolves to, found without resolving the name anew: no diagnostic
+    /// and no axis created on the spot; null for a name no axis of the run carries (virtual machine 3.8 rule 3). For
+    /// the axes a motion reads without a word of its block on them: the plane axes of an ARC, the drilling axis of a
+    /// cycle whose sequence the VM does not know, the linear axes under a tilted RETRACT.
+    /// </summary>
+    /// <param name="name">The axis name: X, C.</param>
+    /// <param name="state">The channel state with the workpiece holder.</param>
+    public string? KeyOfAxis(string name, ChannelState state)
+    {
+        string? holder = state.Frame.WorkpieceHolder;
+        if (holder is not null
+            && name == SpindleAxisName
+            && _createdResources.TryGetValue(holder, out ResourceDef? createdHolder)
+            && createdHolder.Axis is string createdHolderAxis)
+        {
+            return createdHolderAxis;
+        }
+
+        AxisDef? axis = holder is null ? _machine.ResolveAxis(name) : _machine.ResolveAxis(name, holder);
+        if (axis is not null)
+        {
+            return axis.NcxName;
+        }
+
+        return _createdAxes.ContainsKey(name) ? name : null;
+    }
+
+    /// <summary>
     /// Resolves the function of FUNC:name (language 4.6); false for a function a machine file does not name, an ERROR.
     /// </summary>
     public bool ResolveFunction(string name, Block block, ChannelState state, Diagnostics diagnostics)

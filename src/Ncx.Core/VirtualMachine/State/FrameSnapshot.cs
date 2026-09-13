@@ -32,10 +32,11 @@ public sealed record FrameSnapshot
     public required IReadOnlyDictionary<string, decimal> SetposShift { get; init; }
 
     /// <summary>
-    /// The axes whose setpos shift SETPOS recorded against the machine position, each with the sum of the SHIFT
-    /// entries of the chain on that axis at the SETPOS (virtual machine 3.4, D101).
+    /// The setpos shifts that SETPOS recorded against the machine position, by axis: each with the sum of the SHIFT
+    /// entries of the chain on that axis, the SHIFT entries from an expression on it and the workpiece holder at the
+    /// SETPOS, and whether the machine position is known through it (virtual machine 1, 3.4, D57, D101).
     /// </summary>
-    public required IReadOnlyDictionary<string, decimal> SetposAgainstMachine { get; init; }
+    public required IReadOnlyDictionary<string, SetposRecord> SetposAgainstMachine { get; init; }
 
     /// <summary>
     /// diameter: true under DIAMETER=ON.
