@@ -32,6 +32,12 @@ public sealed record FrameSnapshot
     public required IReadOnlyDictionary<string, decimal> SetposShift { get; init; }
 
     /// <summary>
+    /// The axes whose setpos shift SETPOS recorded against the machine position, each with the sum of the SHIFT
+    /// entries of the chain on that axis at the SETPOS (virtual machine 3.4, D101).
+    /// </summary>
+    public required IReadOnlyDictionary<string, decimal> SetposAgainstMachine { get; init; }
+
+    /// <summary>
     /// diameter: true under DIAMETER=ON.
     /// </summary>
     public required bool Diameter { get; init; }

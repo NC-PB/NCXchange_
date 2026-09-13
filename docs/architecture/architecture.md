@@ -439,8 +439,8 @@ flowchart TD
     A -- no --> B[resolve roles and axis names against the machine]
     B --> C[apply state words: frame, tool, spindle, coolant, functions, cycle definition, variables]
     C --> D{verb?}
-    D -- SHIFT / TILT / SETPOS --> E[update frame]
-    D -- RAPID / LINE / ARC / HOME --> F[resolve target: absolute, incremental, diameter, arc center or radius]
+    D -- SHIFT / TILT / TILT_AXIS / SETPOS --> E[update frame]
+    D -- RAPID / LINE / ARC / RETRACT / HOME --> F[resolve target: absolute, incremental, diameter, arc center or radius, tool axis]
     F --> G[execute motion, raise MOTION]
     D -- CYCLE_CALL --> H[cycle sequence along AXIS, raise CYCLE_CALL or expanded MOTION events]
     D -- none --> I[state-only block]

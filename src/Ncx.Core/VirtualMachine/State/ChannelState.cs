@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 
@@ -127,6 +128,14 @@ internal sealed class ChannelState
     public bool Finished { get; set; }
 
     /// <summary>
+    /// The state variables that are UNKNOWN although their row holds a value: set from an expression in STATIC mode
+    /// (virtual machine 1), or the setpos shift of an axis that SETPOS declared directly after a HOME without a
+    /// reference point (D101). Each is named by the key that sets it and, for a variable per resource or per axis, the
+    /// resource id or the axis name as its address, after the state keys of virtual machine 3.10: F, RPM:S1, SETPOS:C.
+    /// </summary>
+    public HashSet<string> Unknown { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// An immutable deep copy of the channel as it is now: the Before or the After of an event (virtual machine 7,
     /// architecture 5.3).
     /// </summary>
@@ -162,6 +171,7 @@ internal sealed class ChannelState
             Functions = new Dictionary<string, string?>(Functions).AsReadOnly(),
             WaitingAt = WaitingAt,
             Finished = Finished,
+            Unknown = new ReadOnlySet<string>(new HashSet<string>(Unknown, StringComparer.Ordinal)),
         };
     }
 }

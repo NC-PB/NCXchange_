@@ -79,4 +79,11 @@ public sealed record ChannelSnapshot
     /// channel.finished: true from PROGRAM=END on (virtual machine 2.8).
     /// </summary>
     public required bool Finished { get; init; }
+
+    /// <summary>
+    /// The state variables that were UNKNOWN although their row holds a value: set from an expression in STATIC mode
+    /// (virtual machine 1), or the setpos shift SETPOS left unknown directly after a HOME without a reference point
+    /// (D101); by the key that sets each and the resource id or axis name as its address: F, RPM:S1, SETPOS:C.
+    /// </summary>
+    public required IReadOnlySet<string> Unknown { get; init; }
 }

@@ -57,6 +57,16 @@ internal sealed class FrameState
     /// </summary>
     public Dictionary<string, decimal> SetposShift { get; } = new();
 
+    /// <summary>
+    /// The axes whose setpos shift SETPOS recorded against the machine position, on an axis known in the MACHINE frame
+    /// only, each with the sum of the SHIFT entries of the chain on that axis at the SETPOS (virtual machine 3.4, D35,
+    /// D101). Nothing moves after it, and the store takes in only the shifts appended or removed since then, so the
+    /// machine position is the stored value plus the shifts of the chain on the axis minus that sum. ORIGIN, a change of
+    /// the frame, and a SHIFT or SETPOS from an expression return such an axis to the MACHINE frame at that position
+    /// and take it out. Empty at the start.
+    /// </summary>
+    public Dictionary<string, decimal> SetposAgainstMachine { get; } = new(StringComparer.Ordinal);
+
     public bool Diameter { get; set; }
 
     /// <summary>
@@ -98,6 +108,8 @@ internal sealed class FrameState
             Origin = Origin,
             Chain = new List<TransformEntry>(Chain).AsReadOnly(),
             SetposShift = new Dictionary<string, decimal>(SetposShift).AsReadOnly(),
+            SetposAgainstMachine = new Dictionary<string, decimal>(SetposAgainstMachine, StringComparer.Ordinal)
+                .AsReadOnly(),
             Diameter = Diameter,
             Cylinder = Cylinder,
             Polar = Polar,
