@@ -146,6 +146,19 @@ public sealed record MachineConfig
     public CyclesConfig? Cycles { get; init; }
 
     /// <summary>
+    /// [[cycle]]: the catalog entries of the machine file as it writes them, which override the cycle catalog of its
+    /// controller family per machine (machine-config 6); empty when the file has none.
+    /// </summary>
+    public IReadOnlyList<CycleEntry> CycleEntries { get; init; } = [];
+
+    /// <summary>
+    /// The cycle catalog of the machine: the built-in drilling family of its controller, the catalog file of [cycles]
+    /// once it is loaded (CycleCatalogLoader.WithCatalog of Ncx.Config) and the [[cycle]] entries of the machine file
+    /// over both (machine-config 6); empty on the default machine of D103.
+    /// </summary>
+    public CycleCatalog CycleCatalog { get; init; } = new();
+
+    /// <summary>
     /// [variables]: unassigned variables, the name map, block cap and call depth (machine-config 7), with the defaults
     /// of virtual machine 3.6 when the file has no such table.
     /// </summary>

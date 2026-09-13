@@ -750,8 +750,8 @@ internal sealed class ConfigTable
         };
     }
 
-    // An element of an array of tables is named by its id when it has one, [[axis]] X1, [[channel]] 1, else by its
-    // number in the file.
+    // An element of an array of tables is named by its id when it has one, [[axis]] X1, [[channel]] 1, a catalog entry
+    // by its name, [[cycle]] PECK (machine-config 6), else by its number in the file.
     private static string ElementName(string name, TomlTable element, int index)
     {
         if (element.TryGetValue("id", out object? id) && id is string text)
@@ -762,6 +762,11 @@ internal sealed class ConfigTable
         if (id is long number)
         {
             return name + " " + number.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (element.TryGetValue("name", out object? entryName) && entryName is string written)
+        {
+            return name + " " + written;
         }
 
         return name + " number " + (index + 1).ToString(CultureInfo.InvariantCulture);

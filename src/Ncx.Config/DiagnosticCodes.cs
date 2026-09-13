@@ -12,6 +12,7 @@ namespace Ncx.Config;
 //
 //   CFG001-CFG099  loading of the machine file, the job manifest and the vars file (P2-01)
 //   CFG100-CFG149  templates (P2-02)
+//   CFG150-CFG199  cycle catalogs (P2-03)
 
 /// <summary>
 /// The diagnostic codes of Ncx.Config: one constant per rule, named after the rule, the area prefix CFG and three

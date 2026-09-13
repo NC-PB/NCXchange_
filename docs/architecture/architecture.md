@@ -713,6 +713,9 @@ classDiagram
         +List~string~ AbsoluteFromSurface
         +ExpansionRule Rule
         +bool Modal
+        +List~string~ Contour
+        +List~string~ Signature
+        +Dictionary~string,decimal~ Fixed
     }
     class JobManifest {
         +string Name
@@ -1063,7 +1066,7 @@ Each milestone ends with tests and a runnable `ncx` command, so that the project
 - D52: look-ahead in the compiler is done on the STATIC pre-pass; nothing in the model.
 - D56 channel-bound functions: only the job compiler knows several channels; the single-file compiler reports the ERROR.
 - D57 sub spindle frame: the conversion between the holder frame and the machine's convention lives in readers and compilers, never in the VM.
-- D65 (settled, with D90): `G70`..`G76` contours are `SUB` sections named by `CONTOUR=name` on the cycle block (language 4.7, 4.7.1); the Fanuc `P`/`Q` block range maps to that section, and `CycleEntry` gets a `Contour` field in P2-03.
+- D65 (settled, with D90): `G70`..`G76` contours are `SUB` sections named by `CONTOUR=name` on the cycle block (language 4.7, 4.7.1); the Fanuc `P`/`Q` block range maps to that section, and `CycleEntry.Contour` holds the native words that carry it, the two words of the range or the one word of a contour subprogram (machine-config 6, P2-03).
 - D60 diameter: the reader needs the X axis `programming` of the source machine, which means `convert` always needs a machine file (a plain controller family is not enough for a lathe).
 - D62 math (settled): no package in `Ncx.Core`; MathNet.Numerics only in `Ncx.Kinematics`.
 - D31 (settled): `FrameState` holds an ordered transform chain (`TransformEntry` list), not one slot per kind; the class diagram shows the chain since draft 4.

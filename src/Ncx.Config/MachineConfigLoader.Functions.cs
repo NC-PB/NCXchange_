@@ -144,7 +144,7 @@ public static partial class MachineConfigLoader
     // The four optional keys of a function state, the tool change or a catalog cycle: pre and post are NCX blocks,
     // requires the state conditions, restore the state variables put back; NCX text carries no native codes and is
     // kept as written (machine-config 5a, 5).
-    private static ExpansionRule? ReadRule(ConfigTable table)
+    internal static ExpansionRule? ReadRule(ConfigTable table)
     {
         bool hasRule = false;
         foreach (string key in s_ruleKeys)

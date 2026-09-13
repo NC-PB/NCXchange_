@@ -1,3 +1,4 @@
+using Ncx.Config.Cycles;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 
@@ -67,9 +68,16 @@ public static partial class MachineConfigLoader
 
         ConfigTable? machineTable = root.Table("machine", section: "machine-config 1");
         List<AxisDef> axes = ReadAxes(root);
+        MachineIdentity identity = ReadMachine(machineTable);
+
+        // [[cycle]]: the catalog entries of the machine file override the cycle catalog of its controller family per
+        // machine; the catalog file that [cycles] names goes beneath them once it is loaded (machine-config 6,
+        // CycleCatalogLoader.WithCatalog).
+        IReadOnlyList<CycleEntry> cycleEntries = CycleCatalogLoader.ReadEntries(
+            root.Tables("cycle", "[[cycle]]", "machine-config 6"), identity.Controller);
         var machine = new MachineConfig
         {
-            Machine = ReadMachine(machineTable),
+            Machine = identity,
             Limits = ReadLimitPolicy(machineTable),
             ToolTable = machineTable?.Text("tool_table"),
             Format = ReadFormat(root.Table("format", section: "machine-config 2")),
@@ -98,13 +106,13 @@ public static partial class MachineConfigLoader
             Tolerance = ReadTolerance(root.Table("tolerance", section: "machine-config 5")),
             Raw = ReadRaw(root.Table("raw", section: "machine-config 5")),
             Cycles = ReadCycles(root.Table("cycles", section: "machine-config 6")),
+            CycleEntries = cycleEntries,
+            CycleCatalog = CycleCatalogLoader.MachineCatalog(identity.Controller, cycleEntries),
             Variables = ReadVariables(root.Table("variables", section: "machine-config 7")),
             SystemVariables = ReadSystemVariables(root.Table("system_variables", section: "machine-config 7")),
             Kinematics = ReadKinematics(root, machineTable?.Text("kinematics")),
         };
 
-        // TODO: [[cycle]] entries override the catalog per machine (machine-config 6); the table is known, and its
-        // entries are loaded into the catalog records of the cycle catalog task (P2-03), which does not exist yet.
         CheckDefaults(machine, machineTable?.Line ?? 1, diagnostics);
         return TomlDocument.ErrorCount(diagnostics) > errorsBefore ? null : machine;
     }
