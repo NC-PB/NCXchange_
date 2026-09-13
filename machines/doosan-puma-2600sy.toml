@@ -1,0 +1,234 @@
+# NCX machine configuration sketch: Doosan Puma 2600SY, Fanuc control, single channel, main and sub spindle, Y axis, milling spindle.
+# Written from "M-FUNKTIONEN 2600SY" (the Doosan dealer sheet; the Puma 2600/M II operating manual has no programming content). Schema draft 4. Not verified on the machine.
+# The point of this file: one channel with two work spindles, spindle selection by a P suffix on the M code, and cycle behaviour chosen by mode M codes.
+# D100 data (P2-04): home and limits in machine coordinates, rapid, max_feed and acceleration on every [[axis]], rpm_min, rpm_max and accel_time on every spindle table, the [positions] and [dynamics] tables. The numbers are plausible for a machine of this class and not verified on the machine.
+
+[machine]
+name = "Doosan Puma 2600SY"
+controller = "fanuc"
+dialect = "0i-TD"
+builder = "doosan"
+gcode_system = "A"
+s_binds_to_spindle_word = true     # S with the P-suffixed M code in the same block
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "T1"
+default_workpiece = "S1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Z = 3, Y = 3, C = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "M99"
+
+[roles]
+MAIN = "S1"
+SUB = "S2"
+TOOL = "S3"
+TURRET1 = "T1"
+
+[[resource]]
+id = "S1"
+type = "work_spindle"
+axis = "C1"
+
+[[resource]]
+id = "S2"
+type = "work_spindle"
+axis = "C2"
+
+[[resource]]
+id = "S3"
+type = "tool_spindle"
+
+[[resource]]
+id = "T1"
+type = "tool_holder"
+spindle = "S3"
+magazine = false
+
+# D100: home and limits are machine coordinates (the G53 frame); the reference point is the machine zero of every linear axis. The limits of a C axis are its display range, not a travel limit.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+programming = "diameter"           # D60: X words are diameters on this machine
+incremental_letter = "U"
+kind = "linear"
+limits = [-520, 0]                 # mm, machine coordinates; X = 0 is the reference point at the top of the travel
+rapid = 30000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 0                           # reference point 1 (G28 U0)
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+incremental_letter = "W"
+kind = "linear"
+limits = [-750, 0]                 # mm; Z = 0 is the reference point away from the main spindle
+rapid = 36000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+incremental_letter = "V"
+kind = "linear"
+limits = [-52.5, 52.5]             # mm; the Y stroke of the turret
+rapid = 10000
+max_feed = 5000
+acceleration = 1500
+home = 0
+
+[[axis]]
+id = "C1"
+ncx = "C"
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S1"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000                      # deg/min
+max_feed = 18000                   # deg/min
+acceleration = 2000                # deg/s^2
+home = 0                           # the spindle zero mark
+
+[[axis]]
+id = "B1"
+ncx = "B"
+letter = "B"
+kind = "linear"                    # sub spindle slide
+owner = "S2"
+limits = [-800, 0]                 # mm; B = 0 is the reference point with the slide retracted
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[[axis]]
+id = "C2"
+ncx = "C2"                         # a program writes C; the VM resolves it to C2 while the sub spindle holds the workpiece (VM 3.8 rule 3)
+# TODO(question): docs/ does not give the address of the sub spindle C axis on the Puma 2600SY; C is written here, as for the Nakamura.
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S2"                       # the C axis that resource S2 names (F23)
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000                      # the values of C1, not verified on the machine
+max_feed = 18000
+acceleration = 2000
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 0, Z = 0 }     # the turret indexes anywhere; this is the clearance position a rule may move to before a change
+program_end = { X = 0, Z = 0 }     # the reference point
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.004                 # seconds per block
+path_mode = "continuous"           # G64 cutting mode (fanuc 3, group 13)
+corner_speed = 1000                # mm/min carried through a corner
+
+[tool_change]
+change = "T{tool:02}{offset:02}"
+unload = "T{tool:02}00"
+auto_preload = false
+
+[spindle.MAIN]                     # turning spindle, selected by P11; M34 makes the left spindle the turning spindle
+CW = "M03 P11"
+CCW = "M04 P11"
+OFF = "M05 P11"
+ORIENT = "M19"
+RPM = "S{rpm}"
+VC = "G96 S{value}"
+CSS_OFF = "G97"
+RPM_MAX = "G50 S{value}"
+rpm_min = 35                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 3500
+accel_time = 3.5                   # seconds from stop to rpm_max, for the runtime estimate
+
+[spindle.SUB]                      # after M134 the right spindle is the turning spindle addressed by P11
+CW = "M03 P11"
+CCW = "M04 P11"
+OFF = "M05 P11"
+ORIENT = "M119"
+rpm_min = 50
+rpm_max = 6000
+accel_time = 2.0
+
+[spindle.TOOL]
+CW = "M03 P12"
+CCW = "M04 P12"
+OFF = "M05 P12"
+rpm_min = 50
+rpm_max = 5000
+accel_time = 1.0
+
+[spindle_mode.MAIN]
+AXIS = "M35"
+SPINDLE = "M34"
+
+[spindle_mode.SUB]
+AXIS = "M135"
+SPINDLE = "M134"
+
+[spindle_sync]
+ON = "M203"                        # M204 for reverse direction, M205 stop, M206 off
+OFF = "M206"
+PHASE = "M213"                     # M214 phase-synchronous reverse
+
+[workpiece]
+MAIN = "M34"                       # turning mode left
+SUB = "M134"                       # turning mode right
+SUB_frame = "datum"
+
+[coolant]
+STANDARD = { ON = "M08", OFF = "M09" }
+HIGH_PRESSURE = { ON = "M07", OFF = "M09" }
+LOW_PRESSURE = { ON = "M108", OFF = "M109" }
+
+[func]
+MAIN_CHUCK = { CLOSE = "M68", OPEN = "M69" }
+SUB_CHUCK = { CLOSE = "M168", OPEN = "M169" }
+CHUCK_PRESSURE = { LOW = "M66", HIGH = "M67" }
+MAIN_CLAMP = { ON = "M89", OFF = "M90" }
+SUB_CLAMP = { ON = "M189", OFF = "M190" }
+MAIN_AIR = { ON = "M14", OFF = "M15" }
+SUB_AIR = { ON = "M114", OFF = "M115" }
+PARTS_CATCHER = { ON = "M10", OFF = "M11" }
+EJECTOR = { ON = "M116", FORWARD = "M226", BACK = "M227" }
+BAR_LOADER = { FEED = "M51" }
+DOOR = { OPEN = "M52", CLOSE = "M53" }
+CHIP_CONVEYOR = { ON = "M24", OFF = "M25" }
+RIGID_TAP = { ON = "M29", REVERSE_ON = "M176", REVERSE_OFF = "M177" }
+INTERFERENCE_CHECK = { ON = "M111", OFF = "M110" }
+TOOL_MONITOR = { ON = "M201", OFF = "M200" }
+TORQUE_MONITOR = { ON = "M86", OFF = "M87" }
+GEAR_MAIN = { LOW = "M261", HIGH = "M262" }
+GEAR_SUB = { LOW = "M161", HIGH = "M162" }
+PECK_MODE = { RETRACT = "M291", CHIP_BREAK = "M292" }   # selects the G83/G88 behaviour; used by the cycle catalog templates
+THREAD_RUNOUT = { ON = "M277", OFF = "M278" }
+EXACT_STOP = { ON = "M159", OFF = "M160" }
+POLYGON = { ON = "M28" }
+C_SYNC = { ON = "M136", OFF = "M137" }                  # C1 and C2 synchronous
+
+[func_meta]
+SUB_CHUCK.CLOSE = "workpiece_transfer_to = SUB"        # fallback only; [workpiece] has the native codes
+
+[cycles]
+# catalog entries for this builder select the peck behaviour with the PECK_MODE function before G83 (expansion rule, machine-config 5a)
+# [[cycle]] name = "PECK"       native = "G83" pre = ["FUNC:PECK_MODE=RETRACT"]
+# [[cycle]] name = "CHIP_BREAK" native = "G83" pre = ["FUNC:PECK_MODE=CHIP_BREAK"]
+
+[raw]
+known = ["G300", "G301", "G350"]   # sub spindle as tailstock, cut-off check

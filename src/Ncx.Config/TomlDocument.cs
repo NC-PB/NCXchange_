@@ -1,3 +1,4 @@
+using Ncx.Config.Templates;
 using Ncx.Core.Model;
 using Tomlyn;
 using Tomlyn.Model;
@@ -17,6 +18,10 @@ internal sealed class TomlDocument
     private readonly TomlTable _root;
     private readonly TomlMetadataStore _metadata;
     private readonly Dictionary<string, List<int>> _headerLines;
+
+    // The template texts parsed so far, so that each text is parsed once, on the first key that writes it (wave-1
+    // question #61).
+    private readonly HashSet<string> _checkedTemplates = new(StringComparer.Ordinal);
 
     private TomlDocument(
         TomlTable root, TomlMetadataStore metadata, Dictionary<string, List<int>> headerLines, Diagnostics diagnostics)
@@ -96,12 +101,29 @@ internal sealed class TomlDocument
     }
 
     /// <summary>
-    /// The top of the file as a table without a name.
+    /// The top of the file as a table, without a name where the file is made of tables (the machine file), named after
+    /// the file where its keys stand at the top (ncx.toml).
     /// </summary>
     /// <param name="section">The section of the specification that defines the file, cited in the messages.</param>
-    public ConfigTable Root(string section)
+    /// <param name="name">The name of the top of the file in messages, "ncx.toml"; empty by default.</param>
+    public ConfigTable Root(string section, string name = "")
     {
-        return new ConfigTable(_root, "", 1, section, this);
+        return new ConfigTable(_root, name, 1, section, this);
+    }
+
+    /// <summary>
+    /// Parses a template text of the file on the line of the key that writes it, once per text, so that a template
+    /// that cannot be parsed is an ERROR on the first line that writes it (machine-config introduction; wave-1
+    /// question #61).
+    /// </summary>
+    /// <param name="template">The template as it is loaded.</param>
+    /// <param name="line">The line of its key.</param>
+    public void CheckTemplate(string template, int line)
+    {
+        if (_checkedTemplates.Add(template))
+        {
+            Template.Check(template, line, Diagnostics);
+        }
     }
 
     /// <summary>

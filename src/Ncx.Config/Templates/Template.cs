@@ -58,7 +58,7 @@ public sealed class Template
     {
         Text = text;
         _decimalSeparator = decimalSeparator;
-        Parse(line, diagnostics);
+        Parse(text, line, diagnostics, _literals, _placeholders);
         _pattern = TemplatePattern.Build(_literals, _placeholders, readsComma);
     }
 
@@ -150,6 +150,15 @@ public sealed class Template
         return true;
     }
 
+    // The loader parses every template of a machine file on the line of its key, for its mistakes alone: a brace that
+    // opens or closes no placeholder, braces around no name, a format suffix that is no width padded with zeros leave
+    // the template unusable and are ERRORs of the file on that line (machine-config introduction; phase 2: a bad file
+    // reports the line; wave-1 question #61).
+    internal static void Check(string text, int line, Diagnostics diagnostics)
+    {
+        Parse(text, line, diagnostics, [], []);
+    }
+
     // The template as the machine file writes it in a TOML string, \" for a quote, \\ for a backslash, \n for a line
     // break, so that a message names the template in a form the user finds in the file (code-guidelines 2).
     internal static string Quoted(string text)
@@ -180,14 +189,15 @@ public sealed class Template
     // literal and kept as written, a line break included, since a template may span lines with \n (machine-config 3).
     // A brace that opens no placeholder or closes none leaves the template unusable and is reported; it stays in the
     // text as a literal brace.
-    private void Parse(int line, Diagnostics diagnostics)
+    private static void Parse(
+        string text, int line, Diagnostics diagnostics, List<string> literals, List<Placeholder> placeholders)
     {
-        string quoted = Quoted(Text);
+        string quoted = Quoted(text);
         var literal = new StringBuilder();
         int position = 0;
-        while (position < Text.Length)
+        while (position < text.Length)
         {
-            char character = Text[position];
+            char character = text[position];
             if (character == '}')
             {
                 diagnostics.Error(line, DiagnosticCodes.TemplatePlaceholderMalformed,
@@ -205,8 +215,8 @@ public sealed class Template
             }
 
             // A placeholder ends at its closing brace; an opening brace before that means this one is never closed.
-            int close = Text.IndexOf('}', position + 1);
-            int nextOpen = Text.IndexOf('{', position + 1);
+            int close = text.IndexOf('}', position + 1);
+            int nextOpen = text.IndexOf('{', position + 1);
             if (close < 0 || (nextOpen >= 0 && nextOpen < close))
             {
                 diagnostics.Error(line, DiagnosticCodes.TemplatePlaceholderMalformed,
@@ -216,7 +226,7 @@ public sealed class Template
                 continue;
             }
 
-            string braces = Text.Substring(position, close - position + 1);
+            string braces = text.Substring(position, close - position + 1);
             Placeholder? placeholder = Placeholder.Read(braces, quoted, line, diagnostics);
             if (placeholder is null)
             {
@@ -224,14 +234,14 @@ public sealed class Template
             }
             else
             {
-                _literals.Add(literal.ToString());
+                literals.Add(literal.ToString());
                 literal.Clear();
-                _placeholders.Add(placeholder);
+                placeholders.Add(placeholder);
             }
 
             position = close + 1;
         }
 
-        _literals.Add(literal.ToString());
+        literals.Add(literal.ToString());
     }
 }

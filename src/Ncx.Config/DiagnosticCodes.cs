@@ -10,7 +10,7 @@ namespace Ncx.Config;
 // Each component keeps its codes in a part of this class of its own, a file DiagnosticCodes.<Component>.cs next to
 // this one, and takes its codes from its own range:
 //
-//   CFG001-CFG099  loading of the machine file, the job manifest and the vars file (P2-01)
+//   CFG001-CFG099  loading of the machine file, the job manifest and the vars file (P2-01), and of ncx.toml (P2-04)
 //   CFG100-CFG149  templates (P2-02)
 //   CFG150-CFG199  cycle catalogs (P2-03)
 

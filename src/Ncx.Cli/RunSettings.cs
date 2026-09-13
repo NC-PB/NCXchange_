@@ -14,9 +14,22 @@ internal sealed record RunSettings
     public required string File { get; init; }
 
     /// <summary>
-    /// --machine: the path of the machine file; null for the built-in default machine of D103.
+    /// --machine: the machine file by name in the machine folders or by path (P2-04); null for the machine that
+    /// ncx.toml names, and without that for the built-in default machine of D103 (architecture 10).
     /// </summary>
     public string? MachineFile { get; init; }
+
+    /// <summary>
+    /// The working directory, where ncx.toml is read and a relative path of --machine starts (architecture 10,
+    /// machine-config 10); the working directory of the process by default.
+    /// </summary>
+    public string WorkingDirectory { get; init; } = Directory.GetCurrentDirectory();
+
+    /// <summary>
+    /// The tool's own folder, whose machines/ and cycles/ hold the shipped machine files and cycle catalogs
+    /// (implementation 12, P2-04); the folder of ncx by default.
+    /// </summary>
+    public string ToolFolder { get; init; } = AppContext.BaseDirectory;
 
     /// <summary>
     /// --strict: a WARNING sets the exit code 1 (D97).

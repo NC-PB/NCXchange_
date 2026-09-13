@@ -1,0 +1,260 @@
+# NCX machine configuration sketch: Nakamura-Tome Super NTJX, Fanuc 18i-TB, two turrets (two paths), main and sub spindle, tool spindle with ATC.
+# Written from "Liste M- und G-Codes Nakamura NTJX" (Walter Meier, 2016), the NTJX programming guide (2009) and the Nakamura Precision Turning Center programming manual 4810004EDG (G code list, M functions, wait codes, ATC cycle, Z mirror, spindle synchronization).
+# Schema draft 4. Not verified on the machine.
+# D100 data (P2-04): home and limits in machine coordinates, rapid, max_feed and acceleration on every [[axis]], rpm_min, rpm_max and accel_time on every spindle table, the [positions] and [dynamics] tables. The numbers are plausible for a machine of this class and not verified on the machine.
+
+[machine]
+name = "Nakamura NTJX"
+controller = "fanuc"
+dialect = "18i-TB"
+builder = "nakamura"
+gcode_system = "A"                 # G98/G99 feed per min/rev, U W H V incremental, G90 = turning cycle
+s_binds_to_spindle_word = true     # "M88 S1000" then "M3 S100": the S goes to the spindle of the M code in the block
+channels = [1, 2]                  # upper turret = path 1 (file O1000), lower turret = path 2 (file O1000.P-2)
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "T1"
+default_workpiece = "S1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Z = 3, Y = 3, C = 3, B = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = false }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "M99"
+
+[roles]
+MAIN = "S1"
+SUB = "S2"
+TOOL = "S3"
+TURRET1 = "T1"
+TURRET2 = "T2"
+
+[[resource]]
+id = "S1"
+type = "work_spindle"
+axis = "C1"
+
+[[resource]]
+id = "S2"
+type = "work_spindle"
+axis = "C2"
+
+[[resource]]
+id = "S3"
+type = "tool_spindle"
+
+[[resource]]
+id = "T1"
+type = "tool_holder"
+spindle = "S3"
+magazine = true                    # ATC on the upper tool spindle
+channel = 1
+
+[[resource]]
+id = "T2"
+type = "tool_holder"
+magazine = false                   # lower turret
+channel = 2
+
+# D100: home and limits are machine coordinates (the G53 frame); the reference point is the machine zero of X, Z, Y and B. The limits of a C axis are its display range, not a travel limit.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+programming = "diameter"           # D60: X words are diameters on this machine
+incremental_letter = "U"
+kind = "linear"
+limits = [-500, 0]                 # mm, machine coordinates; X = 0 is the reference point at the top of the travel
+rapid = 20000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 0                           # reference point 1, written through [home] (G28 U0)
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+incremental_letter = "W"
+kind = "linear"
+limits = [-750, 0]                 # mm; Z = 0 is the reference point away from the main spindle
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+incremental_letter = "V"
+kind = "linear"
+limits = [-70, 70]                 # mm; the Y stroke of the tool spindle
+rapid = 12000
+max_feed = 6000
+acceleration = 2000
+home = 0
+
+[[axis]]
+id = "C1"
+ncx = "C"
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S1"
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000                      # deg/min
+max_feed = 18000                   # deg/min
+acceleration = 2000                # deg/s^2
+home = 0                           # the spindle zero mark (G28 H0)
+
+[[axis]]
+id = "B1"
+ncx = "B"
+letter = "B"
+kind = "linear"                    # sub spindle slide (Z direction) on this machine
+owner = "S2"
+limits = [-900, 0]                 # mm; B = 0 is the reference point with the slide retracted (G28 B0)
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[[axis]]
+id = "C2"
+ncx = "C2"                         # a program writes C; the VM resolves it to C2 while the sub spindle holds the workpiece (VM 3.8 rule 3)
+# TODO(question): docs/ does not give the address of the sub spindle C axis on the 18i-TB: C in the program of the path that commands it (as on the Mori Seiki) or the extended name C2= (D30, a 30i/31i form); C is written here.
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S2"                       # the C axis that resource S2 names (F23); M491 / M441 switch the sub spindle
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 0, Z = -120 }  # clearance point of turret 1 for the ATC change (the values of machine-config 4)
+program_end = { X = 0, Z = 0 }     # the reference point (G28 U0 W0 in the WY-250L sample programs)
+
+[dynamics]                         # control behaviour for the runtime estimate (D64)
+block_time = 0.004                 # seconds per block
+path_mode = "continuous"           # G64 cutting mode (fanuc 3, group 13)
+corner_speed = 1000                # mm/min carried through a corner
+
+[tool_change]
+change = "G340 T{tool:02}{offset:02}. A{next:02}."   # tool spindle with ATC (turret 1), decimal point literal (NT NURSE macro rule); six digits "G340 T{tool:03}{offset:03} A{next:03}" on a 120-tool ATC; turret 2 uses "T{tool:02}{offset:02}"
+preload = "G341 T{next:02}."
+unload = "G0 T{tool:02}00"
+auto_preload = true
+preload_position = "after_change"
+
+[home]
+template = "G28 {axes}"            # G28 U0, G28 W0, G28 B0, G28 H0 (C axis) as in the sample programs
+point = "G330 A{point}."           # NT NURSE reference points 2..4
+
+[setpos]
+template = "G50 {axes}"            # G50 C0. after G28 H0 before G112 polar interpolation
+
+[spindle.MAIN]
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+ORIENT = "M19"
+RPM = "S{rpm}"
+VC = "G96 S{value}"
+CSS_OFF = "G97"
+RPM_MAX = "G50 S{value}"
+rpm_min = 30                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
+rpm_max = 5000
+accel_time = 3.0                   # seconds from stop to rpm_max, for the runtime estimate
+
+[spindle.SUB]
+CW = "M53"
+CCW = "M54"
+OFF = "M55"
+ORIENT = "M419"
+rpm_min = 30
+rpm_max = 6000
+accel_time = 2.0
+
+[spindle.TOOL]
+CW = "M88"
+CCW = "M89"
+OFF = "M90"
+rpm_min = 50
+rpm_max = 12000
+accel_time = 1.0
+
+[spindle_mode.MAIN]
+AXIS = "M91"
+SPINDLE = "M41"
+
+[spindle_mode.SUB]
+AXIS = "M491"
+SPINDLE = "M441"
+
+[spindle_sync]
+ON = "M96"                         # sub follows main, speed and direction; cycle form G496 / G497 on NT NURSE 9.01 and up
+OFF = "M97"
+PHASE = "M92"                      # phase-synchronous run; M93 sets the phase position
+channel = 2                        # the codes go into the program of the path that owns the second spindle (lower unit on NTJX and WY)
+
+[workpiece]
+MAIN = "G54 M428"                  # written with the spindle's datum, as in the WY sample programs
+SUB = "G59 M427"
+SUB_frame = "datum"                # G59 side programmed in machine Z; or mirror with the G360/G361 cycles (M700/M701), then datum and offsets carry inverted signs
+# SUB_mirror = { ON = "G360", OFF = "G361" }
+
+[sync]
+wait = "M{mark}"
+mark_range = [100, 199]
+paths = "list"                     # two paths: no P needed; NTY3: P12, P13, P23, P123 (or P3, P5, P6, P7 with parameter 8103#1 = 0)
+start_mark = 199                   # M199 program start synchronization, first block of both programs
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }
+LOW_PRESSURE = { ON = "M7", OFF = "M9" }
+MEDIUM_PRESSURE = { ON = "M708", OFF = "M9" }
+THROUGH_SUB = { ON = "M742", OFF = "M743" }
+TOOL_SPINDLE_INTERNAL = { ON = "M720", OFF = "M9" }
+
+[func]
+MAIN_CHUCK = { CLOSE = "M10", OPEN = "M11" }
+SUB_CHUCK = { CLOSE = "M50", OPEN = "M51" }
+MAIN_CLAMP = { ON = "M86", OFF = "M87" }
+SUB_CLAMP = { ON = "M32", OFF = "M33" }
+MAIN_AIR = { ON = "M20", OFF = "M21" }
+SUB_AIR = { ON = "M420", OFF = "M421" }
+PARTS_CATCHER = { FORWARD = "M68", BACK = "M69" }
+EJECTOR = { FORWARD = "M484" }
+BAR_LOADER = { CHANGE = "M58", FEED = "M61" }
+DOOR = { OPEN = "M62", CLOSE = "M63" }
+Y_REFERENCE = { CLAMP = "M370", FREE = "M371" }
+RIGID_TAP = { ON = "M29" }
+TAP_REVERSE = { ON = "M94", OFF = "M95" }
+THREAD_CHAMFER = { ON = "M23", OFF = "M24" }
+LOAD_MONITOR = { ON = "M300", OFF = "M301" }
+TOOL_COUNTER = { ON = "M303", OFF = "M304" }
+PROBE = { ON = "M712", OFF = "M713" }
+PART_STATUS = { LEFT_FINISHED = "M797", RIGHT_FINISHED = "M799", LEFT_RAW = "M705", CUTOFF_DONE = "M405" }   # part status for G411 jump programming
+CSS_MONITOR = { ON = "M416", OFF = "M417" }
+C_MIX = { MAIN_ON = "M432", MAIN_OFF = "M433", SUB_ON = "M442", SUB_OFF = "M443" }   # C-axis command mix (mixture control)
+
+[transform]
+CYLINDER_ON = "G107 C{r}"          # {r} is the reference radius of CYLINDER=n (D96); Nakamura alias of G7.1 C{r}
+CYLINDER_OFF = "G107 C0"
+POLAR_ON = "G112"
+POLAR_OFF = "G113"
+TCPM_ON = "G435"
+TCPM_OFF = "G436"
+TILT_ON = "G368"                   # 3D coordinate conversion cycle, parameters per Nakamura manual
+TILT_OFF = "G369"
+
+[raw]                              # builder macros kept as RAW:NAKAMURA; G471..G486 and G480 are read as JUMP, not RAW
+known = ["G411", "G300", "G131", "G359", "G333", "G200", "G355", "G376", "G377", "G342", "G344", "G350", "G419", "G496", "G497"]

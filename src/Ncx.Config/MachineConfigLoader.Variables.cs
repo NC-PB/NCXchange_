@@ -61,10 +61,22 @@ public static partial class MachineConfigLoader
         return UnassignedVariable.Error;
     }
 
-    // [system_variables]: every key an NCX SYS_ name, every value the native template (machine-config 7, D51).
+    // [system_variables]: every key an NCX SYS_ name, every value the native template kept as written, parsed on the
+    // line of its key (machine-config 7, D51; wave-1 question #61).
     private static SystemVariables ReadSystemVariables(ConfigTable? table)
     {
-        return new SystemVariables { Entries = table?.Strings(null) ?? new Dictionary<string, string>() };
+        if (table is null)
+        {
+            return new SystemVariables { Entries = new Dictionary<string, string>() };
+        }
+
+        IReadOnlyDictionary<string, string> entries = table.Strings(null);
+        foreach (KeyValuePair<string, string> entry in entries)
+        {
+            table.CheckTemplate(entry.Key, entry.Value);
+        }
+
+        return new SystemVariables { Entries = entries };
     }
 
     // [[node]] and [machine] kinematics: the tree is loaded and not interpreted, only the kinematics module reads it;

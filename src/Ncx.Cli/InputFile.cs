@@ -33,12 +33,29 @@ internal static class InputFile
     /// <returns>The text with its byte order mark, if it has one; null when the file cannot be read.</returns>
     public static string? Read(string file, string code, string subject, string sections, Diagnostics diagnostics)
     {
+        return Read(file, file, code, subject, sections, diagnostics);
+    }
+
+    /// <summary>
+    /// Reads a file as UTF-8 text from a path and names it in a diagnostic as the user knows it: a machine file found
+    /// by name in machines/ is read at its full path and named by its path from the working directory (D98; P2-04).
+    /// </summary>
+    /// <param name="path">The path the file is read from.</param>
+    /// <param name="file">The file as the diagnostic names it.</param>
+    /// <param name="code">The code of the rule.</param>
+    /// <param name="subject">What the file is, the start of the message.</param>
+    /// <param name="sections">The sections the message cites.</param>
+    /// <param name="diagnostics">Where the ERROR goes when the file cannot be read.</param>
+    /// <returns>The text with its byte order mark, if it has one; null when the file cannot be read.</returns>
+    public static string? Read(
+        string path, string file, string code, string subject, string sections, Diagnostics diagnostics)
+    {
         // An input that cannot be read, or whose bytes are no UTF-8 text, decides exit code 2 before the run starts;
         // the I/O error is reported as a diagnostic with the file name (D97; language 3, Encoding; code-guidelines 6).
         // A path the file system refuses and bytes that are no UTF-8 raise an ArgumentException.
         try
         {
-            return s_utf8.GetString(File.ReadAllBytes(file));
+            return s_utf8.GetString(File.ReadAllBytes(path));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
         {

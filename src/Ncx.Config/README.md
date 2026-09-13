@@ -8,7 +8,7 @@ Loads the TOML files of a machine into the records of `Ncx.Core.Machine` (archit
 2. `ConfigTable.cs`: one TOML table as a loader walks it, with the typed reads that report a wrong type, a missing key or an unknown key on its line.
 3. `DefaultMachine.cs`.
 
-`TomlDocument.cs` is the one place that talks to Tomlyn; `NearestKey.cs` finds the key a typo was meant to be; `FunctionValues.cs` spells M and G codes without leading zeros (D105). `JobManifestLoader.cs` and `VarsFile.cs` load the two files of machine-config 8. The codes are `CFG001` to `CFG199`, one part of `DiagnosticCodes` per component with its range (`DiagnosticCodes.cs`, D98). The files it loads are in `../../machines/` and `../../cycles/`.
+`TomlDocument.cs` is the one place that talks to Tomlyn; `NearestKey.cs` finds the key a typo was meant to be; `FunctionValues.cs` spells M and G codes without leading zeros (D105). The loader parses every template of a machine file on the line of its key (`ConfigTable.Template`, wave-1 question #61), so that a template that cannot be parsed is an ERROR on that line. `JobManifestLoader.cs` and `VarsFile.cs` load the two files of machine-config 8, `ProjectSettingsLoader.cs` loads `ncx.toml`, the settings of the working directory (machine-config 10, P2-04). The codes are `CFG001` to `CFG199`, one part of `DiagnosticCodes` per component with its range (`DiagnosticCodes.cs`, D98). The files it loads are in `../../machines/` and `../../cycles/`.
 
 ## Never here
 

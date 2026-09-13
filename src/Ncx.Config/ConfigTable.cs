@@ -127,17 +127,36 @@ internal sealed class ConfigTable
 
     /// <summary>
     /// A template: a string whose M and G codes lose their leading zeros, so that the compiler never writes a zero it
-    /// did not compute from a placeholder (machine-config 5, D105).
+    /// did not compute from a placeholder (machine-config 5, D105), parsed on the line of its key.
     /// </summary>
     public string? Template(string key)
     {
         string? text = Text(key);
-        return text is null ? null : FunctionValues.Normalize(text);
+        if (text is null)
+        {
+            return null;
+        }
+
+        string template = FunctionValues.Normalize(text);
+        CheckTemplate(key, template);
+        return template;
+    }
+
+    /// <summary>
+    /// Parses the template of a key on the line of the key, so that a template that cannot be parsed leaves the file
+    /// with an ERROR on that line; a text that several keys write is parsed once, on the first of them (machine-config
+    /// introduction; wave-1 question #61).
+    /// </summary>
+    /// <param name="key">The key whose value the template is.</param>
+    /// <param name="template">The template as it is loaded, its M and G codes normalized (D105).</param>
+    public void CheckTemplate(string key, string template)
+    {
+        _document.CheckTemplate(template, LineOf(key));
     }
 
     /// <summary>
     /// A function value: a string, or a bare integer that means M followed by the number, its M and G codes
-    /// normalized (D105).
+    /// normalized (D105); a template, parsed on the line of its key.
     /// </summary>
     public string? FunctionValue(string key)
     {
@@ -153,9 +172,13 @@ internal sealed class ConfigTable
             return FunctionValues.FromNumber(number);
         }
 
+        // A function value may carry a parameter, H7={value} M7, and is a template like every other (machine-config
+        // 5), parsed on the line of its key (wave-1 question #61).
         if (value is string text)
         {
-            return FunctionValues.FromText(text);
+            string template = FunctionValues.FromText(text);
+            CheckTemplate(key, template);
+            return template;
         }
 
         WrongType(key, "a string or the number of an M code", value);

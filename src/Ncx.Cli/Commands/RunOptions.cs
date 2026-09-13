@@ -19,7 +19,8 @@ internal sealed class RunOptions
 
     private readonly Option<string> _machine = new("--machine")
     {
-        Description = "The machine file to run against, by path. Without it: the built-in default machine.",
+        Description = "The machine file to run against, by name in machines/ or by path. Without it: the machine that "
+            + "ncx.toml names, else the built-in default machine.",
         HelpName = "toml",
     };
 

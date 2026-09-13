@@ -6,11 +6,11 @@ The command line tool `ncx` (architecture 10). `Program.cs` is the composition r
 
 1. `Program.cs`: `Main`, and `Run(args, output, error)`; a usage error is `CLI001` with exit code 2.
 2. `Commands/FormatCommand.cs`: read the file, `Parser.Parse`, `NcxWriter.Write`, the diagnostics to the standard error (D98).
-3. `Pipeline.cs`: what check, trace and annotate share: read the file and the machine file of `--machine` (the built-in default machine of D103 without it), parse, expand, run STATIC, collect the diagnostics; `PipelineRun.cs` is what a run gives its command.
+3. `Pipeline.cs`: what check, trace and annotate share: read the file and the machine of the run, parse, expand, run STATIC, collect the diagnostics; `PipelineRun.cs` is what a run gives its command. `RunMachine.cs` is the machine of the run: `ncx.toml` of the working directory, the machine file of `--machine` (else the one `ncx.toml` names, else the built-in default machine of D103) and the cycle catalog it names; `ProjectFolders.cs` finds a machine by name in the machine folders and a catalog in the cycle folders (P2-04).
 4. `Commands/CheckCommand.cs`, `TraceCommand.cs`, `AnnotateCommand.cs`: the three commands on the pipeline; `History/` holds the listeners and the text of trace and annotate.
 5. `ExitCodes.cs`: 0, 1 and 2 of D97, and `--strict`, under which a WARNING exits 1.
 
-`DiagnosticCodes.cs` holds the `CLI` codes, `CLI001` to `CLI004` of format and the command line, `DiagnosticCodes.Pipeline.cs` those of check, trace and annotate, `CLI100` so far (D98). `InputFile.cs` reads the NCX file and the machine file as UTF-8 text. The tests are in `../../tests/Ncx.Acceptance/Cli/`.
+`DiagnosticCodes.cs` holds the `CLI` codes, `CLI001` to `CLI004` of format and the command line, `DiagnosticCodes.Pipeline.cs` those of check, trace and annotate, `CLI100` so far, and `DiagnosticCodes.Project.cs` those of the machine of a run, `CLI200` to `CLI202` (D98). `InputFile.cs` reads the NCX file, `ncx.toml`, the machine file and the cycle catalog as UTF-8 text. The build copies `../../machines/` and `../../cycles/` next to the tool (`Ncx.Cli.csproj`). The tests are in `../../tests/Ncx.Acceptance/Cli/`.
 
 ## Never here
 

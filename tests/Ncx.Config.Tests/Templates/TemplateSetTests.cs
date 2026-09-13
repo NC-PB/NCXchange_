@@ -547,26 +547,25 @@ public sealed class TemplateSetTests
     }
 
     // A template the set cannot parse leaves it unusable and is an ERROR of the machine file, the template quoted
-    // as the file writes it (machine-config introduction); the template stays in the set with its braces as text.
+    // as the file writes it (machine-config introduction). The loader reports a template of a file on the line of its
+    // key (MachineConfigLoaderTemplateTests, wave-1 question #61); a machine built in code has no lines, so the set
+    // reports its template on line 1, and the template stays in the set with its braces as text.
     [Fact]
-    public void Constructor_MalformedTemplateOfTheMachine_IsCfgErrorOfTheMachineFile()
+    public void Constructor_MalformedTemplateOfAMachineBuiltInCode_IsCfgErrorOnLineOne()
     {
-        const string Malformed = """
-            [machine]
-            name = "Malformed"
-            controller = "fanuc"
-
-            [tool_change]
-            change = "T{tool M6"
-            """;
+        MachineConfig machine = DefaultMachine.Create() with
+        {
+            ToolChange = new ToolChangeConfig { Change = "T{tool M6" },
+        };
         var diagnostics = new Diagnostics(MachineFile);
 
-        var templates = new TemplateSet(Load(Malformed), diagnostics);
+        var templates = new TemplateSet(machine, diagnostics);
 
         Diagnostic diagnostic = Assert.Single(diagnostics.Items);
         Assert.Equal(Severity.Error, diagnostic.Severity);
         Assert.Equal(DiagnosticCodes.TemplatePlaceholderMalformed, diagnostic.Code);
         Assert.Equal(MachineFile, diagnostic.File);
+        Assert.Equal(1, diagnostic.Line);
         Assert.Equal(
             """The template "T{tool M6" opens a placeholder that is never closed (machine-config introduction).""",
             diagnostic.Message);

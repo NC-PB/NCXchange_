@@ -1,0 +1,2 @@
+MILLTURN_TRANSFER.ncx(13): WARNING VM500: LINE cuts while spindle TOOL, the spindle of the current tool holder TURRET1, is OFF (virtual machine 5).
+MILLTURN_TRANSFER.ncx(14): WARNING VM500: LINE cuts while spindle TOOL, the spindle of the current tool holder TURRET1, is OFF (virtual machine 5).

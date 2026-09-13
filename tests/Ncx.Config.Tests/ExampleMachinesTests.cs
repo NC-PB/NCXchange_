@@ -41,6 +41,28 @@ public sealed class ExampleMachinesTests
     /// </summary>
     public static TheoryData<string> MillMachines => new(s_millMachines);
 
+    /// <summary>
+    /// The eight files of machines/: the five example machines, copied there by name, and the three mills (P2-04).
+    /// </summary>
+    public static TheoryData<string> ShippedMachines
+    {
+        get
+        {
+            var fileNames = new TheoryData<string>();
+            foreach (string examplePath in s_exampleMachines)
+            {
+                fileNames.Add(Path.GetFileName(examplePath));
+            }
+
+            foreach (string fileName in s_millMachines)
+            {
+                fileNames.Add(fileName);
+            }
+
+            return fileNames;
+        }
+    }
+
     // P2-01 done when: the five example machine files load without ERROR.
     [Theory]
     [MemberData(nameof(ExampleMachines))]
@@ -61,9 +83,23 @@ public sealed class ExampleMachinesTests
     {
         var diagnostics = new Diagnostics("machines/" + fileName);
 
-        MachineConfig? machine = MachineConfigLoader.Load(MillPath(fileName), diagnostics);
+        MachineConfig? machine = MachineConfigLoader.Load(ShippedPath(fileName), diagnostics);
 
         Assert.False(diagnostics.HasErrors, diagnostics.ToText());
+        Assert.NotNull(machine);
+    }
+
+    // P2-04: the eight files of machines/, the five example machines copied there and the three mills, load without
+    // ERROR and without WARNING; every gap of P2-01's committed list is fixed in the files.
+    [Theory]
+    [MemberData(nameof(ShippedMachines))]
+    public void ShippedMachine_EveryFileOfMachines_LoadsWithoutErrorAndWithoutWarning(string fileName)
+    {
+        var diagnostics = new Diagnostics("machines/" + fileName);
+
+        MachineConfig? machine = MachineConfigLoader.Load(ShippedPath(fileName), diagnostics);
+
+        Assert.Equal("", diagnostics.ToText());
         Assert.NotNull(machine);
     }
 
@@ -82,7 +118,7 @@ public sealed class ExampleMachinesTests
         foreach (string fileName in s_millMachines)
         {
             var diagnostics = new Diagnostics("machines/" + fileName);
-            MachineConfigLoader.Load(MillPath(fileName), diagnostics);
+            MachineConfigLoader.Load(ShippedPath(fileName), diagnostics);
             AddLines(reported, diagnostics.ToText());
         }
 
@@ -176,8 +212,9 @@ public sealed class ExampleMachinesTests
         return machine;
     }
 
-    // The mills live in machines/ of the repository, found from the test assembly (tests/README.md).
-    private static string MillPath(string fileName)
+    // A file of machines/ of the repository, the mills and the copies of the examples, found from the test assembly
+    // (tests/README.md).
+    private static string ShippedPath(string fileName)
     {
         return Path.Combine(Fixture.RepositoryRoot(), "machines", fileName);
     }

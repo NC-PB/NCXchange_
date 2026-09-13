@@ -1,20 +1,7 @@
 # The diagnostics of the eight machine files: the five examples of machine-config 11 (D104) and the three mills of
-# machines/ (P2-04), as ExampleMachinesTests loads them (P2-01). Every line is a WARNING and names a gap in a file,
-# which P2-04 fixes; when every file loads clean, only these comments remain.
+# machines/ (P2-04), as ExampleMachinesTests loads them (P2-01). Every line is a WARNING and names a gap in a file;
+# a gap that only an open question can close stays here with its wave-1 question number.
 
-# Gap in mori-ntx1000-mapps.toml: CLAMP inside a spindle table is no value of a spindle word (language 4.5,
-# machine-config 5); the chuck and spindle clamps are named functions, as MAIN_CLAMP and SUB_CLAMP in the [func] of
-# nakamura-ntjx.toml and doosan-puma-2600sy.toml.
-docs/spec/examples/machines/mori-ntx1000-mapps.toml(182): WARNING CFG002: Unknown key CLAMP in [spindle.MAIN]; the nearest known key is CW (machine-config 5).
-docs/spec/examples/machines/mori-ntx1000-mapps.toml(192): WARNING CFG002: Unknown key CLAMP in [spindle.SUB]; the nearest known key is CW (machine-config 5).
-docs/spec/examples/machines/mori-ntx1000-mapps.toml(202): WARNING CFG002: Unknown key CLAMP in [spindle.TOOL]; the nearest known key is CW (machine-config 5).
-
-# Gap in mori-ntx1000-mapps.toml: C_SYNC (C1 and C2 synchronous) is no state of SPINDLE_SYNC; doosan-puma-2600sy.toml
-# writes it as the named function C_SYNC in [func].
-docs/spec/examples/machines/mori-ntx1000-mapps.toml(220): WARNING CFG002: Unknown key C_SYNC in [spindle_sync]; the nearest known key is ON (machine-config 5).
-
-# Gap in dmg-ctx-840d.toml: CLAMP inside a spindle table, as in the Mori Seiki file above.
-docs/spec/examples/machines/dmg-ctx-840d.toml(181): WARNING CFG002: Unknown key CLAMP in [spindle.MAIN]; the nearest known key is CW (machine-config 5).
-docs/spec/examples/machines/dmg-ctx-840d.toml(194): WARNING CFG002: Unknown key CLAMP in [spindle.SUB]; the nearest known key is CW (machine-config 5).
-docs/spec/examples/machines/dmg-ctx-840d.toml(204): WARNING CFG002: Unknown key CLAMP in [spindle.TOOL]; the nearest known key is CW (machine-config 5).
-docs/spec/examples/machines/dmg-ctx-840d.toml(214): WARNING CFG002: Unknown key CLAMP in [spindle.TOOL2]; the nearest known key is CW (machine-config 5).
+# P2-04 fixed the last gaps: the clamps of the spindle tables of mori-ntx1000-mapps.toml and dmg-ctx-840d.toml, and
+# the C_SYNC of the Mori Seiki's [spindle_sync], are named functions in [func] now, as in nakamura-ntjx.toml and
+# doosan-puma-2600sy.toml (machine-config 5). Every file loads clean, so only these comments remain.

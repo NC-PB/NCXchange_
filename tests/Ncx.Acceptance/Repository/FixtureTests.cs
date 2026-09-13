@@ -7,6 +7,9 @@ namespace Ncx.Acceptance.Repository;
 /// </summary>
 public sealed class FixtureTests
 {
+    // The example machines, as paths relative to docs/spec/examples (tests/README.md).
+    private const string ExampleMachinesFolder = "machines/";
+
     // The copy a test reads is the specification's example byte for byte; the specification folder stays the single
     // source of truth (implementation 00-method 4, phase 0 P0-01).
     [Fact]
@@ -25,6 +28,34 @@ public sealed class FixtureTests
         }
 
         Assert.NotEmpty(examples);
+        Assert.Empty(differing);
+    }
+
+    // The five example machines are the shipped machine files: machines/ holds a copy of each, kept identical to the
+    // example byte for byte, so that the specification folder stays the single source of truth and a fix is made in
+    // docs/spec/examples/machines and copied (implementation 12, P2-04; machine-config 11).
+    [Fact]
+    public void ExampleMachines_EveryCopyInMachines_EqualsItsExampleByteForByte()
+    {
+        string machinesFolder = Path.Combine(Fixture.RepositoryRoot(), "machines");
+        var exampleMachines = new List<string>();
+        var differing = new List<string>();
+        foreach (string examplePath in Fixture.List())
+        {
+            if (!examplePath.StartsWith(ExampleMachinesFolder, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            exampleMachines.Add(examplePath);
+            string copy = Path.Combine(machinesFolder, examplePath.Substring(ExampleMachinesFolder.Length));
+            if (!File.Exists(copy) || !File.ReadAllBytes(copy).SequenceEqual(Fixture.ReadBytes(examplePath)))
+            {
+                differing.Add(examplePath);
+            }
+        }
+
+        Assert.Equal(5, exampleMachines.Count);
         Assert.Empty(differing);
     }
 

@@ -29,4 +29,16 @@
     <InternalsVisibleTo Include="Ncx.Acceptance" />
   </ItemGroup>
 
+  <!--
+    The shipped machine files and cycle catalogs next to the tool, in machines/ and cycles/ of its own folder, where
+    ncx finds a machine by name and the catalog a machine names after the folders of the working directory
+    (implementation 12, P2-04; machine-config 6, 10).
+  -->
+  <ItemGroup>
+    <None Include="../../machines/*.toml" Link="machines/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../cycles/*.toml" Link="cycles/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

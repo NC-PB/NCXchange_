@@ -11,12 +11,12 @@ namespace Ncx.Config.Templates;
 /// </summary>
 public sealed class TemplateSet
 {
-    // TODO(question): the records keep a template as text without the line it stands on in the machine file (D107),
-    // while every diagnostic carries its line (code-guidelines 6, D98) and a bad machine file reports the line (phase
-    // 2). A template that cannot be parsed is reported on line 1 of the machine file, the line the loader gives a
-    // mistake of the file as a whole, with the template quoted as the file writes it, so that the user finds it by its
-    // text; whether the loader should parse the templates on the lines of their keys, or the records carry the lines,
-    // is open.
+    // Every diagnostic carries its line and a bad machine file reports the line (code-guidelines 6, D98; phase 2): the
+    // loader parses each template of a machine file on the line of its key, and a file with a template that cannot be
+    // parsed gives no machine (MachineConfigLoader; wave-1 question #61). The records keep a template as text without
+    // its line (D107), so a machine built in code, whose templates never passed the loader, has a template that cannot
+    // be parsed reported on line 1, the line of a mistake of the file as a whole, with the template quoted as it is
+    // written, so that the user finds it by its text.
     private const int MachineFileLine = 1;
 
     private readonly Dictionary<string, Template> _byText = new(StringComparer.Ordinal);

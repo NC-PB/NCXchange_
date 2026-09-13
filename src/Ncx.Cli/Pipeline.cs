@@ -1,4 +1,3 @@
-using Ncx.Config;
 using Ncx.Core.Expander;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
@@ -24,27 +23,20 @@ internal static class Pipeline
     {
         var diagnostics = new Diagnostics(settings.File);
 
-        // Code 2 is decided before the run starts and takes precedence: the NCX file and the machine file of --machine
-        // are read first, and one that cannot be found or read stops everything (D97, architecture 10; P1-07). Both are
-        // read, so that both are reported.
+        // Code 2 is decided before the run starts and takes precedence: the NCX file, ncx.toml, the machine file and
+        // its cycle catalog are read first, and one that cannot be found or read stops everything (D97, architecture
+        // 10; P1-07, P2-04). All of them are read, so that all are reported.
         string? text = InputFile.Read(settings.File, DiagnosticCodes.InputUnreadable, "The file",
             "language 3, Encoding", diagnostics);
-        string? machineText = null;
-        if (settings.MachineFile is string machineFile)
-        {
-            machineText = InputFile.Read(machineFile, DiagnosticCodes.MachineFileUnreadable,
-                "The machine file of --machine", "D97, D103", diagnostics);
-        }
-
-        if (text is null || (settings.MachineFile is not null && machineText is null))
+        RunMachine runMachine = RunMachine.Select(settings, diagnostics);
+        if (text is null || !runMachine.InputsRead)
         {
             return new PipelineRun { Diagnostics = diagnostics, InputsRead = false };
         }
 
-        // A machine file that reads but loads with an ERROR stops the run before it starts, with exit code 1 like any
-        // other ERROR (D97; P1-07).
-        MachineConfig? machine = LoadMachine(settings.MachineFile, machineText, diagnostics);
-        if (machine is null)
+        // ncx.toml, a machine file or a cycle catalog that reads but loads with an ERROR stops the run before it
+        // starts, with exit code 1 like any other ERROR (D97; P1-07).
+        if (runMachine.Machine is not MachineConfig machine)
         {
             return new PipelineRun { Diagnostics = diagnostics, InputsRead = true };
         }
@@ -93,33 +85,5 @@ internal static class Pipeline
             Program = runnable ? expanded : null,
             ByteOrderMark = byteOrderMark,
         };
-    }
-
-    // The machine the run is checked against: without --machine the built-in default machine (D103, virtual machine
-    // 3.8), with it the machine file at the path given, whose mistakes are diagnostics of the machine file on their
-    // lines (P2-01). Null when the machine file has an ERROR.
-    // TODO: P2-04 part two resolves --machine by name in machines/, takes the machine that ncx.toml names when
-    // --machine is not given, and loads the catalog file that [cycles] catalog names from the cycles folder beneath
-    // the [[cycle]] entries of the machine file (machine-config 6, 10; CycleCatalogLoader.WithCatalog).
-    private static MachineConfig? LoadMachine(string? machineFile, string? machineText, Diagnostics diagnostics)
-    {
-        if (machineFile is null || machineText is null)
-        {
-            return DefaultMachine.Create();
-        }
-
-        // A byte order mark is no part of the TOML text, as File.ReadAllText, which MachineConfigLoader.Load uses,
-        // drops it.
-        string toml = machineText.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
-            ? machineText.Substring(InputFile.ByteOrderMark.Length)
-            : machineText;
-        var machineDiagnostics = new Diagnostics(machineFile);
-        MachineConfig? machine = MachineConfigLoader.LoadText(toml, machineDiagnostics);
-        foreach (Diagnostic diagnostic in machineDiagnostics.Items)
-        {
-            diagnostics.Add(diagnostic);
-        }
-
-        return machine;
     }
 }
