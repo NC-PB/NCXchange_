@@ -1,0 +1,5 @@
+# Event tests
+
+The events of virtual machine 7, one test per row and rule: `FileAndProgramEventTests` (`FILE_*`, `PROGRAM_*` with the run statistics, `SUB_*` with the caller, `SECTION`), `ToolEventTests` (`TOOL_BEGIN`, `TOOL_END` with the distance and block count under the tool, `PRELOAD`; virtual machine 3.5), `MotionEventTests` (`MOTION` with center, direction, sweep, vectors, feed, frame and length), `CycleCallEventTests` (`CYCLE_CALL` and the motions of `ExpandCycles`, D37), `StateChangeEventTests`, `VarAndFlowEventTests`, `MachineFunctionEventTests` (`DWELL`, `STOP`, `FUNCTION`), and `BeforeAndAfterTests` (every `Before` is the previous `After`, the snapshots stay as they were, every listener gets every event).
+
+`FakeListener` records the events and each as its line `KIND(line): payload`; `EventRuns` subscribes one before a whole file runs or blocks execute one by one. The whole event sequence of `2.5D_FRAESEN.ncx` is compared with `tests/Ncx.Acceptance/Expected/2.5D_FRAESEN.events.txt` by `Ncx.Acceptance`.

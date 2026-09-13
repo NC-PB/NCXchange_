@@ -470,7 +470,7 @@ Not drawn: `TOOL=k` in `Loaded` changes the tool without a preload and stays in 
 
 ### 5.3 Events
 
-Every event carries `Before` and `After`, the snapshots of the channel state around the block; they are immutable records, so a listener observes and never mutates (D61, D106). `IVmListener` and the event records are public types of `Ncx.Core`, where the VM that raises them lives (D106). Analytics, plugins and the kinematics module are listeners; the compiler is a listener of `BLOCK_WRITE`, which is the only mutable event.
+Every event carries `Before` and `After`, the snapshots of the channel state around the block (`ChannelSnapshot`); they are immutable records, so a listener observes and never mutates (D61, D106). The `Before` of a block is the `After` of the events raised before it in the walk. `IVmListener` and the event records are public types of `Ncx.Core`, where the VM that raises them lives (D106); a listener subscribes with `VirtualMachine.Subscribe`. Analytics, plugins and the kinematics module are listeners; the compiler is a listener of `BLOCK_WRITE`, which is the only mutable event. There is one record per row of the VM specification, section 7; `SyncEvent` is raised by the job scheduler, `BlockWriteEvent` by the compilers, and `TOOL_POSE` comes with the kinematics module.
 
 ```mermaid
 classDiagram
@@ -482,39 +482,78 @@ classDiagram
         <<abstract>>
         +int Channel
         +Block Block
-        +ChannelState Before
-        +ChannelState After
+        +ChannelSnapshot Before
+        +ChannelSnapshot After
+        +string Kind
+    }
+    class FileEvent {
+        +EventPhase Phase
+        +string FileName
+        +List~Section~ Programs
+        +List~Section~ Subs
+    }
+    class ProgramEvent {
+        +EventPhase Phase
+        +string Name
+        +int Number
+        +int Blocks
+        +decimal Distance
+    }
+    class SubEvent {
+        +EventPhase Phase
+        +string Name
+        +Section Caller
+    }
+    class SectionEvent {
+        +string Text
+    }
+    class ToolEvent {
+        +EventPhase Phase
+        +ToolRef Tool
+        +string Holder
+        +decimal Rpm
+        +decimal Distance
+        +int Blocks
+    }
+    class PreloadEvent {
+        +ToolRef Tool
+        +string Holder
     }
     class MotionEvent {
         +Verb Verb
-        +Point From
-        +Point To
-        +Point Center
-        +Direction Direction
+        +Dictionary~string,AxisPosition~ From
+        +Dictionary~string,AxisPosition~ To
+        +Dictionary~string,AxisPosition~ Center
+        +ArcDirection Direction
+        +decimal Sweep
+        +List~decimal~ ToolVector
+        +List~decimal~ SurfaceNormal
         +decimal Feed
+        +FeedMode FeedMode
+        +Compensation Comp
+        +PositionFrame Frame
         +decimal Length
     }
     class CycleCallEvent {
         +string Cycle
-        +Point At
+        +string Controller
         +List~Word~ Parameters
-    }
-    class ToolEvent {
-        +ToolPhase Phase
-        +int Tool
-        +string Holder
-        +decimal Distance
-        +int Blocks
+        +Dictionary~string,AxisPosition~ At
     }
     class StateChangeEvent {
         +string Variable
         +string OldValue
         +string NewValue
     }
+    class VarChangeEvent {
+        +string Name
+        +VariableValue OldValue
+        +VariableValue NewValue
+    }
     class FlowEvent {
-        +FlowKind Kind
+        +FlowKind Flow
         +string Target
-        +bool Condition
+        +Value Condition
         +int Depth
     }
     class SyncEvent {
@@ -523,16 +562,35 @@ classDiagram
         +int Round
         +bool Released
     }
+    class DwellEvent {
+        +decimal Seconds
+    }
+    class StopEvent {
+        +bool Optional
+    }
+    class FunctionEvent {
+        +Word Word
+        +string Name
+    }
     class BlockWriteEvent {
         +List~Word~ Words
         +List~string~ OutputLines
     }
+    VmEvent <|-- FileEvent
+    VmEvent <|-- ProgramEvent
+    VmEvent <|-- SubEvent
+    VmEvent <|-- SectionEvent
+    VmEvent <|-- ToolEvent
+    VmEvent <|-- PreloadEvent
     VmEvent <|-- MotionEvent
     VmEvent <|-- CycleCallEvent
-    VmEvent <|-- ToolEvent
     VmEvent <|-- StateChangeEvent
+    VmEvent <|-- VarChangeEvent
     VmEvent <|-- FlowEvent
     VmEvent <|-- SyncEvent
+    VmEvent <|-- DwellEvent
+    VmEvent <|-- StopEvent
+    VmEvent <|-- FunctionEvent
     VmEvent <|-- BlockWriteEvent
     IVmListener ..> VmEvent
 ```
@@ -977,12 +1035,12 @@ Analytics are listeners. Each one is a class that subscribes to the events it ne
 | Analytic | Events | Output |
 |---|---|---|
 | Tool list | TOOL_BEGIN, TOOL_END, PRELOAD | one row per tool use: rpm, feeds, offsets, distance, blocks, preload behaviour |
-| Runtime estimate | MOTION, CYCLE_CALL, STATE_CHANGE (dwell, spindle), SYNC | trapezoidal profile per block from `max_feed`, `acceleration`, `rapid` of the moving axes, the control's `block_time` and `path_mode`, spindle `accel_time` for starts and stops (D64); per tool, section, channel; job time as the longest channel with waits |
+| Runtime estimate | MOTION, CYCLE_CALL, DWELL, STATE_CHANGE (spindle), SYNC_WAIT, SYNC_RELEASE | trapezoidal profile per block from `max_feed`, `acceleration`, `rapid` of the moving axes, the control's `block_time` and `path_mode`, spindle `accel_time` for starts and stops (D64); per tool, section, channel; job time as the longest channel with waits |
 | Travel limits | MOTION | min and max per axis in the MACHINE frame against the `limits` of `[[axis]]` (machine coordinates, D100), offending blocks; positions known only in the workpiece frame are not checked |
 | Datum, feed, speed lists | STATE_CHANGE | one row per change |
 | Segment length and tool vector change | MOTION | distance between consecutive end points and the angle between consecutive tool vectors per motion, the two analytics CAM programmers use to judge 5-axis output |
-| Loop statistics | FLOW (INTERPRETED) | blocks per label section, iteration counts, final variables |
-| Channel timeline | SYNC, MOTION | estimated time per block aligned at marks, waiting time per channel |
+| Loop statistics | JUMP, CALL, RETURN, REPEAT (INTERPRETED) | blocks per label section, iteration counts, final variables |
+| Channel timeline | SYNC_WAIT, SYNC_RELEASE, MOTION | estimated time per block aligned at marks, waiting time per channel |
 | Trace, annotate | STATE_CHANGE | history outputs of the VM specification section 6 |
 
 Plugins are user DLLs found through `ncx.toml`, each loaded into its own `AssemblyLoadContext`, which shares every `Ncx.*` assembly with the host, so that types are identical, and isolates everything else the plugin brings (D106). A plugin project references `Ncx.Plugins` alone (the loader, the concrete context built from the D80 settings, the diagnostics helpers) and gets the four interfaces and their signature types (`RewriteResult`, the `RewriteContext` abstraction) transitively from their callers: `IProgramRewriter` and `IVmListener` in `Ncx.Core`, `ISourceRule` in `Ncx.Readers`, `IBlockWriter` in `Ncx.Compilers` (D106). None of them mutates the VM state; listeners receive read-only snapshots (D61, D106):

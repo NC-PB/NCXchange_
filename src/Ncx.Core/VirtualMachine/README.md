@@ -16,6 +16,7 @@ Start with `VirtualMachine.cs`: `Execute(block)` runs the seven steps of virtual
 | `HomeRules.cs` | `HOME` (virtual machine 3 step 5, D100) |
 | `DiameterRules.cs` | diameter programming (language 4.2, D60) |
 | `ProgramEndRules.cs` | what `PROGRAM=END` resets (virtual machine 4) |
+| `VirtualMachine.Events.cs`, `Events/` | the events of step 7, `Subscribe` and the listeners, `Before` and `After` (virtual machine 7; architecture 5.3; D61, D106) |
 | `BlockContext.cs`, `BlockFlow.cs` | one block while it executes, and where the flow goes after it |
 | `VmOptions.cs`, `SkipBlocks.cs`, `ExecutionMode.cs`, `RunResult.cs` | the options of a run and how it ended (D53) |
 

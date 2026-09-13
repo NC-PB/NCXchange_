@@ -243,15 +243,19 @@ The VM never stores history in the program. Two derived outputs give it instead:
 | SECTION | `SECTION` | text |
 | TOOL_BEGIN, TOOL_END | tool enters or leaves the spindle | tool, holder, rpm, distance and block count under the tool |
 | PRELOAD | `PRELOAD` | tool, holder |
-| MOTION | every `RAPID`, `LINE`, `ARC`, `RETRACT` | verb, from, to, center, direction, sweep angle, tool vector and surface normal when given, feed, compensation, frame |
+| MOTION | every `RAPID`, `LINE`, `ARC`, `RETRACT` | verb, from, to, center, direction, sweep angle, tool vector and surface normal when given, feed, compensation, frame, length |
 | CYCLE_CALL | every call | cycle name and parameters, call point |
 | STATE_CHANGE | any modal change | variable, old, new |
 | VAR_CHANGE | `VAR`, `ARG` | name, old, new |
 | JUMP, CALL, RETURN, REPEAT | flow | target, condition, depth |
 | SYNC_WAIT, SYNC_RELEASE | scheduler | mark, channels, round |
+| DWELL | `DWELL` | seconds |
+| STOP | `STOP` | `PROGRAM` or `OPTIONAL` |
+| FUNCTION | every `FUNC`, `MFUNC`, `COOLANT` | the word, the function or coolant channel it addresses |
 | BLOCK_WRITE (compiler) | before a block is written | the block's words, mutable, so a plugin can split `Z` onto its own line or strip umlauts from a comment |
+| TOOL_POSE (kinematics module) | per MOTION and CYCLE_CALL when the module is present (section 10) | pose of the tool tip relative to the workpiece frame |
 
-Every event carries `Before` and `After`, the resolved state of the channel around the block. Plugins (the DLL hooks such as `tool_begin`) subscribe here. A plugin has four places to act, and none of them is the VM state (D61): as a reader rule it sees the source blocks and the source-side state of a reader and decides what an M code or a sequence of source blocks means on this particular machine, for example that `M5`, `M51`, `M3 S1500` is one `COOLANT:THROUGH=ON`, or that a builder M code with a hidden subprogram is the workpiece transfer (D40, D66: the configuration tables come first, the reader rule decides the rest); as a program rewriter in the expander it may change words and insert generated blocks before the VM executes them (clamp a speed, stop the spindle before a function, add a `HOME` before a tool change); as a listener it reads every event; on `BLOCK_WRITE` it edits the output lines of the compiler. Machine limits that are the same for every program (`rpm_max`, `max_feed`, travel limits) do not need a plugin: they are configuration and the expander applies them.
+Each row is one event record of `Ncx.Core` (architecture 5.3). Every event carries `Before` and `After`, the resolved state of the channel around the block. Plugins (the DLL hooks such as `tool_begin`) subscribe here. A plugin has four places to act, and none of them is the VM state (D61): as a reader rule it sees the source blocks and the source-side state of a reader and decides what an M code or a sequence of source blocks means on this particular machine, for example that `M5`, `M51`, `M3 S1500` is one `COOLANT:THROUGH=ON`, or that a builder M code with a hidden subprogram is the workpiece transfer (D40, D66: the configuration tables come first, the reader rule decides the rest); as a program rewriter in the expander it may change words and insert generated blocks before the VM executes them (clamp a speed, stop the spindle before a function, add a `HOME` before a tool change); as a listener it reads every event; on `BLOCK_WRITE` it edits the output lines of the compiler. Machine limits that are the same for every program (`rpm_max`, `max_feed`, travel limits) do not need a plugin: they are configuration and the expander applies them.
 
 ## 8. Analytics
 

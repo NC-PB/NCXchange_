@@ -1,6 +1,7 @@
 using Ncx.Core.Catalog;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
+using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.VirtualMachine.State;
 using Ncx.Core.VirtualMachine.Validation;
 
@@ -575,6 +576,15 @@ public sealed partial class VirtualMachine
             ProgramEndRules.EndProgram(_state);
         }
 
+        // A CALL of an external program is not followed in STATIC mode: the state after it is the state before it, and
+        // the position becomes unknown (virtual machine 1, 3.9, D99). The CALL block does that, so it happens before
+        // step 7: the After of the block carries the unknown position and its STATE_CHANGE events report it (virtual
+        // machine 6, 7).
+        if (CallsExternalProgram(block))
+        {
+            ForgetPosition();
+        }
+
         return block.Has("CALL") ? BlockFlow.Call : BlockFlow.Next;
     }
 
@@ -601,11 +611,21 @@ public sealed partial class VirtualMachine
         }
     }
 
-    // Step 7: the block's events with the Before and After snapshots of the channel (virtual machine 7).
-    // TODO: P1-05 raises the events here from the block of the context, TOOL_BEGIN and TOOL_END from the holders of
-    // Before and After among them (virtual machine 3.5, 7).
-    private static void RaiseEvents(BlockContext context)
+    // Step 7: the block's events (virtual machine 7), each with the Before and After snapshots of the channel around the
+    // block; the Before is the After of the events raised before them, so that a listener misses no change
+    // (architecture 5.3). BlockEvents raises them in their order, TOOL_BEGIN and TOOL_END from the holders of Before
+    // and After among them (3.5), and counts the block under its tool and its program. With nobody listening nothing is
+    // raised and no snapshot is taken.
+    private void RaiseEvents(BlockContext context)
     {
+        if (_listeners.Count == 0)
+        {
+            return;
+        }
+
+        ChannelSnapshot after = _state.Snapshot();
+        var events = new BlockEvents(context, _lastAfter ?? after, after, _program);
+        Publish(events.Raise(LastArc, LastCycleMotions, _underTool, _underProgram), after);
     }
 
     // The state of a channel at the start of a run, from the machine, with the pre-pass over the file; reading an

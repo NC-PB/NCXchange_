@@ -1,4 +1,5 @@
 using Ncx.Core.Model;
+using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.VirtualMachine.Handlers;
 using Ncx.Core.VirtualMachine.State;
 using Ncx.Core.VirtualMachine.Validation;
@@ -67,6 +68,11 @@ public sealed partial class VirtualMachine
         {
             StartWalk(NewState(section.Channel), suppressCallerRules: false);
             _state.Program.Section = section;
+            if (firstProgram)
+            {
+                RaiseFileEvent(program, EventPhase.Begin);
+            }
+
             if (!WalkSection(section, recordFirstVerb: firstProgram))
             {
                 return new RunResult { Stopped = true };
@@ -99,6 +105,7 @@ public sealed partial class VirtualMachine
 
         // After the run the state is the one the last program left.
         StartWalk(lastProgram ?? _state, suppressCallerRules: false);
+        RaiseFileEvent(program, EventPhase.End);
         return new RunResult { Stopped = false };
     }
 
@@ -189,11 +196,10 @@ public sealed partial class VirtualMachine
                 return false;
             }
 
-            // A CALL of an external program by file name is not followed in STATIC mode: the call is recorded, the
-            // state after it is the state before it, and the position becomes unknown (virtual machine 1, 3.9, D99).
+            // A CALL of an external program by file name is not followed in STATIC mode: the call is recorded, and its
+            // block left the position unknown (virtual machine 1, 3.9, D99; ApplyFlowWords).
             if (call.Value is StringValue)
             {
-                ForgetPosition();
                 return true;
             }
 
@@ -286,8 +292,26 @@ public sealed partial class VirtualMachine
         return true;
     }
 
-    // After a CALL of an external program the position is unknown in every frame (virtual machine 1, 3.9, D99), the
-    // MACHINE frame included; with it goes the machine position a SETPOS recorded its shift against (D101).
+    // A CALL of an external program in the STATIC walk: a file name, a string that names neither a subprogram nor a
+    // program of the file (language 4.9, 4.13; virtual machine 1, 3.9). A CALL that names a program is the ERROR of
+    // FollowCall; INTERPRETED mode loads the external program (3.6); a block executed outside a run has no file whose
+    // sections a CALL could name.
+    private bool CallsExternalProgram(Block block)
+    {
+        if (Mode != ExecutionMode.Static
+            || _program is not NcxProgram program
+            || block.Find("CALL") is not Word { Value: StringValue } call)
+        {
+            return false;
+        }
+
+        string name = NameOf(call.Value);
+        return FindSection(program.Subs, name) is null && FindSection(program.Programs, name) is null;
+    }
+
+    // A CALL of an external program leaves the position unknown in every frame (virtual machine 1, 3.9, D99), the
+    // MACHINE frame included; with it goes the machine position a SETPOS recorded its shift against (D101). The CALL
+    // block does it before its events are raised (ApplyFlowWords), so the chain of Before and After goes on through it.
     private void ForgetPosition()
     {
         foreach (string axis in new List<string>(_state.Motion.Position.Keys))
@@ -305,6 +329,7 @@ public sealed partial class VirtualMachine
         _state = state;
         _suppressCallerRules = suppressCallerRules;
         _homedWithoutReference.Clear();
+        ContinueEventsFrom(state);
     }
 
     // file.programs, file.subs and the labels of every section come from the pre-pass over the file (virtual machine
