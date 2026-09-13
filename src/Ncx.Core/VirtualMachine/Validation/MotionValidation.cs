@@ -41,6 +41,10 @@ internal static class MotionValidation
             ValidationRule.Warning(DiagnosticCodes.TargetBeyondLimits,
                 "A target beyond the axis limits, compared in the MACHINE frame and not checked while the machine "
                 + "position is unknown.", "VM 5; machine-config 4; D64, D100"),
+            ValidationRule.Warning(DiagnosticCodes.LimitClamped,
+                "With limits = \"clamp\" in the configuration: RPM, F or a target beyond a machine limit is rewritten "
+                + "to the limit, and the WARNING says so.", "VM 5; machine-config 1; D64")
+                with { RaisedBy = "the expander" },
         ],
     };
 

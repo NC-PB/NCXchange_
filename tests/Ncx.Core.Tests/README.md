@@ -20,6 +20,7 @@ The tests of `src/Ncx.Core`, one folder per source folder: NCX text in, the expe
 | `VirtualMachine/` | block execution, frames, tool change, resources, STATIC runs | `VmHarness`, `VmMachines` |
 | `VirtualMachine/State/` | the start values and snapshots of every state table | `StateMachines` |
 | `VirtualMachine/Validation/` | one test per rule of the validation list of virtual machine 5; writes `docs/spec/generated/diagnostics.md` | `RuleAssert`, `ValidationMachines`, `DiagnosticsDocument` |
+| `Expander/` | expansion rules, program rewriters, `limits = "clamp"`, generated blocks and their origin | `ExpanderHarness`, `ExpanderMachines`, the rewriters `CoolantClutchRule`, `ReplacingRewriter`, `SurroundingRewriter`, `ContextRecorder` |
 
 ## Never here
 

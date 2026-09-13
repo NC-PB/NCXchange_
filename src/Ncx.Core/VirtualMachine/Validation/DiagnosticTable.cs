@@ -9,12 +9,14 @@ namespace Ncx.Core.VirtualMachine.Validation;
 internal static class DiagnosticTable
 {
     /// <summary>
-    /// The families in the order of the validation list: the file and its words first, then the frame, the motion and
-    /// its forms, the tool and the spindle, the cycle, the flow, the expressions, the resources and the channels.
+    /// The families in the order of the validation list: the file and its words first, with the blocks the expander
+    /// generates for it, which the list does not name (virtual machine 3.10); then the frame, the motion and its forms,
+    /// the tool and the spindle, the cycle, the flow, the expressions, the resources and the channels.
     /// </summary>
     public static IReadOnlyList<ValidationFamily> Families { get; } =
     [
         StructureValidation.Family,
+        GeneratedBlockValidation.Family,
         FrameValidation.Family,
         MotionValidation.Family,
         ArcValidation.Family,

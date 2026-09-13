@@ -7,8 +7,9 @@ Start with `RunValidation.cs`: what the virtual machine calls during a run. `Che
 | File | Family |
 |---|---|
 | `StructureValidation.cs` | the file frame, the sections, the words of a block (the parser's PAR codes), RAW |
+| `GeneratedBlockValidation.cs` | the generated blocks, which the list does not name: the texts of the expansion rules and the program rewriters, `{position:NAME}` (D100), the restore stack of `@SAVE` and `@RESTORE` (3.10, D95); raised by the expander and `RestoreRules` |
 | `FrameValidation.cs` | SETPOS, the path tolerance, ROT against the machine |
-| `MotionValidation.cs` | UNITS, feed, IX; F in a RAPID block, `max_feed`, the axis `limits` (D64, D100) |
+| `MotionValidation.cs` | UNITS, feed, IX; F in a RAPID block, `max_feed`, the axis `limits` (D64, D100), and the `limits = "clamp"` rewrite of the expander (D64) |
 | `ArcValidation.cs`, `VectorValidation.cs`, `RetractAndHomeValidation.cs`, `CycleValidation.cs` | the rules of `ArcRules`, `ToolVectorRules`, `RetractRules`, `HomeRules` and `CycleRules`; COMP in an ARC block |
 | `ToolValidation.cs` | the tool change table of 3.5, the offset forms of a program |
 | `SpindleValidation.cs` | spindle rules 4 and 5 of 3.8, spindle OFF before a LINE, `rpm_min` and `rpm_max` |

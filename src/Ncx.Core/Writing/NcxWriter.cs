@@ -50,18 +50,18 @@ public static class NcxWriter
         {
             // ncx format never writes a generated block; it is written when the options ask for it (language 4.15,
             // architecture 4.1).
-            if (block.IsGenerated && !options.IncludeGenerated)
+            if (WrittenBlock(block, options) is not Block written)
             {
                 continue;
             }
 
-            while (nextTrivia < program.Trivia.Count && program.Trivia[nextTrivia].Line < block.Line)
+            while (nextTrivia < program.Trivia.Count && program.Trivia[nextTrivia].Line < written.Line)
             {
                 text.Append(program.Trivia[nextTrivia].Text).Append(lineEnding);
                 nextTrivia++;
             }
 
-            text.Append(WriteBlock(block)).Append(lineEnding);
+            text.Append(WriteBlock(written)).Append(lineEnding);
         }
 
         // The trivia after the last block, the lines after FILE=END among them (D92).
@@ -108,5 +108,18 @@ public static class NcxWriter
         // lexer counts the columns of its diagnostics, until that is answered.
         int spaces = Math.Max(CommentColumn - 1 - line.Length, SpacesAfterLongWords);
         return line.Append(' ', spaces).Append(block.Comment).ToString();
+    }
+
+    // The block the writer writes for a block of the program: the block itself, and a generated block only when the
+    // options ask for it; for a block the expander rewrote in place, the block of the file it stands for, as read
+    // (language 4.15, D64).
+    private static Block? WrittenBlock(Block block, WriterOptions options)
+    {
+        if (!block.IsGenerated || options.IncludeGenerated)
+        {
+            return block;
+        }
+
+        return block.Generated is { Placement: GeneratedPlacement.InPlace } generated ? generated.Origin : null;
     }
 }

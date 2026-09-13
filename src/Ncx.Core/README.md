@@ -20,8 +20,9 @@ Everything that knows what an NCX program says and what it means: the model of a
 | `Geometry/` | `Vec3`, planes, angles, arcs, in `double` | virtual machine 3.2; architecture 4.2; D62, D84 |
 | `Machine/` | the records a machine file is loaded into, the cycle catalog, the job manifest | machine-config 1 to 9; architecture 6; D107 |
 | `VirtualMachine/` | the virtual machine, the state of a channel (`VirtualMachine/State/`), the word handlers (`VirtualMachine/Handlers/`) | virtual machine 1 to 4; architecture 5 |
+| `Expander/` | the expander between parser and virtual machine: the expansion rules of the machine, the program rewriters (`IProgramRewriter`, `RewriteResult`, `RewriteContext`), `limits = "clamp"` | virtual machine 1, 3.10; language 4.15; machine-config 5a; architecture 5.5; D63, D64, D100, D106 |
 
-The expander of P1-06 (`Expander/`), the events of P1-05 and, with them, the plugin interfaces `IProgramRewriter` and `IVmListener` join this project (D106).
+The events of P1-05 and, with them, the plugin interface `IVmListener` join this project (D106).
 
 ## Never here
 

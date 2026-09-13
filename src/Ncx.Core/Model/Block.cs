@@ -49,6 +49,13 @@ public sealed record Block
     public int? OriginLine { get; init; }
 
     /// <summary>
+    /// For a generated block, its origin: the block it was generated for, the rule or rewriter that made it, the
+    /// reason, and whether it stands before, in place of or after that block (virtual machine 3.10); null for a block
+    /// of the file.
+    /// </summary>
+    public GeneratedBlock? Generated { get; init; }
+
+    /// <summary>
     /// True when the block carries SKIP, the optional block skip (language 4.1).
     /// </summary>
     public bool Skip => Has(SkipKey);

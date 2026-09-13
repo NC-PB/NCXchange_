@@ -55,6 +55,19 @@ The file frame, the programs and subprograms, and the words of a block (language
 | `VM400` | WARNING | RAW present: source text kept verbatim, which compiles only to its own controller or builder. | language 4.1; VM 5 |
 | (none) | ERROR | RAW, or a CYCLE:controller=n block with its native parameters, compiled for another controller family. Raised by the compiler, at compile time. | language 4.1, 4.7.1; VM 5; D5, D94 |
 
+## Generated blocks
+
+The blocks the expander generates from the expansion rules of the machine configuration and from the program rewriters, and the restore stack of @SAVE and @RESTORE (language 4.15; VM 1, 3.10; machine-config 5a; architecture 5.5; D95, D100, D106). A pseudo-word in a user file is PAR007 of the structure, and a generated text that does not parse keeps the code the parser gives it.
+
+| Code | Severity | Rule | Section |
+|---|---|---|---|
+| `VM650` | ERROR | {position:NAME} in a pre or post block of an expansion rule names no entry of [positions]; reported once per rule text. Raised by the expander. | machine-config 5a; architecture 5.5; D100 |
+| `VM651` | ERROR | A text of an expansion rule or a program rewriter that holds no block: a blank or a comment-only line. Raised by the expander. | language 3, 4.15; machine-config 5a |
+| `VM652` | ERROR | Generated blocks before a FILE=BEGIN, PROGRAM=BEGIN or SUB=BEGIN block or after an END block, outside every program and subprogram, or a rewrite of such a block. Raised by the expander. | language 4.1, 4.13 |
+| `VM653` | ERROR | A generated text with FILE, NCX, PROGRAM or SUB, the words that open and close the file, a program and a subprogram exactly once. Raised by the expander. | language 4.1, 4.13 |
+| `VM680` | ERROR | @RESTORE of a state variable for which the restore stack holds no value that @SAVE saved. | VM 3.10; D95 |
+| `VM681` | ERROR | @SAVE or @RESTORE with a state key that names no state variable the restore stack keeps. | VM 3.10; D95 |
+
 ## Frame
 
 SETPOS, the path tolerance and the tilted plane (language 4.1, 4.2; VM 2.1, 3.4, 5). MOVE and ROT without TILT or TILT_AXIS are PAR016 of the structure.
@@ -79,6 +92,7 @@ Linear motion and the machine limits of a motion (language 4.3; VM 3.1, 5; machi
 | `VM440` | WARNING | F in a RAPID block. | VM 5 |
 | `VM441` | WARNING | F above an axis max_feed. | VM 5; machine-config 4; D64 |
 | `VM442` | WARNING | A target beyond the axis limits, compared in the MACHINE frame and not checked while the machine position is unknown. | VM 5; machine-config 4; D64, D100 |
+| `VM670` | WARNING | With limits = "clamp" in the configuration: RPM, F or a target beyond a machine limit is rewritten to the limit, and the WARNING says so. Raised by the expander. | VM 5; machine-config 1; D64 |
 
 ## Arc
 

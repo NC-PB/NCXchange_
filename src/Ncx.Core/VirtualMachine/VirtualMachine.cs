@@ -133,6 +133,9 @@ public sealed partial class VirtualMachine
             return BlockFlow.Skipped;
         }
 
+        // The pseudo-words of a generated block, @SAVE and @RESTORE (virtual machine 3.10, D95).
+        block = ExecutePseudoWords(block);
+
         // 2. Resolve role addresses and axis names against the machine configuration.
         BlockContext context = ResolveRolesAndAxes(block);
 
