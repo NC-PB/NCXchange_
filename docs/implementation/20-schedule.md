@@ -15,7 +15,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 5 | ✓ P0-05 Expression parser | 10 | |
 | 6 | P0-06 Canonical writer and `ncx format` | 10 | closes M1; the examples become canonical here |
 | 7 | P0-07 Folder READMEs | 10 | the tour waits until 16 |
-| 8 | P2-01 TOML schema and loading | 12 | pulled forward, see 2 |
+| 8 | ✓ P2-01 TOML schema and loading | 12 | pulled forward, see 2 |
 | 9 | P2-02 Templates both ways | 12 | pulled forward, see 2 |
 | 10 | P1-01 VM state classes and snapshots | 11 | decision batch 2, answered 2026-09-11 |
 | 11 | P1-02 Block execution: state words, frames, tool change | 11 | |

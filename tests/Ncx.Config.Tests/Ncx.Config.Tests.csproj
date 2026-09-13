@@ -21,4 +21,13 @@
     <ProjectReference Include="../../src/Ncx.Config/Ncx.Config.csproj" />
   </ItemGroup>
 
+  <!--
+    The fixtures of this project itself, embedded under their path in it (implementation 00-method 4): the committed
+    list of what the machine files report (phase 2, P2-01).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/expected-machine-warnings.txt"
+                      LogicalName="Fixtures/expected-machine-warnings.txt" />
+  </ItemGroup>
+
 </Project>

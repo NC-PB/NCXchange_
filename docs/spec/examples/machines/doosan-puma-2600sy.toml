@@ -116,6 +116,20 @@ max_feed = 10000
 acceleration = 3000
 home = 0
 
+[[axis]]
+id = "C2"
+ncx = "C2"                         # a program writes C; the VM resolves it to C2 while the sub spindle holds the workpiece (VM 3.8 rule 3)
+# TODO(question): docs/ does not give the address of the sub spindle C axis on the Puma 2600SY; C is written here, as for the Nakamura.
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S2"                       # the C axis that resource S2 names (F23)
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000                      # the values of C1, not verified on the machine
+max_feed = 18000
+acceleration = 2000
+home = 0
+
 [positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
 tool_change = { X = 0, Z = 0 }     # the turret indexes anywhere; this is the clearance position a rule may move to before a change
 program_end = { X = 0, Z = 0 }     # the reference point

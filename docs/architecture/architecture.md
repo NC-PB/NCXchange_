@@ -603,6 +603,7 @@ classDiagram
         +Dictionary~string,FunctionTable~ Coolant
         +Dictionary~string,FunctionTable~ Functions
         +Dictionary~string,string~ Transform
+        +RawTable Raw
         +CycleCatalog Cycles
         +VariablesConfig Variables
         +Dictionary~string,string~ SystemVariables
@@ -705,9 +706,10 @@ classDiagram
     }
     class JobManifest {
         +string Name
-        +string MachineFile
+        +string Machine
         +List~ChannelProgram~ Channels
         +List~string~ SharedSpindles
+        +List~string~ SharedAxes
     }
     class PositionsTable {
         +Dictionary~string,AxisValues~ Entries

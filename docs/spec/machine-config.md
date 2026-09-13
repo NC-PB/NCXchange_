@@ -56,6 +56,7 @@ auto_preload = true                # insert PRELOAD of the next tool after each 
 preload_position = "after_change"  # after_change | before_first_motion
 offsets_with_change = false        # true on Heidenhain: OFFSET words are implicit in TOOL CALL and not written
 tool_name_allowed = false          # TOOL="NAME" accepted (Heidenhain, Siemens) or mapped to numbers
+kind_map = { ROTARY = "0.", TURNING = "1." }   # the value of {kind} per tool kind of the tool table (D52); Mori Seiki as here, DMG { ROTARY = 1, TURNING = 2 }
 ```
 
 Templates found in the manuals:
@@ -107,6 +108,7 @@ id = "H1"
 type = "tool_holder"
 spindle = "S3"
 magazine = true
+channel = 1                        # optional: the channel that commands this resource on a machine with several (Nakamura: turret 1 on path 1, turret 2 on path 2), F23
 
 [[axis]]
 id = "X1"
@@ -250,6 +252,9 @@ BY = "M140 MB{distance}"           # RETRACT=50; Siemens: none (computed move un
 ON = "G5.1 Q1"                     # Heidenhain: "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T{tol}\nCYCL DEF 32.2 HSC-MODE:{mode} TA{rotary}"; Siemens: "CYCLE832({tol},{mode},{rotary})"
 OFF = "G5.1 Q0"                    # Heidenhain: "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T0"; Siemens: "CYCLE832(0,0,1)"
 mode = { FINISH = 0, ROUGH = 1 }   # value of {mode}; Siemens: FINISH = 1, ROUGH = 3; Fanuc: the tolerance value goes to a parameter and stays RAW
+
+[raw]                              # builder codes the reader keeps as RAW with the builder's name, RAW:NAKAMURA (F23)
+known = ["G411", "G300"]
 ```
 
 Function values may carry a parameter: `HIGH_PRESSURE = { ON = "H7={value} M7", OFF = "M9" }` for a coolant pressure that is set with the function. Function values are strings; a bare integer is accepted and means `M` followed by the number. The loader normalizes every M and G code to its spelling without leading zeros (`8`, `08`, `M08` become `"M8"`; `G01` becomes `"G1"`), the compiler writes that form, and readers compare codes by number, so a source `M08` matches the table's `M8` (D105). The normalization applies to every M or G code token of a value, also inside a multi-word template with parameters or placeholders: `"M03 P11"` loads as `"M3 P11"`, `"G01 X{x}"` as `"G1 X{x}"`; text that is not an M or G code (`H7=`, `P11`, `L707(...)`) is kept as written. The same normalization applies to every template of the file that contains an M or G code, in particular `[format] program_end` and `sub_end` (section 2), the `[tool_change]` templates (section 3), `[sync]` and `[transform]`, so that the compiler never writes a leading zero it did not compute from a placeholder; NCX text in `pre` and `post` lists (5a) is not affected, it carries no native codes.
@@ -281,7 +286,7 @@ pre = ["FUNC:PECK_MODE=RETRACT"]   # Doosan M291 before G83, as an NCX word so t
 
 Readers use the same rules backwards: a source sequence `M5`, `M51`, `M3 S1500` on a machine whose rule says the spindle stop belongs to `COOLANT:THROUGH=ON` is read as the one NCX word, so the round trip does not accumulate stops. Plugins that need more than these four keys get the same insertion points in code (`ncx-virtual-machine.md`, section 7).
 
-A named function is written as `FUNC:SUB_CHUCK=OPEN` in NCX and compiles to the M code of that state. Readers map M codes back to names; an M code that matches no entry becomes `MFUNC=n` with a WARNING.
+A named function is written as `FUNC:SUB_CHUCK=OPEN` in NCX and compiles to the M code of that state. Readers map M codes back to names; an M code that matches no entry becomes `MFUNC=n` with a WARNING. The states of a `[func]` entry are free identifiers, the values `FUNC:name=` takes (`OPEN_RUNNING`, `NORMAL`, `LOW` and the like); the states of the other function tables are the values of their word: `CW`, `CCW`, `OFF`, `ORIENT`, `RPM`, `VC`, `CSS_OFF`, `RPM_MAX` in `[spindle.ROLE]`, `AXIS` and `SPINDLE` in `[spindle_mode.ROLE]`, `ON`, `OFF` and `PHASE` in `[spindle_sync]`, `ON` and `OFF` in a `[coolant]` channel (F23).
 
 ## 6. Cycle catalog
 
@@ -348,6 +353,7 @@ program = "SHAFT_CH2"              # NAME of a PROGRAM section in that file; the
 
 [shared]
 spindles = ["S1", "S2"]             # commanded from both channels; the scheduler checks conflicts
+axes = ["B1"]                       # machine axes commanded from both channels, checked like the spindles (D20, F24)
 ```
 
 ```toml
