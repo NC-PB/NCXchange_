@@ -21,6 +21,7 @@ The task files carry acceptance criteria that read as testable, and most of them
 | `00-method.md` | The loop per task, git and branch conventions, SDK and CI, conventions the documents leave open, definition of done |
 | `01-findings.md` | F1 to F30: what contradicts what, where it bites, how it is resolved |
 | `02-decisions-proposed.md` | D90 to D106 as question, recommendation, where; plus the document fixes that need no decision |
+| `03-open-questions.md` | The 111 questions found while building wave 1: task, question, its entry D108 to D182 in `../decisions/rationale.md` or the section that already answers it, and the code location of its workaround |
 | `10-phase-0-foundations.md` | P0-01 to P0-07: skeleton, model, catalog, lexer and parser, expressions, writer and `ncx format`, READMEs |
 | `11-phase-1-virtual-machine.md` | P1-01 to P1-07: state, block execution, validation, events, expander, `check`, `trace`, `annotate` |
 | `12-phase-2-configuration.md` | P2-01 to P2-04: TOML loading, templates, cycle catalogs, machine files |
