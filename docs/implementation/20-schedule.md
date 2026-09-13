@@ -13,7 +13,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 3 | ✓ P0-03 Word catalog | 10 | decision batch 1, answered 2026-09-11 |
 | 4 | ✓ P0-04 Lexer and parser | 10 | |
 | 5 | ✓ P0-05 Expression parser | 10 | |
-| 6 | P0-06 Canonical writer and `ncx format` | 10 | closes M1; the examples become canonical here |
+| 6 | ✓ P0-06 Canonical writer and `ncx format` | 10 | closes M1; the examples become canonical here |
 | 7 | P0-07 Folder READMEs | 10 | the tour waits until 16 |
 | 8 | ✓ P2-01 TOML schema and loading | 12 | pulled forward, see 2 |
 | 9 | ✓ P2-02 Templates both ways | 12 | pulled forward, see 2 |
