@@ -1,0 +1,208 @@
+# NCX machine configuration sketch: Mori Seiki NTX1000 SZM (Fanuc 31i under MAPPS), two channels (HEAD 1 tool spindle with B axis and ATC, HEAD 2 turret 2), spindle 1 and spindle 2 (sub spindle on the A axis).
+# Written from "Programmieranleitung NTX1000SZM" (G and M function lists, T function, workpiece transfer chapter) and the ESPRIT postprocessor manual. Schema draft 4. Not verified on the machine.
+# The point of this file: the two-step ATC of the tool spindle maps exactly onto PRELOAD (the T word) and TOOL (G361), the spindle synchronization codes must be written in both channel programs, the sub spindle moves on a named linear axis A, and turret 2 tools use offsets +30 for spindle 2.
+# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+
+[machine]
+name = "Mori Seiki NTX1000 SZM"
+controller = "fanuc"
+dialect = "31i-B"
+builder = "moriseiki"
+gcode_system = "A"
+s_binds_to_spindle_word = true
+channels = [1, 2]                  # 1 = HEAD 1 (tool spindle), 2 = HEAD 2 (turret 2)
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "H1"
+default_workpiece = "S1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Z = 3, Y = 3, C = 3, B = 3, A = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "M99"
+
+[roles]
+MAIN = "S1"
+SUB = "S2"
+TOOL = "S3"
+TURRET1 = "H1"                     # tool spindle head with ATC
+TURRET2 = "H2"                     # lower turret
+
+[[resource]]
+id = "S1"
+type = "work_spindle"
+axis = "C1"
+
+[[resource]]
+id = "S2"
+type = "work_spindle"
+axis = "C2"
+
+[[resource]]
+id = "S3"
+type = "tool_spindle"
+
+[[resource]]
+id = "H1"
+type = "tool_holder"
+spindle = "S3"
+magazine = true
+channel = 1
+
+[[resource]]
+id = "H2"
+type = "tool_holder"
+magazine = false
+channel = 2
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+programming = "diameter"           # D60: X words are diameters on this machine
+incremental_letter = "U"
+kind = "linear"
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+incremental_letter = "W"
+kind = "linear"
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+incremental_letter = "V"
+kind = "linear"
+
+[[axis]]
+id = "B1"
+ncx = "B"
+letter = "B"
+kind = "rotary"                    # tool spindle swivel; indexed by G361 B after a tool change, contouring under M594
+
+[[axis]]
+id = "C1"
+ncx = "C"
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S1"
+
+[[axis]]
+id = "C2"
+ncx = "C2"
+letter = "C"                       # same address, valid after M304 selects spindle 2
+kind = "rotary"
+owner = "S2"
+
+[[axis]]
+id = "A1"
+ncx = "A"
+letter = "A"
+kind = "linear"                    # headstock 2 (sub spindle) slide; G330 returns it to its reference point
+owner = "S2"
+
+[tool_change]
+change = "G361 B{b} D{kind}"       # the change; B index angle after the change (90 when omitted), D0. rotary, D1./D2. turning tool (M436/M437 orientation)
+preload = "T{tool:04}"             # brings the tool to the change position; tool numbers 1000..9999, 9000..9999 for heavy tools
+unload = "T0\nG361"
+auto_preload = true
+preload_position = "before_first_motion"
+kind_map = { ROTARY = "0.", TURNING = "1." }
+# turret 2 (channel 2): change = "T{tool:02}{offset:02}", offsets +30 for spindle 2 (T0131 .. T1242)
+
+[home]
+template = "G28 {axes}"            # G28 U0 W0 on the turret, G28 V0 for Y
+point = "G30 P{point} {axes}"
+# sub spindle slide: "G330" returns the A axis (and the tailstock) to the zero point
+
+[spindle.MAIN]
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+ORIENT = "M19"
+RPM = "S{rpm}"
+VC = "G96 S{value}"
+CSS_OFF = "G97"
+RPM_MAX = "G50 S{value}"
+CLAMP = { ON = "M68", OFF = "M69" }
+
+[spindle.SUB]
+CW = "M203"
+CCW = "M204"
+OFF = "M205"
+ORIENT = "M219"
+CLAMP = { ON = "M268", OFF = "M269" }
+
+[spindle.TOOL]
+CW = "M3"                          # under M90 (spindle 1 / tool spindle simultaneous mode) the tool spindle takes the M3/M4/M5 words; verify on the machine
+CCW = "M4"
+OFF = "M5"
+ORIENT = "M319"
+CLAMP = { ON = "M301", OFF = "M302" }
+
+[spindle_mode.MAIN]
+AXIS = "M45"
+SPINDLE = "M46"
+
+[spindle_mode.SUB]
+AXIS = "M245"
+SPINDLE = "M246"
+
+[spindle_sync]
+ON = "M35"                         # speed synchronization spindle 1 and 2
+OFF = "M36"
+PHASE = "M34"                      # speed and phase synchronization (hexagonal bar)
+channels = "all"                   # D56: written in the tool spindle and the turret 2 program, each behind a wait code; M36 in either one
+C_SYNC = { ON = "M480", OFF = "M481" }
+
+[workpiece]
+MAIN = "M303"
+SUB = "M304"
+SUB_frame = "datum"                # or mirror with M396/M395 (Z), M76/M75 (X), M585/M584 (Y)
+# SUB_mirror = { ON = "M396", OFF = "M395" }
+
+[sync]
+wait = "M{mark}"
+mark_range = [101, 197]            # the ESPRIT postprocessor counts up from 101 and wraps at 197
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }
+SHOWER = { ON = "M382", OFF = "M383" }
+THROUGH_SPINDLE = { ON = "M478", OFF = "M479" }
+
+[func]
+MAIN_CHUCK = { CLOSE = "M10", OPEN = "M11" }
+SUB_CHUCK = { CLOSE = "M210", OPEN = "M211" }
+TAILSTOCK = { FORWARD = "M13", BACK = "M14" }
+THREAD_CHAMFER = { ON = "M23", OFF = "M24" }
+SYNC_TAP = { ON = "M329" }
+RADIUS_MODE = { ON = "M582", OFF = "M583" }
+B_CONTOUR = { ON = "M594", OFF = "M595" }
+CUTOFF_DETECT = { RUN = "M80" }
+TOOL_TO_MAGAZINE = { RUN = "M33" }
+PART_COUNT = { COUNT = "M89" }
+BAR_CHANGE = { RUN = "M482" }
+
+[func_meta]
+SUB_CHUCK.CLOSE = "workpiece_transfer_to = SUB"        # fallback only; [workpiece] has the native codes
+
+[transform]
+CYLINDER_ON = "G7.1 C{r}"
+CYLINDER_OFF = "G7.1 C0"
+POLAR_ON = "G12.1"
+POLAR_OFF = "G13.1"
+TCPM_ON = "G43.5"
+TCPM_OFF = "G49"
+TILT_ON = "G68.2 X{x} Y{y} Z{z} I{a} J{b} K{c}"
+TILT_OFF = "G69"
+
+[raw]
+known = ["G38", "G362", "G330", "G320", "G325", "G334", "G335", "G336", "G337", "G338", "G339", "G343", "G460", "G461", "G462", "G463", "G464", "G478"]   # push check, tool change via 4th zero point, tool life management, probing, steady rest sync

@@ -1,0 +1,227 @@
+# NCX machine configuration sketch: DMG MORI CTX / NTX turn-mill on Siemens Sinumerik 840D with GILDEMEISTER structure programming, two channels, main spindle (S4), counter spindle (S3), tool spindles (S1, S2).
+# Written from "Technik Programmierung V2.1" (cycle documentation with the complete M list), the GILDEMEISTER structure training manual (Sinumerik 840D, GMX/CTX TC) and the NTX 1000 datum sheets. Schema draft 4. Not verified on the machine.
+# The point of this file: builder functions are subprogram cycles with parameters (L7xx, TC), spindles are numbers, channels synchronize with WAITM on reusable marks, chucks and clamps are M codes in the spindle's hundred (M4xx for spindle 4, M3xx for spindle 3).
+# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+
+[machine]
+name = "DMG MORI CTX beta 1250 TC"
+controller = "siemens"
+dialect = "840D"
+builder = "dmg"
+channels = [1, 2]
+units_default = "MM"
+default_spindle = "S4"
+default_holder = "T1"
+default_workpiece = "S4"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Y = 3, Z = 3, C = 3, B = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "RET"
+
+[roles]
+MAIN = "S4"
+SUB = "S3"
+TOOL = "S1"
+TOOL2 = "S2"
+TURRET1 = "T1"
+TURRET2 = "T2"
+
+[[resource]]
+id = "S4"
+type = "work_spindle"
+axis = "C4"
+
+[[resource]]
+id = "S3"
+type = "work_spindle"
+axis = "C3"
+
+[[resource]]
+id = "S1"
+type = "tool_spindle"
+
+[[resource]]
+id = "S2"
+type = "tool_spindle"
+
+[[resource]]
+id = "T1"
+type = "tool_holder"
+spindle = "S1"
+magazine = true
+channel = 1
+
+[[resource]]
+id = "T2"
+type = "tool_holder"
+spindle = "S2"
+magazine = false
+channel = 2
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+programming = "switchable"           # D60: X words are diameters on this machine; DIAMON/DIAMOF switch it
+kind = "linear"
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+kind = "linear"
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+kind = "linear"
+
+[[axis]]
+id = "B1"
+ncx = "B"
+letter = "B"
+kind = "rotary"                    # tool carrier swivel, indexed through TC() or L710(5)
+
+[[axis]]
+id = "C4"
+ncx = "C"
+letter = "C4"
+kind = "rotary"
+owner = "S4"
+
+[[axis]]
+id = "C3"
+ncx = "C3"
+letter = "C3"
+kind = "rotary"
+owner = "S3"
+
+[[axis]]
+id = "Z3"
+ncx = "Z3"
+letter = "Z3"
+kind = "linear"                    # counter spindle slide
+owner = "S3"
+
+[tool_change]
+pre = ["HOME X Y Z"]              # the tool change point cycle L711 of [home] runs before every change (expansion rule, machine-config 5a)
+change = "T=\"{name}\"\nTC({offset},,,{kind},{b},{c})"   # TC(D number, turret direction, place, kind, B1 angle, C1 angle); kind 1 rotary, 2 turning, 3 turret at spindle 3 mirrored, 4 turret at spindle 4
+preload = "T=\"{name}\""
+unload = "T0 D0"
+auto_preload = true
+tool_name_allowed = true
+kind_map = { ROTARY = 1, TURNING = 2 }
+
+[home]
+template = "L711({order})"         # tool change point X, Z, Y; L710 X and Z only, L712 X, Z, Z3, L713 on the counter spindle side; {order} 0 = all axes at once
+point = ""
+
+[spindle.MAIN]
+CW = "M4=3"
+CCW = "M4=4"
+OFF = "M4=5"
+ORIENT = "SPOS[4]={angle}"
+RPM = "S4={rpm}"
+VC = "G96 S4={value}"
+CSS_OFF = "G97"
+RPM_MAX = "LIMS={value}"           # under G96; "G26 S4={value}" under G95
+CLAMP = { ON = "M412", OFF = "M413" }
+
+[spindle.SUB]
+CW = "M3=3"
+CCW = "M3=4"
+OFF = "M3=5"
+ORIENT = "SPOS[3]={angle}"
+RPM = "S3={rpm}"
+VC = "G96 S3={value}"
+RPM_MAX = "LIMS={value}"
+CLAMP = { ON = "M312", OFF = "M313" }
+
+[spindle.TOOL]
+CW = "M1=3"
+CCW = "M1=4"
+OFF = "M1=5"
+RPM = "S1={rpm}"
+CLAMP = { ON = "M112", OFF = "M113" }
+
+[spindle.TOOL2]
+CW = "M2=3"
+CCW = "M2=4"
+OFF = "M2=5"
+RPM = "S2={rpm}"
+CLAMP = { ON = "M212", OFF = "M213" }
+
+[spindle_mode.MAIN]
+AXIS = "L707({angle})"             # spindle 4 to C4 axis mode, positioned to angle
+SPINDLE = "L708"
+
+[spindle_mode.SUB]
+AXIS = "L705({angle})"             # spindle 3 to C3 axis mode
+SPINDLE = "L706"
+
+[spindle_mode.TOOL]
+AXIS = "L701({angle})"             # tool spindle 1 as C1 axis (turning tool orientation)
+SPINDLE = "L702"
+
+[spindle_sync]
+ON = "L726(0)"                     # angle-synchronous run main and counter spindle
+OFF = "L727"
+PHASE = "L726({angle})"
+
+[workpiece]
+MAIN = "M814"                      # slide machining assigned to spindle 4; SETMS(4) selects the master spindle for S, F and G96
+SUB = "M813"                       # slide machining assigned to spindle 3
+SUB_frame = "datum"                # the start program sets the spindle 3 frames through $P_UIFR[n,Z3,TR]; no mirror cycle
+
+[diameter]
+ON = "DIAMON"
+OFF = "DIAMOF"
+
+[sync]
+wait = "WAITM({mark},{channels})"
+mark_range = [0, 99]               # marks are reused freely (the DMG template waits at 0, 80 and 90 several times); 95 is used by BARLOAD_SYNC
+start_channel = "START({channel})"
+wait_channel = "WAITE({channel})"
+
+[coolant]
+STANDARD = { ON = "M108", OFF = "M109" }             # coolant circuit 1 (inner, slide 1); circuit 2 M107/M109
+OUTER = { ON = "M107", OFF = "M109" }
+AIR = { ON = "M122", OFF = "M109" }
+SLIDE2 = { ON = "M208", OFF = "M209" }
+ALL_OFF = { OFF = "M9" }
+
+[func]
+MAIN_CHUCK = { OPEN = "M436", CLOSE = "M437", OPEN_RUNNING = "M433" }   # spindle 4 clamping device
+SUB_CHUCK = { OPEN = "M336", CLOSE = "M337", OPEN_RUNNING = "M333" }    # spindle 3 clamping device
+MAIN_CHUCK_FORCE = { NORMAL = "M434", LOW = "M435" }
+SUB_CHUCK_FORCE = { NORMAL = "M334", LOW = "M335" }
+TOOL_CARRIER_CLAMP = { OPEN = "M136", CLOSE = "M137" }
+EJECTOR = { FORWARD = "M360", CYCLE = "M361" }
+POLYGON = { ON = "L725({pair},{ratio},{angle})", OFF = "L729" }
+FIXED_STOP = { ON = "L730", OFF = "L731", CHECK = "L733" }
+CUTOFF_CHECK = { RUN = "L732" }
+BAR_LOADER = { SYNC = "BARLOAD_SYNC", FEED = "BARLOAD_FEED" }
+PART_COUNT = { COUNT = "M18" }
+CHIP_CONVEYOR = { ON = "M140", OFF = "M141" }
+
+[func_meta]
+SUB_CHUCK.CLOSE = "workpiece_transfer_to = SUB"   # fallback only; [workpiece] has the native codes
+
+[transform]
+CYLINDER_ON = "TRACYL_S4({d})"    # TRACYL_S3 for the counter spindle; the working diameter, {d} = 2 * {r}
+CYLINDER_OFF = "TRANS_OFF"         # the DMG cycle form of TRAFOOF
+POLAR_ON = "TRANSMIT_S4"
+POLAR_OFF = "TRANS_OFF"
+TCPM_ON = "TRANS_5A"
+TCPM_OFF = "TRANS_OFF"
+TILT_ON = "CYCLE800(1,\"TC1\",100000,57,0,0,0,{a},{b},{c},0,0,0,-1,100,1)"
+TILT_OFF = "CYCLE800()"
+
+[raw]
+known = ["L770", "L771", "L772", "L781", "L782", "RL_POS", "RL_INIT", "BARLOAD", "RECEPTAC", "UNLOAD_R", "CHECK_MAG", "SETPIECE", "L1039", "L1045", "L1058"]

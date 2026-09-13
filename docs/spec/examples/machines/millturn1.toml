@@ -1,0 +1,247 @@
+# NCX machine configuration sketch: generic mill-turn on Siemens SINUMERIK 840D sl, one channel, main spindle (S1, C axis C1), sub spindle on its own slide (S2, C axis C2, slide Z2), tool spindle (S3) in a turret (H1). The machine of MILLTURN_TRANSFER.ncx (D104).
+# Written from the SINUMERIK 840D sl programming manuals (Fundamentals, Job Planning) with the generic words of controllers/siemens.md, sections 5 and 12; no builder cycles, no structure programming (dmg-ctx-840d.toml documents those, D68). Schema draft 8. Not verified on a machine.
+# The point of this file: the plain 840D sl vocabulary is enough for a mill-turn. Spindles are numbers behind S and M (S2=, M2=3), the turret change is the T word with its D number, the spindles synchronize with COUPON/COUPOF, the axes home with G74, the chucks are M codes of the builder. Every number under [[axis]], [dynamics] and the spindle limits is plausible and not verified (D100).
+
+[machine]
+name = "Generic 840D sl mill-turn"
+controller = "siemens"
+dialect = "840Dsl"
+builder = ""                       # no builder function tables, no RAW:BUILDER vocabulary
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "H1"
+default_workpiece = "S1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Y = 3, Z = 3, C = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "RET"                    # written for SUB=END and RETURN
+program_layout = "one_file"        # all programs and subprograms of the NCX file into one output file with %_N_NAME_MPF / _SPF headers
+
+[tool_change]
+change = "T{tool} D{offset}"       # a turret: the T word is the change, no M6 (siemens 5); the D number of OFFSET stands in the same block
+unload = "T0"                      # written for TOOL=0
+auto_preload = false               # no magazine, nothing to preload; a PRELOAD word is dropped with a WARNING (no preload template)
+offsets_with_change = true         # the D number is part of the change block; OFFSET words are not written on their own
+tool_name_allowed = true           # T="NAME" is accepted by the control under tool management; the example programs use numbers
+
+[home]
+template = "G74 {axes}"            # reference point approach with machine axis names, own block, no transformation active (siemens 3)
+point = "G75 {axes} FP={point}"    # fixed points 1..4 for the second and further reference points
+
+[setpos]
+template = "PRESETON({axis},{value})"   # declares the current position of one axis; one call per axis of the SETPOS block
+
+[roles]
+MAIN = "S1"
+SUB = "S2"
+TOOL = "S3"
+TURRET1 = "H1"
+
+[[resource]]
+id = "S1"
+type = "work_spindle"
+axis = "C1"                        # the C axis the main spindle becomes in AXIS mode
+
+[[resource]]
+id = "S2"
+type = "work_spindle"
+axis = "C2"                        # the C axis the sub spindle becomes in AXIS mode
+
+[[resource]]
+id = "S3"
+type = "tool_spindle"
+
+[[resource]]
+id = "H1"
+type = "tool_holder"
+spindle = "S3"
+magazine = false                   # a turret: the tools sit in the stations, there is nothing to preload
+
+# Axis limits, home (reference point) and the tool change and program end positions below are machine coordinates, the G53 frame (D100).
+# All travel, speed and acceleration numbers are plausible values for a machine of this size and not verified.
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+kind = "linear"
+programming = "switchable"         # X words are diameters (D60); DIAMON is the state after power-on, [diameter] switches it
+limits = [-20, 300]                # mm, machine coordinates; X = 300 is the reference point at the top of the travel
+rapid = 30000                      # mm/min
+max_feed = 10000                   # mm/min
+acceleration = 3000                # mm/s^2
+home = 300                         # reference point 1 in machine coordinates, written through [home] (G74)
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+kind = "linear"
+limits = [-60, 60]                 # mm; the Y stroke of a turret with driven tools
+rapid = 15000
+max_feed = 8000
+acceleration = 2500
+home = 0
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+kind = "linear"
+limits = [-50, 200]                # mm; Z = 200 is the reference point away from the main spindle
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 200
+
+[[axis]]
+id = "C1"
+ncx = "C"                          # C in a program is the axis of the workpiece holder in use; after WORKPIECE=SUB the VM resolves it to C2 (D57)
+letter = "C"
+kind = "rotary"
+owner = "S1"                       # rotary axis of the main spindle (M70 / SPOS)
+limits = [0, 360]                  # degrees; modulo axis, the range is the display range and not a travel limit
+rapid = 36000                      # deg/min (100 rpm in axis mode)
+max_feed = 18000                   # deg/min
+acceleration = 2000                # deg/s^2
+home = 0                           # the spindle zero mark
+
+[[axis]]
+id = "Z2"
+ncx = "Z2"                         # the sub spindle slide; a program that names it is machine specific by intent (D30)
+letter = "Z2"                      # written with the equals sign the control wants: Z2=-58
+kind = "linear"
+owner = "S2"
+limits = [-650, 0]                 # mm; Z2 = 0 is the reference point with the slide fully retracted from the main spindle
+rapid = 30000
+max_feed = 10000
+acceleration = 3000
+home = 0
+
+[[axis]]
+id = "C2"
+ncx = "C2"
+letter = "C2"                      # written as C2=90
+kind = "rotary"
+owner = "S2"                       # rotary axis of the sub spindle (M2=70 / SPOS[2])
+limits = [0, 360]                  # degrees; modulo axis
+rapid = 36000
+max_feed = 18000
+acceleration = 2000
+home = 0
+
+[positions]                        # named machine-frame positions (D100); an expansion rule reaches them with {position:NAME}, e.g. pre = ["RAPID {position:tool_change} FRAME=MACHINE"]
+tool_change = { X = 300, Z = 200 } # the turret indexes anywhere; this is the clearance position a rule may move to before a change
+program_end = { X = 300, Z = 200 } # optional: where a rule parks the slide for PROGRAM=END
+
+[dynamics]                         # control behaviour for the runtime estimate (D64); not verified
+block_time = 0.002                 # seconds per block
+path_mode = "continuous"           # G64 is the power-on state
+corner_speed = 2000                # mm/min carried through a corner under G64
+
+[diameter]                         # DIAMETER=ON/OFF in the program (D60)
+ON = "DIAMON"
+OFF = "DIAMOF"
+
+[spindle.MAIN]                     # S1 is the configured master spindle: plain S, M3, M4, M5 and G96 refer to it (siemens 5)
+CW = "M3"
+CCW = "M4"
+OFF = "M5"
+ORIENT = "SPOS={angle}"
+RPM = "S{rpm}"
+VC = "G96 S{value}"
+CSS_OFF = "G97"
+RPM_MAX = "LIMS={value}"           # the speed limit under G96
+rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64); not verified
+rpm_max = 5000
+accel_time = 2.0                   # seconds from stop to rpm_max, for the runtime estimate
+
+[spindle.SUB]                      # spindle 2 by number extension; G96 and G95 act on the master spindle (S1), so VC and feed per revolution on this spindle need SETMS(2) in its own block first (siemens 5, 12)
+CW = "M2=3"
+CCW = "M2=4"
+OFF = "M2=5"
+ORIENT = "SPOS[2]={angle}"
+RPM = "S2={rpm}"
+VC = "G96 S2={value}"
+CSS_OFF = "G97"
+RPM_MAX = "LIMS[2]={value}"
+rpm_min = 20
+rpm_max = 6000
+accel_time = 1.5
+
+[spindle.TOOL]                     # spindle 3, the driven tool in the turret
+CW = "M3=3"
+CCW = "M3=4"
+OFF = "M3=5"
+RPM = "S3={rpm}"
+rpm_min = 50
+rpm_max = 12000
+accel_time = 1.0
+
+[spindle_mode.MAIN]
+AXIS = "M70"                       # main spindle to C1 axis mode
+SPINDLE = "M5"                     # back to spindle mode: the next M3/M4 leaves axis mode, M5 is what the compiler writes for SPINDLE_MODE:MAIN=SPINDLE
+
+[spindle_mode.SUB]
+AXIS = "M2=70"                     # sub spindle to C2 axis mode
+SPINDLE = "M2=5"
+
+[spindle_sync]                     # SPINDLE_SYNC=MAIN,SUB: the sub spindle follows the main spindle (siemens 5)
+ON = "COUPON(S2,S1)"
+OFF = "COUPOF(S2,S1)"
+PHASE = "COUPON(S2,S1,{angle})"    # angle-synchronous run with an offset
+
+[workpiece]                        # WORKPIECE=MAIN/SUB selects the side the turret works on (D57)
+MAIN = "G54"                       # ORIGIN 1 of the example program
+SUB = "G55"                        # ORIGIN 2 of the example program
+SUB_frame = "datum"                # the sub spindle datum runs Z the other way and the compiler negates Z; no mirror cycle
+
+[sync]                             # one channel on this machine; the templates are the generic 840D sl ones for a second channel
+wait = "WAITM({mark},{channels})"
+mark_range = [0, 99]
+start_channel = "START({channel})"
+wait_channel = "WAITE({channel})"
+
+[coolant]
+STANDARD = { ON = "M8", OFF = "M9" }
+
+[func]                             # strings (D105); the loader normalizes M8, M08, 8 and 08 to "M8", readers compare by number
+SUB_CHUCK = { OPEN = "M68", CLOSE = "M69" }
+MAIN_CHUCK = { OPEN = "M66", CLOSE = "M67" }
+
+[func_meta]
+SUB_CHUCK.CLOSE = "workpiece_transfer_to = SUB"   # fallback only; [workpiece] has the native codes (D40)
+
+[transform]
+CYLINDER_ON = "TRACYL({d})"        # cylinder surface transformation on the C axis of the current workpiece holder; TRACYL takes the working diameter, {d} = 2 * {r}
+CYLINDER_OFF = "TRAFOOF"
+POLAR_ON = "TRANSMIT"              # face transformation
+POLAR_OFF = "TRAFOOF"
+TCPM_ON = "TRAORI"
+TCPM_OFF = "TRAFOOF"
+TILT_ON = "CYCLE800(1,\"TC1\",0,57,0,0,0,{a},{b},{c},0,0,0,{dir},100,1)"   # spatial angles, kinematics name TC1; {dir} from MOVE: TURN = -1, STAY = 0
+TILT_OFF = "CYCLE800()"
+TILT_AXIS_ON = ""                  # empty: TILT_AXIS needs the kinematics module (ERROR at compile time, D82)
+
+[retract]                          # the RETRACT verb (D83)
+MAX = ""                           # empty: computed machine-frame move when the kinematics is known, else ERROR
+BY = ""                            # Siemens has no distance retract word; computed move under TRAORI with the kinematics module
+
+[tolerance]                        # the TOLERANCE words (D85)
+ON = "CYCLE832({tol},{mode},{rotary})"
+OFF = "CYCLE832(0,0,1)"
+mode = { FINISH = 1, ROUGH = 3 }   # value of {mode}: 1 finish, 3 rough (siemens 3)
+
+[cycles]
+catalog = "siemens.toml"           # the 840D sl cycle catalog shipped with NCXchange (siemens 7)
+
+[variables]
+unassigned = "error"
+block_cap = 1000000
+call_depth = 8

@@ -1,0 +1,44 @@
+; NCX example: mill-turn with main spindle, sub spindle and milling spindle in one channel. Turning, transfer to the sub spindle, milling.
+; Machine words (roles MAIN, SUB, TOOL, TURRET1; axis Z2; functions SUB_CHUCK, MAIN_CHUCK) come from millturn1.toml (machine-config.md).
+; No source program: this example is written by hand to show the words; the Siemens equivalents are given as comments.
+FILE=BEGIN NCX=1
+PROGRAM=BEGIN NAME="SHAFT_TRANSFER" CHANNEL=1
+FEED_MODE=PER_REV COMP=OFF UNITS=MM WORKPLANE=ZX DIAMETER=ON CYCLE=OFF
+ORIGIN=1                                                ; G54
+
+SECTION="TURN OD"
+TOOL:TURRET1=3 OFFSET:LEN=3 OFFSET:RAD=3                ; T3 D3
+SPINDLE:MAIN=CW RPM:MAIN=1500                           ; S1500 M3   (S1 is the master spindle of millturn1.toml; S1=1500 M1=3 on a machine with another master)
+RAPID X=42 Z=2                                          ; G0 X42 Z2
+LINE X=40 F=0.2                                         ; G1 X40 F0.2
+LINE Z=-60                                              ; G1 Z-60
+RAPID X=45                                              ; G0 X45
+
+SECTION="TRANSFER"
+SPINDLE_SYNC=MAIN,SUB                                   ; COUPON(S2,S1)
+FUNC:SUB_CHUCK=OPEN                                     ; M68 (from the machine configuration)
+RAPID Z2=-58                                            ; G0 Z2=-58   (sub spindle axis)
+FUNC:SUB_CHUCK=CLOSE                                    ; M69, marks the handover for the reader rule (D40)
+FUNC:MAIN_CHUCK=OPEN                                    ; M66
+SPINDLE_SYNC=OFF                                        ; COUPOF(S2,S1)
+SPINDLE:MAIN=OFF                                        ; M5
+WORKPIECE=SUB                                           ; from here the part is in the sub spindle
+ORIGIN=2                                                ; G55
+
+SECTION="MILL FLAT"
+SPINDLE_MODE:SUB=AXIS                                   ; M2=70 / SPOS
+TOOL:TURRET1=12 OFFSET:LEN=12 OFFSET:RAD=12 SPINDLE:TOOL=CW RPM:TOOL=6000   ; T12 D12, S3=6000 M3=3
+FEED_MODE=PER_MIN                                       ; G94
+RAPID X=20 C=0                                          ; C is the axis of the current workpiece holder, here C2
+RAPID Z2=-5
+LINE C=90 F=300                                         ; G1 C2=90 F300
+RAPID Z2=10
+SPINDLE:TOOL=OFF                                        ; M3=5
+PROGRAM=END                                             ; M30
+FILE=END                                                ; end of file
+
+; Notes
+; 1. DIAMETER=ON: X=40 is a diameter; the VM stores the radius 20.
+; 2. The transfer is machine functions and motions around SPINDLE_SYNC and WORKPIECE; NCX does not model it as one command.
+; 3. Z2 is a machine axis named in the program on purpose; a program that addresses the sub spindle axis is machine specific by intent (D30).
+; 4. After WORKPIECE=SUB the coordinates are in the sub spindle's own frame, +Z out of its chuck toward the tool (D57); whether the machine mirrors Z or uses a datum with the opposite Z is a configuration setting.

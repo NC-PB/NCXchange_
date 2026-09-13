@@ -1,0 +1,174 @@
+# NCX machine configuration sketch: Doosan Puma 2600SY, Fanuc control, single channel, main and sub spindle, Y axis, milling spindle.
+# Written from "M-FUNKTIONEN 2600SY" (the Doosan dealer sheet; the Puma 2600/M II operating manual has no programming content). Schema draft 4. Not verified on the machine.
+# The point of this file: one channel with two work spindles, spindle selection by a P suffix on the M code, and cycle behaviour chosen by mode M codes.
+# home, limits, rapid, max_feed, acceleration per [[axis]], the spindle limits, [dynamics] and the [positions] table of D100 are added in P2-04 (12-phase-2); until then HOME on every axis is the D100 WARNING.
+
+[machine]
+name = "Doosan Puma 2600SY"
+controller = "fanuc"
+dialect = "0i-TD"
+builder = "doosan"
+gcode_system = "A"
+s_binds_to_spindle_word = true     # S with the P-suffixed M code in the same block
+channels = [1]
+units_default = "MM"
+default_spindle = "S1"
+default_holder = "T1"
+default_workpiece = "S1"
+
+[format]
+decimal_separator = "."
+decimals = { X = 3, Z = 3, Y = 3, C = 3, F = 3, S = 0 }
+trailing_zeros = false
+block_numbers = { enabled = true, start = 10, step = 10 }
+line_ending = "CRLF"
+program_end = "M30"                # written for PROGRAM=END (D48)
+sub_end = "M99"
+
+[roles]
+MAIN = "S1"
+SUB = "S2"
+TOOL = "S3"
+TURRET1 = "T1"
+
+[[resource]]
+id = "S1"
+type = "work_spindle"
+axis = "C1"
+
+[[resource]]
+id = "S2"
+type = "work_spindle"
+axis = "C2"
+
+[[resource]]
+id = "S3"
+type = "tool_spindle"
+
+[[resource]]
+id = "T1"
+type = "tool_holder"
+spindle = "S3"
+magazine = false
+
+[[axis]]
+id = "X1"
+ncx = "X"
+letter = "X"
+programming = "diameter"           # D60: X words are diameters on this machine
+incremental_letter = "U"
+kind = "linear"
+
+[[axis]]
+id = "Z1"
+ncx = "Z"
+letter = "Z"
+incremental_letter = "W"
+kind = "linear"
+
+[[axis]]
+id = "Y1"
+ncx = "Y"
+letter = "Y"
+incremental_letter = "V"
+kind = "linear"
+
+[[axis]]
+id = "C1"
+ncx = "C"
+letter = "C"
+incremental_letter = "H"
+kind = "rotary"
+owner = "S1"
+
+[[axis]]
+id = "B1"
+ncx = "B"
+letter = "B"
+kind = "linear"                    # sub spindle slide
+owner = "S2"
+
+[tool_change]
+change = "T{tool:02}{offset:02}"
+unload = "T{tool:02}00"
+auto_preload = false
+
+[spindle.MAIN]                     # turning spindle, selected by P11; M34 makes the left spindle the turning spindle
+CW = "M03 P11"
+CCW = "M04 P11"
+OFF = "M05 P11"
+ORIENT = "M19"
+RPM = "S{rpm}"
+VC = "G96 S{value}"
+CSS_OFF = "G97"
+RPM_MAX = "G50 S{value}"
+
+[spindle.SUB]                      # after M134 the right spindle is the turning spindle addressed by P11
+CW = "M03 P11"
+CCW = "M04 P11"
+OFF = "M05 P11"
+ORIENT = "M119"
+
+[spindle.TOOL]
+CW = "M03 P12"
+CCW = "M04 P12"
+OFF = "M05 P12"
+
+[spindle_mode.MAIN]
+AXIS = "M35"
+SPINDLE = "M34"
+
+[spindle_mode.SUB]
+AXIS = "M135"
+SPINDLE = "M134"
+
+[spindle_sync]
+ON = "M203"                        # M204 for reverse direction, M205 stop, M206 off
+OFF = "M206"
+PHASE = "M213"                     # M214 phase-synchronous reverse
+
+[workpiece]
+MAIN = "M34"                       # turning mode left
+SUB = "M134"                       # turning mode right
+SUB_frame = "datum"
+
+[coolant]
+STANDARD = { ON = "M08", OFF = "M09" }
+HIGH_PRESSURE = { ON = "M07", OFF = "M09" }
+LOW_PRESSURE = { ON = "M108", OFF = "M109" }
+
+[func]
+MAIN_CHUCK = { CLOSE = "M68", OPEN = "M69" }
+SUB_CHUCK = { CLOSE = "M168", OPEN = "M169" }
+CHUCK_PRESSURE = { LOW = "M66", HIGH = "M67" }
+MAIN_CLAMP = { ON = "M89", OFF = "M90" }
+SUB_CLAMP = { ON = "M189", OFF = "M190" }
+MAIN_AIR = { ON = "M14", OFF = "M15" }
+SUB_AIR = { ON = "M114", OFF = "M115" }
+PARTS_CATCHER = { ON = "M10", OFF = "M11" }
+EJECTOR = { ON = "M116", FORWARD = "M226", BACK = "M227" }
+BAR_LOADER = { FEED = "M51" }
+DOOR = { OPEN = "M52", CLOSE = "M53" }
+CHIP_CONVEYOR = { ON = "M24", OFF = "M25" }
+RIGID_TAP = { ON = "M29", REVERSE_ON = "M176", REVERSE_OFF = "M177" }
+INTERFERENCE_CHECK = { ON = "M111", OFF = "M110" }
+TOOL_MONITOR = { ON = "M201", OFF = "M200" }
+TORQUE_MONITOR = { ON = "M86", OFF = "M87" }
+GEAR_MAIN = { LOW = "M261", HIGH = "M262" }
+GEAR_SUB = { LOW = "M161", HIGH = "M162" }
+PECK_MODE = { RETRACT = "M291", CHIP_BREAK = "M292" }   # selects the G83/G88 behaviour; used by the cycle catalog templates
+THREAD_RUNOUT = { ON = "M277", OFF = "M278" }
+EXACT_STOP = { ON = "M159", OFF = "M160" }
+POLYGON = { ON = "M28" }
+C_SYNC = { ON = "M136", OFF = "M137" }                  # C1 and C2 synchronous
+
+[func_meta]
+SUB_CHUCK.CLOSE = "workpiece_transfer_to = SUB"        # fallback only; [workpiece] has the native codes
+
+[cycles]
+# catalog entries for this builder select the peck behaviour with the PECK_MODE function before G83 (expansion rule, machine-config 5a)
+# [[cycle]] name = "PECK"       native = "G83" pre = ["FUNC:PECK_MODE=RETRACT"]
+# [[cycle]] name = "CHIP_BREAK" native = "G83" pre = ["FUNC:PECK_MODE=CHIP_BREAK"]
+
+[raw]
+known = ["G300", "G301", "G350"]   # sub spindle as tailstock, cut-off check

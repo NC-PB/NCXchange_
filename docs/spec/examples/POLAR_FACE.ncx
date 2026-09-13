@@ -1,0 +1,53 @@
+; NCX example: hexagon on the face of a turned part by polar interpolation, then three cross holes on the circumference.
+; Source: Nakamura programming manual 4810004EDG, chapter 14-8-3 (hexagon H30 with G112), and the side drilling cycle G87 of chapter 14-7.
+; Shows the draft 4 words: HOME on the C axis, SETPOS (G50 C0), POLAR, and AXIS=X on a drilling cycle. Machine: nakamura-ntjx.toml (upper turret, main spindle).
+FILE=BEGIN NCX=1
+PROGRAM=BEGIN NAME="HEXAGON_FACE" NUMBER=1 CHANNEL=1
+FEED_MODE=PER_REV COMP=OFF UNITS=MM WORKPLANE=ZX DIAMETER=ON CYCLE=OFF
+ORIGIN=1 WORKPIECE=MAIN                                 ; G54 M428
+
+SECTION="HEXAGON H30"
+SPINDLE_MODE:MAIN=AXIS                                  ; M91
+TOOL=10 OFFSET=10 CSS=OFF                               ; G0 G97 T1010
+SPINDLE:TOOL=CW RPM:TOOL=398                            ; M88 S398 (S in the block of the rotary tool M code)
+RAPID X=54 Z=2 COOLANT=ON                               ; G40 X54. Z2. M8
+HOME C                                                  ; G28 H0.
+SETPOS C=0                                              ; G50 C0.
+POLAR=ON                                                ; G112 (C is now a length in mm on the face)
+FEED_MODE=PER_MIN
+LINE X=54 C=-12 F=4000 COMP=RIGHT                       ; G98 G42 G01 X54. C-12. F4000
+LINE Z=-10
+ARC=CW X=30 C=0 R=12 F=48                               ; G02 X30. C0. R12. F48
+LINE C=8.66
+LINE X=0 C=17.32
+LINE X=-30 C=8.66
+LINE C=-8.66
+LINE X=0 C=-17.32
+LINE X=30 C=-8.66
+LINE C=0
+ARC=CW X=54 C=12 R=12
+LINE X=64 C=12 F=4000 COMP=OFF                          ; G01 G40 X64. C12. F4000
+POLAR=OFF                                               ; G113
+RAPID Z=2
+RAPID X=200 Z=100
+STOP=OPTIONAL
+
+SECTION="CROSS HOLES D6"
+FEED_MODE=PER_REV TOOL=12 OFFSET=12                     ; T1212, G99
+SPINDLE:TOOL=CW RPM:TOOL=2500
+RAPID X=60 Z=-20 C=0
+CYCLE=DRILL AXIS=X SURFACE=50 CLEARANCE=54 DEPTH=30 CYCLE_RETRACT=CLEARANCE CYCLE_F=0.05   ; G87 R2. X30. ... (X values are diameters under DIAMETER=ON)
+CYCLE_CALL C=0                                          ; G87 with the C position, side drilling along X
+CYCLE_CALL C=120
+CYCLE_CALL C=240
+CYCLE=OFF                                               ; G80
+SPINDLE:TOOL=OFF
+SPINDLE_MODE:MAIN=SPINDLE                               ; M41
+RAPID X=200 Z=100 COOLANT=OFF
+PROGRAM=END                                             ; M30
+FILE=END                                                ; %
+
+; Notes
+; 1. Under POLAR=ON the working plane is the face plane of X (a diameter under DIAMETER=ON, halved like every X word, D60) and C (a length in mm): arcs and compensation work in that plane, the position is known in that polar frame and unknown in the workpiece frame; after POLAR=OFF X and C stay unknown in the workpiece frame until the next motion with known coordinates (virtual machine 3.1, 3.4, D102).
+; 2. SETPOS C=0 after HOME C declares the C reference as 0 in the workpiece frame; nothing moves (D55). With a reference point for C, HOME C leaves the axis known in the machine frame and SETPOS records the shift against it; without one (the default machine, or nakamura-ntjx.toml before P2-04) HOME C is a WARNING and SETPOS still makes C known in the workpiece frame as 0 (D100, D101).
+; 3. AXIS=X makes SURFACE, CLEARANCE and DEPTH X values; with DIAMETER=ON they are diameters like every other X word (D59).

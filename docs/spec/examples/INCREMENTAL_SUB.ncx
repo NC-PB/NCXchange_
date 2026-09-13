@@ -1,0 +1,43 @@
+; NCX example: a subprogram with incremental words, called four times along a row. Fanuc source (F) as line comments.
+; This is the case that needs incremental words: the same section runs at four different positions, so it cannot be absolute.
+FILE=BEGIN NCX=1
+PROGRAM=BEGIN NAME="SLOT_ROW" NUMBER=3                  ; F: O0003 (SLOT ROW)
+FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF
+ORIGIN=1                                                ; F: G54
+TOOL=2 OFFSET:LEN=2 OFFSET:RAD=2 RPM=4000               ; F: T2 M6, S4000, G43 H2
+PRELOAD=3                                               ; F: T3   (next tool ready in the magazine)
+SPINDLE=CW                                              ; F: M3
+RAPID X=0 Y=0                                           ; F: G0 G90 X0 Y0
+RAPID Z=2                                               ; F: Z2.
+COOLANT=ON                                              ; F: M8
+CALL=100 TIMES=4                                        ; F: M98 P100 L4
+COOLANT=OFF                                             ; F: M9
+RAPID Z=50                                              ; F: G0 Z50.
+TOOL                                                    ; F: M6   (changes to the preloaded tool 3; the compilers write TOOL=3, D91)
+SPINDLE=OFF                                             ; F: M5
+JUMP=300                                                ; F: GOTO 300   (a block below M30 in the source, see note 3)
+LABEL=22                                                ; F: N22
+JUMP=END                                                ; the main flow ends here (F: M30 follows at PROGRAM=END)
+
+LABEL=300                                               ; F: N300  (below M30 in the source, reachable only by GOTO; moved in front of the end)
+COMMENT="PARKING"
+HOME Z                                                  ; F: G91 G28 Z0  (reference point return)
+HOME X Y                                                ; F: G28 X0 Y0
+JUMP=22                                                 ; F: GOTO 22   (back into the main flow, which then reaches the end)
+PROGRAM=END                                             ; F: M30
+
+SUB=BEGIN NAME=100                                      ; F: O0100 (after M30 in the same file, or a separate program)
+LINE Z=-3 F=200                                         ; F: G1 Z-3. F200
+LINE IX=30 F=800                                        ; F: G91 X30. F800
+RAPID Z=2                                               ; F: G0 G90 Z2.   (absolute again; NCX has no modal switch, Z=2 is absolute by itself)
+RAPID IX=-30 IY=15                                      ; F: G91 X-30. Y15.  then G90 before M99
+SUB=END                                                 ; F: M99
+FILE=END                                                ; F: %
+
+; Notes
+; 1. The Fanuc reader resolves G90/G91 per block and emits X= or IX= words; the G90 restore before M99 produces no NCX word.
+; 2. TOOL without a value is legal in a hand-written file; ncx format keeps it as written, the compilers write TOOL=3 from the VM state (D91).
+; 3. PROGRAM=END is the executed end (M30), FILE=END the closing %. The subprogram stands in the file next to the program (SUB=BEGIN ... SUB=END).
+;    The parking section that the Fanuc source keeps below M30 has no place after PROGRAM=END, so the reader moves it in front of the end behind
+;    a JUMP=END; the main flow reaches it with JUMP=300 and leaves it with JUMP=22, exactly as the source does (D48).
+; 4. In STATIC mode the subprogram is walked at each CALL with the caller's state, so its IX words are resolved from the known position; CALL=100 TIMES=4 walks it four times, so after the call the position is X=0 Y=60 (D99).

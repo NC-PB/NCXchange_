@@ -1,0 +1,62 @@
+; NCX example: contour and circular pocket. The Heidenhain source "2.5D FRAESEN.h" (H) and the Fanuc source "2.5D FRAESEN" (F)
+; both read into this file. Source blocks are shown as line comments for reading along; they are not part of NCX.
+FILE=BEGIN NCX=1
+PROGRAM=BEGIN NAME="2.5D FRAESEN" NUMBER=1              ; H0 BEGIN PGM 2.5D FRAESEN MM  |  F: O0001 (2.5D FRAESEN)
+FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF   ; header state; F: N10 G0 G40, N20 G80 G90 G94 G98, N70 G17
+ORIGIN=1                                                ; H1 CYCL DEF 247 Q339=1  |  F: N30 G54
+; H2/H3 BLK FORM (stock definition) has no NCX word yet
+
+SECTION="SIDE MILL D10 L35 SD10"                        ; H4 * - ...  |  F: (SIDE MILL D10 L35 SD10)
+TOOL=1 OFFSET:LEN=1 OFFSET:RAD=1 RPM=1592               ; H5 TOOL CALL 1 Z S1592  |  F: N40 T1 M6, N60 S1592, N80 G43 H1, N120 D1
+PRELOAD=0                                               ; H6 TOOL DEF 0  |  F: N50 T0
+SPINDLE=CW                                              ; H7 M3  |  F: N60 M3
+
+SECTION="UMFAHREN"
+RAPID X=50.4 Y=-7.025 COMP=OFF                          ; H9 L X50,4 Y-7,025 R0 FMAX  |  F: N70 G0 G17 X50.4 Y-7.025
+RAPID Z=2                                               ; H10 L Z2 FMAX  |  F: N80 G43 Z2. H1
+COOLANT=ON                                              ; H11 M8  |  F: N90 M8
+RAPID Z=-8                                              ; H12 L Z-8 FMAX  |  F: N100 Z-8.
+LINE Z=-10 F=2387                                       ; H13 L Z-10 F2387  |  F: N110 G1 Z-10. F2387
+LINE Y=2 COMP=LEFT                                      ; H14 L Y2 RL  |  F: N120 G41 Y2. D1
+LINE X=7                                                ; H15 L X7  |  F: N130 X7.
+ARC=CW X=2 Y=7 R=5                                      ; H16 CR X2 Y7 R5 DR-  |  F: N140 G2 X2. Y7. R5.
+LINE Y=93                                               ; H17 L Y93  |  F: N150 G1 Y93.
+ARC=CW X=7 Y=98 R=5                                     ; H18  |  F: N160
+LINE X=93                                               ; H19  |  F: N170
+ARC=CW X=98 Y=93 R=5                                    ; H20  |  F: N180
+LINE Y=7                                                ; H21  |  F: N190
+ARC=CW X=93 Y=2 R=5                                     ; H22  |  F: N200
+LINE X=49.6                                             ; H23  |  F: N210
+LINE Y=-7.025 COMP=OFF                                  ; H24 L Y-7,025 R0  |  F: N220 G40 Y-7.025
+RAPID Z=2                                               ; H25 L Z2 FMAX  |  F: N230 G0 Z2.
+
+SECTION="KREISTASCHE"
+FEED_MODE=PER_REV                                       ; H27 M136  |  F: N240 G95
+RAPID X=51.836 Y=62.846                                 ; H28 L X51,836 Y62,846 FMAX  |  F: N250 X51.836 Y62.846
+RAPID Z=-8                                              ; H29  |  F: N260
+LINE Z=-10 F=1.5                                        ; H30 L Z-10 F1,5  |  F: N270 G1 Z-10. F1.5
+LINE X=56.253 Y=65.241 COMP=LEFT                        ; H31 L X56,253 Y65,241 RL  |  F: N280 G41 X56.253 Y65.241
+LINE X=55.243 Y=67.104                                  ; H32  |  F: N290
+ARC=CCW X=50.534 Y=69.993 R=5.525                       ; H33 CR ... R5,525 DR+  |  F: N300 G3 ... R5.525
+ARC=CCW X=70 Y=50 CENTER:X=50 CENTER:Y=50               ; H34 CC X50 Y50 + H35 C X70 Y50 DR+  |  F: N310 G3 X70. Y50. I-.534 J-19.993
+ARC=CCW X=49.466 Y=69.993 R=20                          ; H36  |  F: N320
+ARC=CCW X=44.757 Y=67.104 R=5.525                       ; H37  |  F: N330
+LINE X=43.747 Y=65.241                                  ; H38  |  F: N340 G1
+LINE X=48.164 Y=62.846 COMP=OFF                         ; H39 L ... R0  |  F: N350 G40
+RAPID Z=2                                               ; H40 L Z2 FMAX  |  F: N360 G0 Z2.
+COOLANT=OFF                                             ; H41 M9  |  F: N370 M9
+RAPID Z=0 FRAME=MACHINE                                 ; H42 L Z0 FMAX M91  |  F: N380 G91 G28 Z0 reads as HOME Z, see note 4
+RAPID X=0 Y=0 FRAME=MACHINE                             ; H43 L X0 Y0 FMAX M91  |  F: N390 G28 X0 Y0 reads as HOME X Y, see note 4
+SPINDLE=OFF                                             ; H44 M5  |  F: N400 M5
+PROGRAM=END                                             ; H: M30 (implicit before END PGM in this sample), H45 END PGM 2.5D FRAESEN MM  |  F: N410 M2
+FILE=END                                                ; F: closing %
+
+; Notes
+; 1. FEED_MODE=PER_REV is never switched back in either source; PROGRAM=END resets the state.
+; 2. The Heidenhain reader emits OFFSET:LEN and OFFSET:RAD with the tool call (offsets are implicit there); the Fanuc reader emits them where G43 H and D appear.
+;    ncx format does not move them; the two readers therefore produce the same words at slightly different positions. Accepted (D7).
+; 3. Fanuc M2 and Heidenhain M30 both map to PROGRAM=END; the compiler writes M30 or M2 from the machine configuration (program_end). The Heidenhain
+;    sample has no M30 before END PGM, so its reader emits PROGRAM=END at END PGM with a warning; the Fanuc closing % is FILE=END.
+; 4. G28 is a reference point return, M91 an explicit move in machine coordinates. The Fanuc reader emits HOME Z and HOME X Y, the Heidenhain reader
+;    the FRAME=MACHINE moves shown here; both end at the same place when the reference point is the machine zero. Compiling HOME for Heidenhain
+;    writes M91 moves to the reference coordinates of the machine configuration.

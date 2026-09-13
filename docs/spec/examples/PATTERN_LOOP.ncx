@@ -1,0 +1,30 @@
+; NCX example: variables, a label and a conditional jump. A row of 5 holes with pitch 20, written the way a Heidenhain programmer
+; writes it with Q parameters. Heidenhain source (H) and the Fanuc macro equivalent (F) as line comments.
+FILE=BEGIN NCX=1
+PROGRAM=BEGIN NAME="PATTERN"                            ; H0 BEGIN PGM PATTERN MM  |  F: O0002 (PATTERN)
+FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF
+ORIGIN=1
+
+VAR:Q1=10                                               ; H1 Q1 = 10  |  F: #101 = 10   (NCX name V101 when read from Fanuc)
+VAR:Q2=5                                                ; H2 Q2 = 5   |  F: #102 = 5
+VAR:Q3=0                                                ; H3 Q3 = 0   |  F: #103 = 0
+TOOL=1 OFFSET:LEN=1 OFFSET:RAD=1 RPM=3000               ; H4 TOOL CALL 1 Z S3000  |  F: T1 M6, S3000, G43 H1
+SPINDLE=CW                                              ; H5 M3  |  F: M3
+RAPID X=10 Y=10                                         ; H6 L X+10 Y+10 R0 FMAX  |  F: G0 X10. Y10.
+RAPID Z=2                                               ; H7 L Z+2 FMAX  |  F: Z2.
+CYCLE=DRILL SURFACE=0 CLEARANCE=2 DEPTH=-15 CYCLE_F=300   ; H8 CYCL DEF 200 Q200=2 Q201=-15 Q206=300 Q203=0  |  F: defined with the first G81 below
+LABEL=1                                                 ; H9 LBL 1  |  F: N100
+CYCLE_CALL X={$Q1} Y=10                                 ; H10 L X+Q1 Y+10 R0 FMAX M99  |  F: G81 X#101 Y10. Z-15. R2. F300, then X#101 under the modal cycle
+VAR:Q1={$Q1 + 20}                                       ; H11 FN 1: Q1 = +Q1 + +20  |  F: #101 = #101 + 20
+VAR:Q3={$Q3 + 1}                                        ; H12 FN 1: Q3 = +Q3 + +1  |  F: #103 = #103 + 1
+JUMP=1 IF={$Q3 < $Q2}                                   ; H13 FN 12: IF +Q3 LT +Q2 GOTO LBL 1  |  F: IF [#103 LT #102] GOTO 100
+CYCLE=OFF                                               ; implicit on Heidenhain  |  F: G80
+RAPID Z=0 FRAME=MACHINE                                 ; H14 L Z+0 FMAX M91  |  F: G91 G28 Z0 reads as HOME Z (see 2.5D_FRAESEN note 4)
+SPINDLE=OFF                                             ; H15 M5  |  F: M5
+PROGRAM=END                                             ; H16 M30, H17 END PGM PATTERN MM  |  F: M30
+FILE=END                                                ; F: %
+
+; Notes
+; 1. STATIC mode cannot know X at the CYCLE_CALL; segment analytics skip that block and say so. INTERPRETED mode runs the loop 5 times
+;    (X = 10, 30, 50, 70, 90) and the trace shows Q1 and Q3 per iteration.
+; 2. The Fanuc reader produces the same file except for the variable names (V101, V102, V103) and LABEL=100.
