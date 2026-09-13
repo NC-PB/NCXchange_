@@ -48,6 +48,20 @@ public sealed class SourceStateTests
         Assert.Empty(state.Positions);
     }
 
+    // A reader starts a section from the state it knows there, the caller's in a subprogram (virtual machine 3.9): every
+    // active code is replaced, and a group it does not name is not set.
+    [Fact]
+    public void SetModalGroups_OfASectionStart_ReplacesEveryActiveCode()
+    {
+        var state = new SourceState(null, s_groups);
+        state.Apply(Block(G("01"), G("91")));
+
+        state.SetModalGroups(new Dictionary<int, string> { [1] = "G0" });
+
+        Assert.Equal("G0", state.ActiveCode(1));
+        Assert.Null(state.ActiveCode(3));
+    }
+
     [Fact]
     public void Positions_SetAndForgotten_AreKnownInBetween()
     {

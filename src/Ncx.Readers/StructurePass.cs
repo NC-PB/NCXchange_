@@ -8,7 +8,8 @@ namespace Ncx.Readers;
 /// reader of a controller family gives every source block it lays out the reading plan, the source blocks in file
 /// order with the blocks of the file structure among them. The file is framed by FILE=BEGIN NCX=1 and FILE=END, the
 /// programs and subprograms of the source become PROGRAM and SUB sections, code a source keeps after its program end
-/// stands in front of PROGRAM=END behind a JUMP=END, and a Fanuc M99 in a program loops to a LABEL after the header.
+/// stands in front of PROGRAM=END behind a JUMP=END, a Fanuc M99 in a program loops to a LABEL after the header, and
+/// the contour a cycle names by a block range becomes a SUB section behind its program (language 4.7.1, D65).
 /// </summary>
 internal sealed partial class StructurePass
 {
@@ -51,26 +52,31 @@ internal sealed partial class StructurePass
     /// <param name="blocks">Every source block of the file in file order, trivia lines included.</param>
     /// <param name="structures">The structure of each block, in the same order.</param>
     /// <param name="diagnostics">Where the WARNINGs about the structure of the source go.</param>
+    /// <param name="contours">The contour sections the plan makes, which the reader of the family asks for.</param>
     /// <returns>The steps in the order the reader takes them.</returns>
-    public static List<ReadStep> Plan(
-        IReadOnlyList<SourceBlock> blocks, IReadOnlyList<SourceStructure> structures, Diagnostics diagnostics)
+    public static List<ReadStep> Plan(IReadOnlyList<SourceBlock> blocks, IReadOnlyList<SourceStructure> structures,
+        Diagnostics diagnostics, out ContourLayout contours)
     {
         var pass = new StructurePass(blocks, structures, diagnostics);
         if (pass._first < 0)
         {
+            contours = ContourLayout.None;
             return pass.PlanEmptyFile();
         }
 
         pass.PlanFileBegin();
         List<SourceSection> sections = pass.FindSections();
         pass.DecideKinds(sections);
+        pass.FindContours(sections);
         for (int index = 0; index < sections.Count; index++)
         {
             int? nextBegin = index + 1 < sections.Count ? sections[index + 1].Begin : null;
             pass.PlanSection(sections[index], nextBegin);
+            pass.PlanContours(sections[index], nextBegin);
         }
 
         pass.PlanFileEnd();
+        contours = pass.Layout();
         return pass.Steps();
     }
 
@@ -232,6 +238,15 @@ internal sealed partial class StructurePass
         var steps = new List<ReadStep>();
         for (int index = 0; index < _blocks.Count; index++)
         {
+            // A block of a contour stands in its SUB section behind the end of its program (PlanContours); what the
+            // plan writes in its place, the end of that program, stays here.
+            if (_moved.Contains(index))
+            {
+                steps.AddRange(_before[index] ?? []);
+                steps.AddRange(_after[index] ?? []);
+                continue;
+            }
+
             SourceBlock block = _blocks[index];
             if (block.IsTrivia)
             {

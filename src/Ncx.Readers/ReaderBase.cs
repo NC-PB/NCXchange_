@@ -30,6 +30,9 @@ public abstract class ReaderBase : IReader
     // The comment of the source block being read, until an NCX block takes it (controller-mapping 1).
     private string? _pendingComment;
 
+    // The contour sections the structure pass made of the file being read (language 4.7.1, D65).
+    private ContourLayout _contours = ContourLayout.None;
+
     /// <summary>
     /// The controller family whose files this reader reads (machine-config 1).
     /// </summary>
@@ -88,7 +91,8 @@ public abstract class ReaderBase : IReader
         }
 
         SourceBlock? current = null;
-        foreach (ReadStep step in StructurePass.Plan(blocks, structures, Diagnostics))
+        List<ReadStep> plan = StructurePass.Plan(blocks, structures, Diagnostics, out _contours);
+        foreach (ReadStep step in plan)
         {
             if (!ReferenceEquals(step.Source, current))
             {
@@ -126,6 +130,38 @@ public abstract class ReaderBase : IReader
     /// </summary>
     /// <param name="block">A source block with words that no reader rule claimed.</param>
     protected abstract void ReadBlock(SourceBlock block);
+
+    /// <summary>
+    /// The NAME of the SUB section the structure pass made of the contour a cycle block names (SourceStructure.Contour;
+    /// language 4.7, CONTOUR, and 4.7.1; D65); null when it made none, and the family keeps the cycle as its source
+    /// writes it.
+    /// </summary>
+    /// <param name="block">The cycle block.</param>
+    protected string? ContourOf(SourceBlock block)
+    {
+        return _contours.Cycles.TryGetValue(block.Line, out string? name) ? name : null;
+    }
+
+    /// <summary>
+    /// Tells whether the structure pass moved a source block into the SUB section of a contour (language 4.7.1, D65).
+    /// </summary>
+    /// <param name="block">A source block.</param>
+    protected bool InContourSection(SourceBlock block)
+    {
+        return _contours.Moved.Contains(block.Line);
+    }
+
+    /// <summary>
+    /// Called when the structure pass has written the PROGRAM=BEGIN or SUB=BEGIN of a section, the SUB=BEGIN of a
+    /// contour section among them, before the first block of the section is read: a family writes the header of a
+    /// program here, the complete header of D34. Does nothing by default.
+    /// </summary>
+    /// <param name="kind">A program or a subprogram, as the structure pass decided it (language 4.13).</param>
+    /// <param name="begin">The source block the section begins with: the Fanuc O line, or the first block of a program
+    /// the source does not name.</param>
+    protected virtual void BeginSection(SectionKind kind, SourceBlock begin)
+    {
+    }
 
     /// <summary>
     /// Begins an NCX block read from a source block: with SKIP or SKIP=n when the source block carries the block skip
@@ -198,6 +234,7 @@ public abstract class ReaderBase : IReader
         _state = new SourceState(machine.Machine.GcodeSystem, ModalGroupOfCode);
         _rules = options.Rules;
         _pendingComment = null;
+        _contours = ContourLayout.None;
 
         // The templates of the machine, which the tables are matched through (architecture 6). A template the machine
         // file cannot use is an ERROR of the machine file; the machine record keeps neither its file nor the lines of
@@ -287,6 +324,20 @@ public abstract class ReaderBase : IReader
         }
 
         Builder.End();
+
+        // The first word of a section's begin is PROGRAM=BEGIN or SUB=BEGIN (language 4.13); the family writes what
+        // follows it before the first block of the section is read.
+        if (step.Words.Count > 0 && step.Words[0].Value is IdentValue { Name: "BEGIN" })
+        {
+            if (step.Words[0].Key == "PROGRAM")
+            {
+                BeginSection(SectionKind.Program, step.Source);
+            }
+            else if (step.Words[0].Key == "SUB")
+            {
+                BeginSection(SectionKind.Sub, step.Source);
+            }
+        }
     }
 
     // The optional block skip, / or /n in front of the block, is SKIP or SKIP=n (language 4.1, controller-mapping 1).

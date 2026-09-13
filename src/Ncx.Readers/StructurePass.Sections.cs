@@ -171,6 +171,12 @@ internal sealed partial class StructurePass
             words.Add(Number(NumberKey, number));
         }
 
+        // CHANNEL in the header of a program says which channel it runs on (language 4.14, controller-mapping 7).
+        if (structure.Channel is long channel)
+        {
+            words.Add(Number(ChannelKey, channel));
+        }
+
         return InPlace(begin, words) with { CarriesSkip = false, TakesComment = !usesComment, UsesComment = usesComment };
     }
 
@@ -208,16 +214,14 @@ internal sealed partial class StructurePass
     // (wave-1 question #77).
     private void WriteAtBoundary(int line, IReadOnlyList<Word> words, int? nextBegin)
     {
+        Boundary(nextBegin).Add(Write(_blocks[nextBegin ?? _last], line, words));
+    }
+
+    // The steps behind the last block of a section: in front of the next section, or of FILE=END.
+    private List<ReadStep> Boundary(int? nextBegin)
+    {
         int host = nextBegin ?? _last;
-        ReadStep end = Write(_blocks[host], line, words);
-        if (nextBegin is not null || IsFileEnd(_last))
-        {
-            Before(host).Add(end);
-        }
-        else
-        {
-            After(host).Add(end);
-        }
+        return nextBegin is not null || IsFileEnd(_last) ? Before(host) : After(host);
     }
 
     private int? FindRole(SourceSection section, StructureRole role, bool unskippedOnly)

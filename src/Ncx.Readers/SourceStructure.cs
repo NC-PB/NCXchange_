@@ -31,6 +31,12 @@ public sealed record SourceStructure
     public long? Number { get; init; }
 
     /// <summary>
+    /// The channel the program the block begins runs on, 2 of the Nakamura file O1000.P-2 (controller-mapping 7,
+    /// CHANNEL); written as CHANNEL on its PROGRAM=BEGIN (language 4.1, 4.14). Null when the source names none.
+    /// </summary>
+    public long? Channel { get; init; }
+
+    /// <summary>
     /// The label the block carries, "22" of N22, "5" of LBL 5; a LABEL when a block of its program or subprogram
     /// jumps to it (controller-mapping 6, LABEL). Null for a block without one.
     /// </summary>
@@ -48,4 +54,11 @@ public sealed record SourceStructure
     /// program is an ERROR (language 4.13).
     /// </summary>
     public IReadOnlyList<string> Calls { get; init; } = [];
+
+    /// <summary>
+    /// The contour a cycle of the block names by the labels of its first and its last block, P10 Q20 of a Fanuc G71
+    /// (language 4.7, CONTOUR; machine-config 6, contour); null for a block that names none. The structure pass turns
+    /// the range into a SUB section of the file, whose name the reader learns for the block (D65, language 4.7.1).
+    /// </summary>
+    public SourceContour? Contour { get; init; }
 }

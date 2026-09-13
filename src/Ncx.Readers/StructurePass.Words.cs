@@ -12,6 +12,7 @@ internal sealed partial class StructurePass
     private const string NcxKey = "NCX";
     private const string NameKey = "NAME";
     private const string NumberKey = "NUMBER";
+    private const string ChannelKey = "CHANNEL";
     private const string LabelKey = "LABEL";
     private const string JumpKey = "JUMP";
     private const string ReturnKey = "RETURN";

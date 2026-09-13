@@ -107,6 +107,21 @@ public sealed class SourceState
     }
 
     /// <summary>
+    /// Replaces the active codes of the modal groups with those a reader knows at the start of a section or after a
+    /// call: none at the start of a program, the caller's in a subprogram (virtual machine 3.9); a group without a code
+    /// is not set.
+    /// </summary>
+    /// <param name="groups">The active code of every group that is set, by group.</param>
+    internal void SetModalGroups(IReadOnlyDictionary<int, string> groups)
+    {
+        _modalGroups.Clear();
+        foreach (KeyValuePair<int, string> group in groups)
+        {
+            _modalGroups[group.Key] = group.Value;
+        }
+    }
+
+    /// <summary>
     /// Records the absolute position of an axis.
     /// </summary>
     /// <param name="axis">The axis name, "X".</param>
