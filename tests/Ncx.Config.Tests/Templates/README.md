@@ -1,0 +1,3 @@
+# Template tests
+
+A template parsed once (`TemplateParseTests`), rendered by the compiler side (`TemplateRenderTests`) and matched by the reader side, M and G codes by number (`TemplateMatchesTests`, D105), also on lines of the Nakamura program as the machine writes them (`TemplateNakamuraLinesTests`). `TemplateSetTests` covers the templates of one machine and `FindFunctionByCode`; `TemplateSetMachinesTests` runs every template of the eight machine files through the round trip of `TemplateSamples`: rendered from a sample value per placeholder and matched back to the same values (architecture 6).
