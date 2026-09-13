@@ -1,19 +1,26 @@
 namespace Ncx.Core.Catalog;
 
-// TODO(question): the Scope column of language 4.1 gives PROGRAM=BEGIN and PROGRAM=END the scope "program", which
-// the Scope of architecture 4 does not list, and several rows name a partner word ("with CYCLE") or no scope at all.
-// The enumeration keeps the four scopes of architecture 4 until the word catalog, which records these rows, settles
-// it.
-
 /// <summary>
-/// How long a word applies, the Scope column of the tables of language 4 (architecture 4).
+/// How long a word applies, the Scope column of the tables of language 4 (architecture 4). The column says "file",
+/// "program", "header", "block", "modal" with its qualifiers ("until consumed", "per channel", "part of the chain"),
+/// names a partner word ("with CYCLE"), or is empty.
 /// </summary>
 public enum Scope
 {
     /// <summary>
-    /// A word of the file: FILE=BEGIN, NCX, FILE=END, SUB=BEGIN (language 4.1, 4.9).
+    /// The Scope column of language 4 leaves the row empty: VAR, LABEL (language 4.9).
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// A word of the file: FILE, NCX, SUB (language 4.1, 4.9).
     /// </summary>
     File,
+
+    /// <summary>
+    /// A word of the program: PROGRAM=BEGIN, PROGRAM=END (language 4.1).
+    /// </summary>
+    Program,
 
     /// <summary>
     /// A header word of a program, after PROGRAM=BEGIN: CHANNEL (language 4.1).
@@ -26,7 +33,15 @@ public enum Scope
     Block,
 
     /// <summary>
-    /// The value stays until changed: F, UNITS, SPINDLE (language 4).
+    /// The value stays until changed: F, UNITS, SPINDLE; PRELOAD until a change consumes it, COOLANT per channel,
+    /// SHIFT as part of the frame chain (language 4).
     /// </summary>
     Modal,
+
+    /// <summary>
+    /// The word belongs to a partner word of its block and applies as long as that word does; the Scope column names
+    /// the partner: the cycle words with CYCLE, NUMBER with PROGRAM=BEGIN, PHASE with SPINDLE_SYNC (language 4.1,
+    /// 4.5, 4.7).
+    /// </summary>
+    WithPartner,
 }
