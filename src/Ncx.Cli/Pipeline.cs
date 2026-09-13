@@ -1,3 +1,4 @@
+using Ncx.Config;
 using Ncx.Core.Expander;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
@@ -9,11 +10,16 @@ namespace Ncx.Cli;
 
 /// <summary>
 /// The stages that ncx check, trace and annotate share, in the order of virtual machine 1 and architecture 10: read the
-/// file and the machine file, load the machine, parse, expand, run STATIC, collect the diagnostics. The three commands
-/// differ only in the listeners they subscribe and in what they write of the run.
+/// file and the machine file, load the machine, parse, expand, run STATIC (or INTERPRETED for trace --interpreted),
+/// collect the diagnostics. The three commands differ only in the listeners they subscribe and in what they write of
+/// the run.
 /// </summary>
 internal static class Pipeline
 {
+    // An NCX file, and the vars file of part-123.ncx, part-123.vars.toml (machine-config 8, 10).
+    private const string NcxExtension = ".ncx";
+    private const string VarsExtension = ".vars.toml";
+
     /// <summary>
     /// Runs the stages for one NCX file.
     /// </summary>
@@ -29,16 +35,38 @@ internal static class Pipeline
         string? text = InputFile.Read(settings.File, DiagnosticCodes.InputUnreadable, "The file",
             "language 3, Encoding", diagnostics);
         RunMachine runMachine = RunMachine.Select(settings, diagnostics);
-        if (text is null || !runMachine.InputsRead)
+
+        // An INTERPRETED run starts its variables from the vars file that --vars names, or from <file>.vars.toml next
+        // to the file when there is one (virtual machine 2.7, 3.6; machine-config 8, 10). It is an input like the
+        // others: one that cannot be read decides exit code 2 (D97).
+        string? varsFile = settings.Interpreted ? VarsFileOf(settings) : null;
+        string? varsText = null;
+        if (varsFile is not null)
+        {
+            varsText = InputFile.Read(varsFile, DiagnosticCodes.VarsFileUnreadable, "The vars file",
+                "virtual machine 2.7, 3.6; machine-config 8", diagnostics);
+        }
+
+        if (text is null || !runMachine.InputsRead || (varsFile is not null && varsText is null))
         {
             return new PipelineRun { Diagnostics = diagnostics, InputsRead = false };
         }
 
         // ncx.toml, a machine file or a cycle catalog that reads but loads with an ERROR stops the run before it
-        // starts, with exit code 1 like any other ERROR (D97; P1-07).
+        // starts, with exit code 1 like any other ERROR (D97; P1-07). So does a vars file with an ERROR (P4-01).
         if (runMachine.Machine is not MachineConfig machine)
         {
             return new PipelineRun { Diagnostics = diagnostics, InputsRead = true };
+        }
+
+        IReadOnlyDictionary<string, Value>? startValues = null;
+        if (varsFile is not null && varsText is not null)
+        {
+            startValues = LoadVars(varsFile, varsText, diagnostics);
+            if (startValues is null)
+            {
+                return new PipelineRun { Diagnostics = diagnostics, InputsRead = true };
+            }
         }
 
         // Parse. A byte order mark is no part of the text the parser reads; annotate puts it back in front of its copy,
@@ -55,15 +83,23 @@ internal static class Pipeline
         NcxProgram expanded = Expander.Expand(program, machine, []);
         bool runnable = !expanded.Diagnostics.HasErrors;
 
-        // Run STATIC, the mode of check (virtual machine 1, D91), with the run options of the command line (D37, D53)
-        // over the options the machine file gives (machine-config 7). An ERROR of the parser or the expander stops the
-        // run before its first block (virtual machine 2.9).
+        // Run STATIC, the mode of check (virtual machine 1, D91), or INTERPRETED under trace --interpreted (virtual
+        // machine 1, 3.6), with the run options of the command line (D37, D53) over the options the machine file gives
+        // (machine-config 7). An ERROR of the parser or the expander stops the run before its first block (virtual
+        // machine 2.9). An INTERPRETED run loads the external programs its CALLs name from the working directory
+        // (virtual machine 3.6).
         VmOptions options = VmOptions.ForMachine(machine) with
         {
             SkipBlocks = settings.SkipBlocks,
             ExpandCycles = settings.ExpandCycles,
         };
-        var vm = new VirtualMachine(machine, options, expanded.Diagnostics);
+        ExecutionMode mode = settings.Interpreted ? ExecutionMode.Interpreted : ExecutionMode.Static;
+        var vm = new VirtualMachine(machine, options, expanded.Diagnostics, mode, startValues)
+        {
+            ExternalPrograms = settings.Interpreted
+                ? name => LoadExternalProgram(name, settings.WorkingDirectory, machine)
+                : null,
+        };
         foreach (IVmListener listener in listeners)
         {
             vm.Subscribe(listener);
@@ -85,5 +121,69 @@ internal static class Pipeline
             Program = runnable ? expanded : null,
             ByteOrderMark = byteOrderMark,
         };
+    }
+
+    // The vars file of an INTERPRETED run: the one --vars names, or the file's own, <file>.vars.toml next to it, when
+    // there is one (virtual machine 3.6: "when present"; machine-config 10: part-123.ncx and part-123.vars.toml).
+    private static string? VarsFileOf(RunSettings settings)
+    {
+        if (settings.VarsFile is string varsFile)
+        {
+            return varsFile;
+        }
+
+        string ownVarsFile = Path.ChangeExtension(settings.File, VarsExtension);
+        return File.Exists(ownVarsFile) ? ownVarsFile : null;
+    }
+
+    // The start values of the variables: numbers and strings by variable name (machine-config 8), whose mistakes are
+    // diagnostics of the vars file on their lines (P2-01). Null when the vars file has an ERROR.
+    private static IReadOnlyDictionary<string, Value>? LoadVars(string varsFile, string varsText,
+        Diagnostics diagnostics)
+    {
+        var varsDiagnostics = new Diagnostics(varsFile);
+        VarsFile? vars = VarsFile.LoadText(WithoutByteOrderMark(varsText), varsDiagnostics);
+        foreach (Diagnostic diagnostic in varsDiagnostics.Items)
+        {
+            diagnostics.Add(diagnostic);
+        }
+
+        return vars?.Variables;
+    }
+
+    // The external program of CALL="name" in an INTERPRETED run, searched in the working directory (virtual machine
+    // 3.6), parsed and expanded like the file itself (virtual machine 1), with what reading it found under its own file
+    // name (2.9). Null when the working directory holds none that can be read as UTF-8 text, which the virtual machine
+    // reports on the CALL.
+    // TODO(question): language 4.9 calls an external program by its file name (CALL="O9010") and virtual machine 3.6
+    // searches the working directory, and neither says whether the name carries the extension of the NCX file; the name
+    // is taken as written, and with .ncx when the working directory holds no file of that name, until that is answered.
+    private static NcxProgram? LoadExternalProgram(string name, string workingDirectory, MachineConfig machine)
+    {
+        string path = Path.Combine(workingDirectory, name);
+        if (!File.Exists(path) && File.Exists(path + NcxExtension))
+        {
+            path += NcxExtension;
+        }
+
+        string fileName = Path.GetFileName(path);
+        var reading = new Diagnostics(fileName);
+        if (!File.Exists(path)
+            || InputFile.Read(path, DiagnosticCodes.InputUnreadable, "The external program", "virtual machine 3.6",
+                reading) is not string text)
+        {
+            return null;
+        }
+
+        NcxProgram program = Parser.Parse(WithoutByteOrderMark(text), fileName, new ParserOptions());
+        return Expander.Expand(program, machine, []);
+    }
+
+    // A byte order mark is no part of the text the parser and the TOML loaders read (wave-1 question #80).
+    private static string WithoutByteOrderMark(string text)
+    {
+        return text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
+            ? text.Substring(InputFile.ByteOrderMark.Length)
+            : text;
     }
 }

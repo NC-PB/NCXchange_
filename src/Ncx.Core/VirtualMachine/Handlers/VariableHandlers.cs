@@ -38,11 +38,11 @@ internal static class VariableHandlers
 
     /// <summary>
     /// The value a variable takes from VAR or ARG: a number or a string as written; UNKNOWN from an expression, which
-    /// STATIC mode does not evaluate (virtual machine 1).
+    /// STATIC mode does not evaluate (virtual machine 1). INTERPRETED mode resolves the expression before the block
+    /// executes, so the value arrives as the number or string it gave (ExpressionResolver, virtual machine 3.6).
     /// </summary>
     public static VariableValue ValueOf(Value value)
     {
-        // TODO: INTERPRETED mode evaluates the expression (virtual machine 3.6, P4-01).
         return value is IntegerValue or DecimalValue or StringValue ? VariableValue.Of(value) : VariableValue.Unknown;
     }
 }

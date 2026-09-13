@@ -1,0 +1,50 @@
+channel  block  variable          old  new
+1        5      UNITS                  MM
+1        6      ORIGIN            0    1
+1        7      TOOL:H1           0    2
+1        7      OFFSET:LEN:H1     0    2
+1        7      OFFSET:RAD:H1     0    2
+1        7      RPM:S2            0    4000
+1        8      PRELOAD:H1             3
+1        9      SPINDLE:S2        OFF  CW
+1        10     X                      0
+1        10     Y                      0
+1        11     Z                      2
+1        12     COOLANT:STANDARD  OFF  ON
+1        30     Z                 2    -3
+1        30     F                      200
+1        31     X                 0    30
+1        31     F                 200  800
+1        32     Z                 -3   2
+1        33     X                 30   0
+1        33     Y                 0    15
+1        30     Z                 2    -3
+1        30     F                 800  200
+1        31     X                 0    30
+1        31     F                 200  800
+1        32     Z                 -3   2
+1        33     X                 30   0
+1        33     Y                 15   30
+1        30     Z                 2    -3
+1        30     F                 800  200
+1        31     X                 0    30
+1        31     F                 200  800
+1        32     Z                 -3   2
+1        33     X                 30   0
+1        33     Y                 30   45
+1        30     Z                 2    -3
+1        30     F                 800  200
+1        31     X                 0    30
+1        31     F                 200  800
+1        32     Z                 -3   2
+1        33     X                 30   0
+1        33     Y                 45   60
+1        14     COOLANT:STANDARD  ON   OFF
+1        15     Z                 2    50
+1        16     TOOL:H1           2    3
+1        16     PRELOAD:H1        3
+1        17     SPINDLE:S2        CW   OFF
+1        24     Z                 50
+1        25     X                 0
+1        25     Y                 60
+1        27     F                 800

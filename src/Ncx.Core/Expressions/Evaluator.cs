@@ -113,9 +113,9 @@ internal sealed partial class Evaluator
     }
 
     // Reading an unassigned variable is an ERROR unless the configuration sets unassigned = 0 (virtual machine 3.6,
-    // D38).
-    // TODO: the variable store applies [variables] unassigned of the machine it was built with as well and reports an
-    // unassigned variable only under "error"; P1-02 makes the two one setting when it wires VmOptions.Unassigned here.
+    // D38). The setting is one, [variables] unassigned as the run carries it, VmOptions.Unassigned: the virtual machine
+    // builds the variable store with it and passes it here, so the store reads 0 under unassigned = 0 and reports an
+    // unassigned variable only under "error", and this reads the setting the same way (wave-1 question #88).
     private ExprResult? ReadUnassigned(VariableNode variable)
     {
         if (_unassigned == UnassignedVariable.Zero)
@@ -158,19 +158,30 @@ internal sealed partial class Evaluator
         }
 
         VariableValue value = _vars.GetSystem(variable.Name, register);
-        if (value.IsUnknown)
+        if (!value.IsUnknown)
         {
-            // TODO: a register the virtual machine does not hold is read from <file>.vars.toml before it is an ERROR
-            // (virtual machine 2.7); that comes with the vars files of P4-01 part two, and the message then names the
-            // vars file as the way out.
-            Report(DiagnosticCodes.SystemVariableUnknown,
-                $"{variable} is not known: the machine configuration does not map {variable.Name} in "
-                + "[system_variables], or the state it reads is unknown, and INTERPRETED mode needs its value "
-                + "(virtual machine 2.7, 3.6).");
-            return null;
+            return ResultOf(value);
         }
 
-        return ResultOf(value);
+        // A value the state does not give, a register the virtual machine does not hold, comes from <file>.vars.toml
+        // in INTERPRETED mode, and is an ERROR without one there (virtual machine 2.7, 3.6); the message names the vars
+        // file as the way out (implementation 14, phase 4 risks).
+        // TODO(question): virtual machine 2.7 reads a register the virtual machine does not hold from the vars file,
+        // and 3.6 names only the ERROR, for a name the configuration does not map as for an unknown state (wave-1
+        // question #89); the vars file counts for both, so that a run without a machine file, whose default machine maps
+        // no SYS_ name, can read a register, until that is answered.
+        if (_vars.GetSystemStartValue(variable.Name, register) is VariableValue start)
+        {
+            return ResultOf(start);
+        }
+
+        string key = VariableStore.StartValueKey(variable.Name, register);
+        string varsKey = register is null ? key : "\"" + key + "\"";
+        Report(DiagnosticCodes.SystemVariableUnknown,
+            $"{variable} is not known: the machine configuration does not map {variable.Name} in [system_variables], "
+            + "or the state it reads is unknown, and INTERPRETED mode needs its value; the vars file of the program, "
+            + $"<file>.vars.toml, gives it as {varsKey} = value (virtual machine 2.7, 3.6).");
+        return null;
     }
 
     // The index selects a register or table row (language 4.12): a whole number; null after the ERROR.

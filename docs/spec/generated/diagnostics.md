@@ -189,7 +189,11 @@ Labels, jumps, calls and the reach of the blocks of a program (language 4.9, 4.1
 | `VM522` | WARNING | JUMP=END from inside a subprogram: it ends the program from a call. | VM 3.6, 5 |
 | `VM523` | WARNING | Unreachable block of a program after an unconditional JUMP that no LABEL makes reachable. | language 4.13; VM 3.9, 5; D89 |
 | `VM524` | WARNING | RETURN in the main program; it is treated as JUMP=END. | language 4.9, 4.13; VM 3.6, 5 |
-| (none) | ERROR | Block cap exceeded: possible endless loop. Raised by INTERPRETED mode. | VM 3.6, 5 |
+| `VM750` | ERROR | Block cap exceeded: possible endless loop. INTERPRETED mode. | VM 3.6, 5; machine-config 7 |
+| `VM751` | ERROR | A REPEAT nested deeper than the configured depth, which calls and repeats share. INTERPRETED mode. | VM 3.6, 5; machine-config 7 |
+| `VM752` | ERROR | Missing call target: an external program the working directory does not hold. INTERPRETED mode. | language 4.9; VM 3.6, 5 |
+| `VM753` | ERROR | An external program that contradicts the caller's UNITS or WORKPLANE. INTERPRETED mode. | VM 3.6 |
+| `VM755` | ERROR | The program the command line or the job names is not a program of the file. INTERPRETED mode. | language 4.13; VM 3.6 |
 
 ## Expression
 
@@ -219,6 +223,7 @@ Expressions and variables (language 4.9, 4.12; VM 1, 2.7, 3.6, 5; D38, D51). The
 | `VM906` | ERROR | A number beyond the range of the decimal arithmetic. | language 4.12 |
 | `VM907` | ERROR | An index on a variable that is not a SYS_ name. | language 4.12; D51 |
 | `VM908` | ERROR | An index that selects no register. | language 4.12; D51 |
+| `VM754` | ERROR | An expression gives a number with decimals where its word takes an integer. | language 3, 4; VM 5 |
 
 ## Resource
 

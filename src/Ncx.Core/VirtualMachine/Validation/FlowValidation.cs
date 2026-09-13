@@ -42,13 +42,19 @@ internal static class FlowValidation
                 "language 4.13; VM 3.9, 5; D89"),
             ValidationRule.Warning(DiagnosticCodes.ReturnInProgram,
                 "RETURN in the main program; it is treated as JUMP=END.", "language 4.9, 4.13; VM 3.6, 5"),
-            new ValidationRule
-            {
-                Severity = Severity.Error,
-                Rule = "Block cap exceeded: possible endless loop.",
-                Section = "VM 3.6, 5",
-                RaisedBy = "INTERPRETED mode",
-            },
+            ValidationRule.Error(DiagnosticCodes.BlockCapExceeded,
+                "Block cap exceeded: possible endless loop. INTERPRETED mode.", "VM 3.6, 5; machine-config 7"),
+            ValidationRule.Error(DiagnosticCodes.RepeatDepthExceeded,
+                "A REPEAT nested deeper than the configured depth, which calls and repeats share. INTERPRETED mode.",
+                "VM 3.6, 5; machine-config 7"),
+            ValidationRule.Error(DiagnosticCodes.ExternalProgramNotFound,
+                "Missing call target: an external program the working directory does not hold. INTERPRETED mode.",
+                "language 4.9; VM 3.6, 5"),
+            ValidationRule.Error(DiagnosticCodes.ExternalProgramContradictsCaller,
+                "An external program that contradicts the caller's UNITS or WORKPLANE. INTERPRETED mode.", "VM 3.6"),
+            ValidationRule.Error(DiagnosticCodes.ProgramToRunMissing,
+                "The program the command line or the job names is not a program of the file. INTERPRETED mode.",
+                "language 4.13; VM 3.6"),
         ],
     };
 

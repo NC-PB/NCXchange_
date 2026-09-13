@@ -47,6 +47,46 @@ public sealed class VariableStoreTests
         Assert.True(state.Vars.GetSystem("SYS_WEAR_Z", 99).IsUnknown);
     }
 
+    // VM 2.7, 3.6, wave-1 question #89: the vars file gives a SYS_ name its start value by the name as the program
+    // writes it, with its index for a register; INTERPRETED mode reads it where the state gives none.
+    [Fact]
+    public void GetSystemStartValue_NameWithAndWithoutAnIndex_ReadsTheKeyOfTheVarsFile()
+    {
+        var startValues = new Dictionary<string, Value>
+        {
+            ["SYS_WEAR_Z[99]"] = new DecimalValue(0.012m, "0.012"),
+            ["SYS_PART_MAIN"] = new IntegerValue(1, "1"),
+        };
+
+        var state = new ChannelState(StateMachines.MillTurn(), startValues: startValues);
+
+        Assert.Equal(new DecimalValue(0.012m, "0.012"), state.Vars.GetSystemStartValue("SYS_WEAR_Z", 99)?.Value);
+        Assert.Null(state.Vars.GetSystemStartValue("SYS_WEAR_Z", 98));
+        Assert.Equal(new IntegerValue(1, "1"), state.Vars.GetSystemStartValue("SYS_PART_MAIN", null)?.Value);
+        Assert.Empty(state.Snapshot().Vars);
+    }
+
+    // Language 4.12, VM 2.7, 3.4: $SYS_POS_X reads the position of X in the workpiece frame and $SYS_MPOS_Z the
+    // machine position of Z, through the mapping of the configuration; a name it does not map is UNKNOWN.
+    [Fact]
+    public void GetSystem_PositionsOfKnownAxes_ReadTheirCoordinateInTheFrame()
+    {
+        MachineConfig machine = StateMachines.MillTurn() with
+        {
+            SystemVariables = new SystemVariables
+            {
+                Entries = new Dictionary<string, string> { ["SYS_POS_X"] = "$AA_IW[X]", ["SYS_MPOS_Z"] = "$AA_IM[Z]" },
+            },
+        };
+        var state = new ChannelState(machine);
+        state.Motion.Position["X"] = new AxisPosition(12.5m, PositionFrame.Workpiece, Known: true);
+
+        Assert.Equal(new DecimalValue(12.5m, "12.5"), state.Vars.GetSystem("SYS_POS_X", null).Value);
+        Assert.Equal(new IntegerValue(450, "450"), state.Vars.GetSystem("SYS_MPOS_Z", null).Value);
+        Assert.True(state.Vars.GetSystem("SYS_POS_Z", null).IsUnknown);
+        Assert.True(state.Vars.GetSystem("SYS_POS_X", 2).IsUnknown);
+    }
+
     // VM 2.7, language 4.9: VAR assigns a variable; reading it gives its value.
     [Fact]
     public void Get_AssignedVariable_ReadsItsValue()

@@ -4,9 +4,10 @@ using Ncx.Cli.History;
 namespace Ncx.Cli.Commands;
 
 /// <summary>
-/// ncx trace &lt;file&gt; [--format text|csv] and the options of check: one row per changed state variable per executed
-/// block, channel, block, variable, old, new, on the standard output (virtual machine 6); the diagnostics on the
-/// standard error (D98) and the exit codes of D97, as ncx check has them (architecture 10).
+/// ncx trace &lt;file&gt; [--format text|csv] [--interpreted [--vars &lt;toml&gt;]] and the options of check: one row
+/// per changed state variable per executed block, channel, block, variable, old, new, on the standard output (virtual
+/// machine 6), from a STATIC run or, under --interpreted, an INTERPRETED one (virtual machine 1, 3.6); the diagnostics
+/// on the standard error (D98) and the exit codes of D97, as ncx check has them (architecture 10).
 /// </summary>
 internal static class TraceCommand
 {
@@ -22,7 +23,8 @@ internal static class TraceCommand
     {
         var command = new Command(
             "trace",
-            "Write one row per state variable that an executed block changed: channel, block, variable, old, new.");
+            "Write one row per state variable that an executed block changed: channel, block, variable, old, new. "
+            + "STATIC, or INTERPRETED under --interpreted.");
         RunOptions options = RunOptions.AddTo(command);
 
         // Plain text, CSV or aligned columns (virtual machine 8).
@@ -35,8 +37,37 @@ internal static class TraceCommand
         formatOption.AcceptOnlyFromAmong(TextFormat, CsvFormat);
         command.Add(formatOption);
 
+        // INTERPRETED mode executes the program with its flow and evaluates its expressions, starting the variables
+        // from the vars file (virtual machine 1, 2.7, 3.6; machine-config 8).
+        var interpretedOption = new Option<bool>("--interpreted")
+        {
+            Description = "Run the virtual machine INTERPRETED: variables evaluated, jumps, repeats and calls followed.",
+        };
+        var varsOption = new Option<string>("--vars")
+        {
+            Description = "The start values of the variables of an INTERPRETED run. Without it: <file>.vars.toml next "
+                + "to the file, when there is one.",
+            HelpName = "toml",
+        };
+        command.Add(interpretedOption);
+        command.Add(varsOption);
+
+        // The start values are those of an INTERPRETED run (virtual machine 3.6), so --vars needs --interpreted.
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(varsOption) is not null && !result.GetValue(interpretedOption))
+            {
+                result.AddError("--vars gives the start values of an INTERPRETED run and needs --interpreted (virtual "
+                    + "machine 3.6)");
+            }
+        });
+
         command.SetAction(parseResult => Run(
-            options.Read(parseResult),
+            options.Read(parseResult) with
+            {
+                Interpreted = parseResult.GetValue(interpretedOption),
+                VarsFile = parseResult.GetValue(varsOption),
+            },
             parseResult.GetValue(formatOption) == CsvFormat ? TraceFormat.Csv : TraceFormat.Text,
             output,
             error));

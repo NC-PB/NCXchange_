@@ -110,8 +110,8 @@ internal sealed class BlockEvents
         // 6. What the block closes: SUB_END at SUB=END, where the walk leaves the subprogram, PROGRAM_END at
         // PROGRAM=END with the run statistics (virtual machine 7). STATIC mode records RETURN, JUMP=END and REPEAT
         // without following them (virtual machine 1, D99), so it leaves a subprogram at its SUB=END and a program at its
-        // PROGRAM=END.
-        if (_block.Has("SUB", null, "END"))
+        // PROGRAM=END; INTERPRETED mode leaves a subprogram at a RETURN as well (virtual machine 3.6, 7).
+        if (_block.Has("SUB", null, "END") || ReturnsFromSub())
         {
             _events.Add(SubEvent(EventPhase.End));
         }
@@ -222,7 +222,7 @@ internal sealed class BlockEvents
             }
         }
 
-        if (_block.Find("CALL") is not Word call || !_after.Flow.Subs.ContainsKey(CallTarget(call.Value)))
+        if (_block.Find("CALL") is not Word call || !EntersCallee(call))
         {
             return;
         }
@@ -319,6 +319,42 @@ internal sealed class BlockEvents
         {
             _events.Add(FlowEvent(FlowKind.Repeat, repeat.Value.ToCanonical()));
         }
+    }
+
+    // A CALL gives the callee's locals the values of its ARG words when it enters a subprogram of the file, and in
+    // INTERPRETED mode when it loads an external program, a string that names no program of the file (language 4.9,
+    // virtual machine 3.6); STATIC mode does not follow an external CALL (virtual machine 1).
+    private bool EntersCallee(Word call)
+    {
+        string target = CallTarget(call.Value);
+        if (_after.Flow.Subs.ContainsKey(target))
+        {
+            return true;
+        }
+
+        if (_context.Mode != ExecutionMode.Interpreted || call.Value is not StringValue)
+        {
+            return false;
+        }
+
+        foreach (Section program in _after.Flow.Programs)
+        {
+            if (program.Name == target)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // SUB_END is raised at SUB=END or RETURN (virtual machine 7): in INTERPRETED mode a RETURN leaves the subprogram it
+    // stands in (virtual machine 3.6).
+    private bool ReturnsFromSub()
+    {
+        return _context.Mode == ExecutionMode.Interpreted
+            && _block.Has("RETURN")
+            && _after.Program.Section is { Kind: SectionKind.Sub };
     }
 
     private FlowEvent FlowEvent(FlowKind flow, string? target)

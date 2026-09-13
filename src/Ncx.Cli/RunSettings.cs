@@ -47,4 +47,16 @@ internal sealed record RunSettings
     /// machine 3.3, D37).
     /// </summary>
     public bool ExpandCycles { get; init; }
+
+    /// <summary>
+    /// --interpreted of trace: the virtual machine runs INTERPRETED, its variables evaluated, its jumps and calls
+    /// followed (virtual machine 1, 3.6); false for STATIC, the mode of check (D91).
+    /// </summary>
+    public bool Interpreted { get; init; }
+
+    /// <summary>
+    /// --vars: the path of the vars file with the start values of an INTERPRETED run; null for &lt;file&gt;.vars.toml
+    /// next to the file when there is one (virtual machine 2.7, 3.6; machine-config 8, 10).
+    /// </summary>
+    public string? VarsFile { get; init; }
 }

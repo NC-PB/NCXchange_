@@ -22,18 +22,18 @@ public sealed partial class VirtualMachine
 
     /// <summary>
     /// Runs a parsed program: in STATIC mode every program of the file once, the calls of its subprograms followed, and
-    /// every subprogram no program calls once from the default entry state (virtual machine 1, 3.9, D99). Afterwards
-    /// the diagnostics hold what the run found.
+    /// every subprogram no program calls once from the default entry state (virtual machine 1, 3.9, D99); in
+    /// INTERPRETED mode the first program of the file with its flow (RunInterpreted). Afterwards the diagnostics hold
+    /// what the run found.
     /// </summary>
     /// <param name="program">The parsed program, with the diagnostics the parser reported.</param>
     /// <returns>Whether an ERROR stopped the run.</returns>
     public RunResult Run(NcxProgram program)
     {
         // INTERPRETED mode executes the program with its flow and evaluates its expressions (virtual machine 1, 3.6).
-        // TODO: INTERPRETED mode is built in P4-01; STATIC is the mode of convert, compile and check.
-        if (Mode != ExecutionMode.Static)
+        if (Mode == ExecutionMode.Interpreted)
         {
-            throw new NotSupportedException("INTERPRETED mode is built in P4-01; run the virtual machine STATIC.");
+            return RunInterpreted(program);
         }
 
         // An ERROR stops the run: one the parser or the pre-pass reported stops it before the first block (virtual

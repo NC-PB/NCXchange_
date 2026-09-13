@@ -63,6 +63,8 @@ internal static class ExpressionValidation
                 "An index on a variable that is not a SYS_ name.", "language 4.12; D51"),
             ValidationRule.Error(DiagnosticCodes.IndexSelectsNoRegister, "An index that selects no register.",
                 "language 4.12; D51"),
+            ValidationRule.Error(DiagnosticCodes.ValueNotAnInteger,
+                "An expression gives a number with decimals where its word takes an integer.", "language 3, 4; VM 5"),
         ],
     };
 

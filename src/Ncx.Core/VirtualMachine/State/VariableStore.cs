@@ -17,11 +17,19 @@ internal sealed class VariableStore
     // The active tool (language 4.12).
     private const string ActiveToolName = "SYS_TOOL";
 
+    // The current position in the workpiece frame, $SYS_POS_X, and the machine position, $SYS_MPOS_B (language 4.12).
+    private const string PositionPrefix = "SYS_POS_";
+    private const string MachinePositionPrefix = "SYS_MPOS_";
+
+    // The axis whose words are diameters under DIAMETER=ON (language 4.2, D60).
+    private const string DiameterAxis = "X";
+
     // The locals of a call are V1 to V33 (virtual machine 3.6).
     private const string LocalPrefix = "V";
     private const int LastLocal = 33;
 
     private readonly ChannelState _channel;
+    private readonly MachineConfig _machine;
     private readonly UnassignedVariable _unassigned;
     private readonly SystemVariables _systemVariables;
     private readonly Dictionary<string, VariableValue> _variables = new();
@@ -38,13 +46,13 @@ internal sealed class VariableStore
     public VariableStore(ChannelState channel, MachineConfig machine, IReadOnlyDictionary<string, Value> startValues)
     {
         _channel = channel;
+        _machine = machine;
         _unassigned = machine.Variables.Unassigned;
         _systemVariables = machine.SystemVariables;
 
         // Variables start from <file>.vars.toml when there is one (virtual machine 2.7, 3.6). A SYS_ name is never
         // assigned (2.7): its start value is kept apart, for the INTERPRETED mode that reads a register the virtual
-        // machine does not hold from the vars file.
-        // TODO: the evaluator of phase 4 reads these SYS_ start values in INTERPRETED mode (virtual machine 2.7).
+        // machine does not hold from the vars file (GetSystemStartValue).
         foreach (KeyValuePair<string, Value> start in startValues)
         {
             if (IsSystem(start.Key))
@@ -103,7 +111,8 @@ internal sealed class VariableStore
         }
 
         // Reading an unassigned variable is an ERROR unless the configuration sets unassigned = 0 (virtual machine
-        // 3.6, D38).
+        // 3.6, D38). The setting is [variables] unassigned as the run carries it, VmOptions.Unassigned, which the
+        // virtual machine builds the store with and passes to the evaluator as well (wave-1 question #88).
         if (_unassigned == UnassignedVariable.Zero)
         {
             return VariableValue.Of(new IntegerValue(0, "0"));
@@ -152,11 +161,47 @@ internal sealed class VariableStore
             return ActiveTool();
         }
 
+        // $SYS_POS_X reads the current position of the axis in the workpiece frame, $SYS_MPOS_B its machine position
+        // (language 4.12), from the position store through the frame (virtual machine 2.2, 3.4). A position has no
+        // register for an index to select.
+        if (index is null && name.StartsWith(PositionPrefix, StringComparison.Ordinal))
+        {
+            return PositionOf(name.Substring(PositionPrefix.Length), PositionFrame.Workpiece);
+        }
+
+        if (index is null && name.StartsWith(MachinePositionPrefix, StringComparison.Ordinal))
+        {
+            return PositionOf(name.Substring(MachinePositionPrefix.Length), PositionFrame.Machine);
+        }
+
         // Every other name reads a state the virtual machine does not hold, a wear register of any index, a tool
         // length, a part status: UNKNOWN (virtual machine 2.7).
-        // TODO: SYS_POS_ and SYS_MPOS_ read the position of an axis once the frame rules of P1-02 fix how SETPOS and
-        // HOME store it (virtual machine 3.4, D101); they are UNKNOWN until then.
         return VariableValue.Unknown;
+    }
+
+    /// <summary>
+    /// The start value &lt;file&gt;.vars.toml gives a SYS_ name, which INTERPRETED mode reads where the state of the
+    /// channel gives the name no value (virtual machine 2.7, 3.6); null when the vars file has none.
+    /// </summary>
+    /// <param name="name">The SYS_ name without its index: SYS_WEAR_Z.</param>
+    /// <param name="index">The register or table row, 99 of SYS_WEAR_Z[99]; null without one.</param>
+    public VariableValue? GetSystemStartValue(string name, int? index)
+    {
+        return _systemStartValues.TryGetValue(StartValueKey(name, index), out VariableValue? value) ? value : null;
+    }
+
+    /// <summary>
+    /// The key of the vars file that gives a SYS_ name its start value: the name as the program writes it, without the
+    /// $, SYS_POS_X, or with its index, SYS_WEAR_Z[99], which TOML writes as a quoted key.
+    /// </summary>
+    /// <param name="name">The SYS_ name without its index.</param>
+    /// <param name="index">The register or table row; null without one.</param>
+    public static string StartValueKey(string name, int? index)
+    {
+        // TODO(question): machine-config 8 shows plain keys only (Q1 = 10), and virtual machine 2.7 reads an indexed
+        // register "from the vars file" without saying how the file names it (wave-1 question #89); the key is the
+        // name as the program writes it with its index, "SYS_WEAR_Z[99]" = 0.012, until that is answered.
+        return index is int register ? name + "[" + register.ToString(CultureInfo.InvariantCulture) + "]" : name;
     }
 
     /// <summary>
@@ -207,6 +252,40 @@ internal sealed class VariableStore
     private Dictionary<string, VariableValue> TableOf(string name)
     {
         return IsLocal(name) ? _locals : _variables;
+    }
+
+    // The coordinate of an axis in a frame: in the workpiece frame read through the setpos shift, in the MACHINE frame
+    // the stored value when the axis is known there (virtual machine 3.4); UNKNOWN when the axis is not known in that
+    // frame, after a HOME without a datum table in the workpiece frame (D35).
+    // TODO(question): under DIAMETER=ON the program writes X as a diameter and the virtual machine stores the radius
+    // (D60); whether $SYS_POS_X and $SYS_MPOS_X read the diameter, as the X words of the program are written, or the
+    // radius the virtual machine holds is not said. They read the diameter, so that a value read back into an X word
+    // lands where it was, until that is answered.
+    private VariableValue PositionOf(string axisName, PositionFrame frame)
+    {
+        if (AxisKey(axisName) is not string axis
+            || MotionRules.CoordinateIn(_channel, axis, frame) is not decimal coordinate)
+        {
+            return VariableValue.Unknown;
+        }
+
+        decimal value = axisName == DiameterAxis && _channel.Frame.Diameter ? coordinate * 2 : coordinate;
+        return VariableValue.Of(NumberValues.Of(value));
+    }
+
+    // The key of the position store an axis name reads: A, B, C the rotary axis of the current workpiece holder when it
+    // has one, every other name the machine axis with that NCX name (virtual machine 3.8 rule 3), or an axis the
+    // default machine created on the spot (D103); null for a name no axis carries.
+    private string? AxisKey(string axisName)
+    {
+        string? holder = _channel.Frame.WorkpieceHolder;
+        AxisDef? axis = holder is null ? _machine.ResolveAxis(axisName) : _machine.ResolveAxis(axisName, holder);
+        if (axis is not null)
+        {
+            return axis.NcxName;
+        }
+
+        return _channel.Motion.Position.ContainsKey(axisName) ? axisName : null;
     }
 
     // The tool in the spindle of the holder called last: its number, or its name as a string (language 4.4).

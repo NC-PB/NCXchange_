@@ -14,7 +14,7 @@ public enum ExecutionMode
 
     /// <summary>
     /// INTERPRETED: the program executed, variables evaluated, jumps and calls followed, with a block cap. What analyze
-    /// uses (virtual machine 1); built in P4-01.
+    /// uses (virtual machine 1), and ncx trace --interpreted.
     /// </summary>
     Interpreted,
 }

@@ -101,8 +101,8 @@ internal sealed class BlockContext
                 return true;
             case ExprValue:
                 // Expressions are not evaluated in STATIC mode; a state variable set from one becomes UNKNOWN (virtual
-                // machine 1).
-                // TODO: INTERPRETED mode evaluates the expression here (virtual machine 3.6, P4-01).
+                // machine 1). INTERPRETED mode resolves the expressions of a block before it executes, so none reaches
+                // here (ExpressionResolver, virtual machine 3.6).
                 State.Unknown.Add(stateKey);
                 number = 0m;
                 return false;

@@ -33,7 +33,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 23 | P3-05 Heidenhain reader | 13 | |
 | 24 | P3-06 Fanuc compiler | 13 | closes M6 |
 | 25 | P3-07 Acceptance project and corpus runner | 13 | |
-| 26 | P4-01 Expression evaluation and interpreted flow | 14 | ask for the cycle time and the large pairs now |
+| 26 | ✓ P4-01 Expression evaluation and interpreted flow | 14 | ask for the cycle time and the large pairs now |
 | 27 | P4-02 Analytics: tool list, runtime estimate | 14 | |
 | 28 | P4-03 Analytics: segment length and tool vector change | 14 | closes M7 |
 | 29 | P5-01 Siemens reader | 15 | |

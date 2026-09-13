@@ -11,7 +11,8 @@ namespace Ncx.Core.VirtualMachine;
 /// The virtual machine: executes the blocks of an NCX program against the state of a channel, each block in the seven
 /// steps of virtual machine 3, and reports what it finds as diagnostics, so that readers, compilers and analytics know
 /// what the program means at every block (virtual machine 1, architecture 5). STATIC mode walks every program of the
-/// file and follows the calls of its subprograms (D99); INTERPRETED mode comes with P4-01.
+/// file and follows the calls of its subprograms (D99); INTERPRETED mode executes the program that runs with its flow,
+/// its expressions evaluated (virtual machine 3.6).
 /// </summary>
 public sealed partial class VirtualMachine
 {
@@ -90,8 +91,10 @@ public sealed partial class VirtualMachine
 
     /// <summary>
     /// What the run found (virtual machine 2.9): an ERROR stops the run, a WARNING is reported and the run continues.
+    /// While INTERPRETED mode runs an external program that a CALL loaded, the diagnostics of that file, which join
+    /// these when the call returns (VirtualMachine.Calls.cs).
     /// </summary>
-    public Diagnostics Diagnostics { get; }
+    public Diagnostics Diagnostics { get; private set; }
 
     /// <summary>
     /// The state of the channel: during a run the state of the block that runs, after a run the state the last
@@ -562,8 +565,8 @@ public sealed partial class VirtualMachine
     // ends it (virtual machine 2.1, 3.6, 4). STATIC mode records JUMP and REPEAT without following them and follows
     // CALL into the subprogram once the block is done; the walk returns at SUB=END. RETURN, SYNC, WAIT_CHANNEL and
     // START_CHANNEL are recorded as well: their events are P1-05's, the channels the job scheduler's (virtual machine
-    // 1, 3.7, D99).
-    // TODO: INTERPRETED mode follows JUMP, REPEAT and RETURN under IF (virtual machine 3.6, P4-01).
+    // 1, 3.7, D99). INTERPRETED mode follows JUMP, REPEAT, RETURN and CALL once the block is done, and a block whose IF
+    // is 0 does not execute (VirtualMachine.Interpreted.cs, virtual machine 3.6).
     private BlockFlow ApplyFlowWords(BlockContext context)
     {
         Block block = context.Block;
