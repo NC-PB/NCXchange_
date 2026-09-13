@@ -10,25 +10,56 @@ namespace Ncx.Config.Templates;
 /// </summary>
 public sealed class Template
 {
+    /// <summary>
+    /// The decimal point, which numbers are written with unless the machine writes the comma (machine-config 2).
+    /// </summary>
+    internal const string DecimalPoint = ".";
+
+    /// <summary>
+    /// The comma, the decimal separator of Klartext files (machine-config 2, controllers heidenhain.md 1).
+    /// </summary>
+    internal const string DecimalComma = ",";
+
     // The literal text before, between and after the placeholders, one piece more than there are placeholders; a line
     // break of the template stays in its piece (machine-config 3).
     private readonly List<string> _literals = [];
     private readonly List<Placeholder> _placeholders = [];
     private readonly Regex _pattern;
 
+    // The decimal separator the machine writes numbers with, from its [format] (machine-config 2); what a number reads
+    // with is the pattern's.
+    private readonly string _decimalSeparator;
+
     /// <summary>
     /// Parses a template once (code-guidelines 7). Braces that are not a placeholder are an ERROR of the machine file
-    /// and stay in the template as literal text.
+    /// and stay in the template as literal text. Numbers are written and read with the decimal point; the templates of
+    /// a machine come from its <see cref="TemplateSet"/>, with the decimal separator its [format] writes and the comma
+    /// its controller reads.
     /// </summary>
     /// <param name="text">The template as the machine file gives it, with a line break where the file writes \n:
     /// "T{tool} M6".</param>
     /// <param name="line">The line of the template in the machine file, which a diagnostic cites.</param>
     /// <param name="diagnostics">The diagnostics of the machine file.</param>
     public Template(string text, int line, Diagnostics diagnostics)
+        : this(text, line, DecimalPoint, readsComma: false, diagnostics)
+    {
+    }
+
+    /// <summary>
+    /// Parses a template of a machine that writes numbers with the decimal separator of its [format] and may read the
+    /// comma as well as the point, the comma of Klartext (machine-config 2, controllers heidenhain.md 7 rule 8).
+    /// </summary>
+    /// <param name="text">The template as the machine file gives it.</param>
+    /// <param name="line">The line of the template in the machine file, which a diagnostic cites.</param>
+    /// <param name="decimalSeparator">The decimal separator the machine writes, "." or ",".</param>
+    /// <param name="readsComma">True when a number reads with the comma as well as with the point.</param>
+    /// <param name="diagnostics">The diagnostics of the machine file.</param>
+    internal Template(string text, int line, string decimalSeparator, bool readsComma, Diagnostics diagnostics)
     {
         Text = text;
+        _decimalSeparator = decimalSeparator;
         Parse(line, diagnostics);
-        _pattern = TemplatePattern.Build(_literals, _placeholders);
+        _pattern = TemplatePattern.Build(_literals, _placeholders, readsComma);
     }
 
     /// <summary>
@@ -42,8 +73,9 @@ public sealed class Template
     public IReadOnlyList<Placeholder> Placeholders => _placeholders;
 
     /// <summary>
-    /// Writes the template with the values of its placeholders, numbers padded by their format suffix; a line break of
-    /// the template is a line break of the text (machine-config introduction and 3).
+    /// Writes the template with the values of its placeholders, numbers padded by their format suffix and written with
+    /// the decimal separator of the machine; a line break of the template is a line break of the text (machine-config
+    /// introduction, 2 and 3).
     /// </summary>
     /// <param name="values">The values by placeholder name.</param>
     /// <param name="block">The block the template is written for, which a diagnostic cites (D98).</param>
@@ -57,7 +89,7 @@ public sealed class Template
         for (int index = 0; index < _placeholders.Count; index++)
         {
             Placeholder placeholder = _placeholders[index];
-            string? value = placeholder.Write(values);
+            string? value = placeholder.Write(values, _decimalSeparator);
             if (value is not null)
             {
                 text.Append(value);
@@ -87,7 +119,8 @@ public sealed class Template
     /// <summary>
     /// Recognizes a native text as this template and captures the values of its placeholders. Blanks between words may
     /// be left out or doubled, blanks at the ends do not count, an M or G code of the literal text compares by number
-    /// (M8 matches M08), and a padded placeholder reads the digits it pads to (architecture 6, D105).
+    /// (M8 matches M08), a padded placeholder reads the digits it pads to, and a number reads with the point and, on a
+    /// machine that reads the comma, with the comma (architecture 6, D105, controllers heidenhain.md 7 rule 8).
     /// </summary>
     /// <param name="text">The native text, as many lines as the template has: "G340 T0101. A02.".</param>
     /// <param name="captured">The values found, numbers by their number and words as written; empty when the text is

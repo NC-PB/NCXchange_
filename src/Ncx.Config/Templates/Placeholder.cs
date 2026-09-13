@@ -120,9 +120,10 @@ public sealed record Placeholder
 
     // The value as the template writes it: words as given; a number with the decimal point whatever the culture
     // (code-guidelines 3.4), padded with zeros in front to the width of the format suffix, so that {tool:02} writes 04
-    // and {tool:02}. writes 04. with the point as literal text (machine-config introduction). Null when the values
-    // have none for this placeholder.
-    internal string? Write(TemplateValues values)
+    // and {tool:02}. writes 04. with the point as literal text (machine-config introduction), and with the decimal
+    // separator of the machine, the comma of a Heidenhain file (machine-config 2, controllers heidenhain.md 1). Null
+    // when the values have none for this placeholder.
+    internal string? Write(TemplateValues values, string decimalSeparator)
     {
         if (values.TryGetText(Name, out string? text))
         {
@@ -142,12 +143,15 @@ public sealed record Placeholder
             digits = new string('0', Width - integerDigits) + digits;
         }
 
-        return number < 0 ? "-" + digits : digits;
+        string written = number < 0 ? "-" + digits : digits;
+        return written.Replace(Template.DecimalPoint, decimalSeparator, StringComparison.Ordinal);
     }
 
     // Takes the value the pattern found for this placeholder into the values: words as found, a number by its number,
-    // so that M0106 gives the mark 106 and T01 the tool 1 (D105). A placeholder that stands twice stands for one value;
-    // a second, different value means the text is not this template's. False when the found text does not fit.
+    // so that M0106 gives the mark 106 and T01 the tool 1 (D105), and a number read with the comma of Klartext as the
+    // same number with the point (controllers heidenhain.md 7 rule 8); the pattern lets a comma into a number only on a
+    // machine that reads it. A placeholder that stands twice stands for one value; a second, different value means the
+    // text is not this template's. False when the found text does not fit.
     internal bool Capture(string found, TemplateValues values)
     {
         if (IsText)
@@ -161,8 +165,9 @@ public sealed record Placeholder
             return true;
         }
 
+        string withPoint = found.Replace(Template.DecimalComma, Template.DecimalPoint, StringComparison.Ordinal);
         NumberStyles style = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint;
-        if (!decimal.TryParse(found, style, CultureInfo.InvariantCulture, out decimal number))
+        if (!decimal.TryParse(withPoint, style, CultureInfo.InvariantCulture, out decimal number))
         {
             return false;
         }

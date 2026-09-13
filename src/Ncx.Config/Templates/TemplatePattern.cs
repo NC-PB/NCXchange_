@@ -22,27 +22,22 @@ internal static class TemplatePattern
     private const string TextStart = """\A\s*""";
     private const string TextEnd = """\s*\z""";
 
-    // A number as the controls write it: an optional sign, digits with or without a decimal point, or the point
-    // first: 70., -.534, +10, 1592 (controllers fanuc.md 2, heidenhain.md 2).
-    // TODO: the Heidenhain files write the comma as the decimal separator and the reader accepts both (controllers
-    // heidenhain.md 1 and 7); the pattern reads the point only until the separator of [format] reaches it through the
-    // TemplateSet (P2-02 part two).
-    private const string NumberGroup = """[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)""";
-
     // Words: at least one character, as few as reach what the template writes next, on the same line.
     private const string TextGroup = ".+?";
 
     // The template becomes one pattern over the whole text: its literal text escaped, blanks between words tolerated,
     // M and G codes compared by number, and a named group per placeholder: an integer group for a padded placeholder,
-    // words for the placeholders whose values are words, a signed decimal otherwise (phase 2, P2-02; architecture 6).
-    public static Regex Build(IReadOnlyList<string> literals, IReadOnlyList<Placeholder> placeholders)
+    // words for the placeholders whose values are words, a signed decimal otherwise, with the point and, where the
+    // machine reads it, the comma (phase 2, P2-02; architecture 6).
+    public static Regex Build(IReadOnlyList<string> literals, IReadOnlyList<Placeholder> placeholders, bool readsComma)
     {
+        string numberGroup = NumberGroup(readsComma);
         var pattern = new StringBuilder(TextStart);
         AppendLiteral(pattern, literals[0]);
         for (int index = 0; index < placeholders.Count; index++)
         {
             pattern.Append("(?<").Append(GroupName(index)).Append('>');
-            pattern.Append(GroupOf(placeholders[index]));
+            pattern.Append(GroupOf(placeholders[index], numberGroup));
             pattern.Append(')');
             AppendLiteral(pattern, literals[index + 1]);
         }
@@ -61,7 +56,7 @@ internal static class TemplatePattern
     // T0101 into 01 and 01. Whether it also reads a source that leaves the leading zero out (Fanuc T101 for T0101), and
     // what a number wider than its suffix renders to (tool 123 in {tool:02} is written 123, which the pattern does not
     // read back), is open.
-    private static string GroupOf(Placeholder placeholder)
+    private static string GroupOf(Placeholder placeholder, string numberGroup)
     {
         if (placeholder.IsText)
         {
@@ -73,7 +68,18 @@ internal static class TemplatePattern
             return "[0-9]{" + placeholder.Width.ToString(CultureInfo.InvariantCulture) + "}";
         }
 
-        return NumberGroup;
+        return numberGroup;
+    }
+
+    // A number as the controls write it: an optional sign, digits with or without a decimal point, or the point
+    // first: 70., -.534, +10, 1592 (controllers fanuc.md 2, heidenhain.md 2). On a machine that reads the comma, the
+    // decimal separator of Klartext, a number reads with the comma as well as with the point (controllers
+    // heidenhain.md 7 rule 8). Fanuc and Siemens write the dot (controllers differences.md, Numbers), and there the
+    // comma separates the arguments of a call, CYCLE832(0.01,1,0.1), and is no number.
+    private static string NumberGroup(bool readsComma)
+    {
+        string separator = readsComma ? """[.,]""" : """\.""";
+        return "[+-]?(?:[0-9]+(?:" + separator + "[0-9]*)?|" + separator + "[0-9]+)";
     }
 
     // Literal text is matched as written, except the blanks between words, the line breaks, and the M and G codes.

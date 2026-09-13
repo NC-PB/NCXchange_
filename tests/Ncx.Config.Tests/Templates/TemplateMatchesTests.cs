@@ -293,27 +293,7 @@ public sealed class TemplateMatchesTests
     [InlineData("RAPID {position:tool_change} FRAME=MACHINE")]
     public void Matches_TemplateOfTheSpecification_ReadsBackWhatItRenders(string text)
     {
-        Template template = Parse(text);
-        TemplateValues values = SampleValues(template);
-        var diagnostics = new Diagnostics("PART.ncx");
-        var block = new Block { Line = 1, Words = [new Word { Key = "TOOL", Value = new IntegerValue(4, "4") }] };
-
-        string? rendered = template.Render(values, block, diagnostics);
-
-        Assert.Empty(diagnostics.Items);
-        Assert.NotNull(rendered);
-        Assert.True(template.Matches(rendered, out TemplateValues captured), rendered);
-        foreach (Placeholder placeholder in template.Placeholders)
-        {
-            if (placeholder.IsText)
-            {
-                Assert.Equal(Text(values, placeholder.Name), Text(captured, placeholder.Name));
-            }
-            else
-            {
-                Assert.Equal(Number(values, placeholder.Name), Number(captured, placeholder.Name));
-            }
-        }
+        TemplateSamples.AssertRoundTrip(Parse(text));
     }
 
     // A text that is not the template's captures nothing.
@@ -340,47 +320,6 @@ public sealed class TemplateMatchesTests
         var template = new Template(text, 1, diagnostics);
         Assert.Empty(diagnostics.Items);
         return template;
-    }
-
-    // A value for every placeholder: words for the placeholders whose values are words, numbers otherwise, small
-    // enough for the width of a padded placeholder and with decimals where there is no suffix.
-    private static TemplateValues SampleValues(Template template)
-    {
-        var values = new TemplateValues();
-        int count = 0;
-        foreach (Placeholder placeholder in template.Placeholders)
-        {
-            count++;
-            if (placeholder.IsText)
-            {
-                values.Set(placeholder.Name, SampleText(placeholder.Name));
-            }
-            else if (placeholder.Width > 0)
-            {
-                values.Set(placeholder.Name, count);
-            }
-            else
-            {
-                values.Set(placeholder.Name, (count * 10) + 0.5m);
-            }
-        }
-
-        return values;
-    }
-
-    // Words as the machine writes them: a tool name, an axis letter, an axis list, the words of MOVE=TURN on a
-    // Heidenhain, a channel list, the axis words of a position.
-    private static string SampleText(string name)
-    {
-        return name switch
-        {
-            "name" => "MILL_D10",
-            "axis" => "Z",
-            "axes" => "X0 Z0",
-            "move" => "TURN FMAX",
-            "channels" => "1,2",
-            _ => "X0 Z-120",
-        };
     }
 
     private static decimal Number(TemplateValues values, string name)
