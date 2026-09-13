@@ -295,9 +295,22 @@ name = "RECT_POCKET"
 native = 251
 params = { LENGTH = "Q218", WIDTH = "Q219", DEPTH = "Q201", PECK = "Q202", CYCLE_F = "Q206", SURFACE = "Q203", CLEARANCE = "Q200" }
 absolute_from_surface = ["DEPTH"]   # native Q201 is relative to Q203, NCX DEPTH is absolute
+
+# excerpt of the Fanuc catalog
+[[cycle]]
+name = "ROUGH_TURN"
+native = "G71"
+contour = ["P", "Q"]                # first and last block of the contour, the SUB section of CONTOUR=name (D65)
 ```
 
 The built-in drilling family (`DRILL`, `DRILL_DWELL`, `PECK`, `CHIP_BREAK`, `TAP`, `REAM`, `BORE`) is defined in the same way inside NCXchange and can be overridden per machine.
+
+Besides `name`, `native`, `params`, `absolute_from_surface` and the expansion rule keys of 5a, an entry may carry:
+
+- `modal = true`: the native cycle stays active after its block and every following block with a position calls it again, as Fanuc `G81`..`G89` and the simple turning cycles `G90`, `G92`, `G94` do; the reader emits `CYCLE=` and one `CYCLE_CALL` per such block and the compiler writes the repeat blocks back the same way (language 4.7.1). The default `false` is a native block that runs once where it stands (Fanuc `G70`..`G76`). Heidenhain and Siemens entries leave it out: their calls are words of their own (`CYCL CALL`, `M99`, `MCALL`).
+- `contour`: the native words that carry the contour of `CONTOUR=name` (language 4.7, D65). Two words are the first and the last block of the contour range (Fanuc `P` and `Q`): the reader turns the range into a `SUB` section of the file, the compiler writes the block numbers of that section. One word names the contour subprogram itself (Siemens `CYCLE95` `NPP`).
+- `signature`: every native parameter in the order the control writes it, also those without an NCX word: the positional parameters of a Siemens cycle, the `Q` parameters of a Heidenhain `CYCL DEF` (`../controllers/siemens.md` 12, `heidenhain.md` 8). A Siemens position without a value stays empty and the cycle takes its default (`siemens.md` 7). A native name in `params` that the signature does not list is an address word of its own: Siemens `CYCLE_F = "F"` is the modal `F` before the call that `CYCLE81`..`CYCLE83` use (controller-mapping 5). Fanuc entries, whose parameters are address words of the cycle block, leave it out.
+- `fixed`: native parameters the entry always writes with this value, which tell two entries of one native cycle apart: Siemens `CYCLE83` with `VARI = 1` is `PECK`, with `VARI = 0` `CHIP_BREAK` (controller-mapping 5); the reader takes the entry whose fixed values the source block carries.
 
 ## 7. Variables
 
