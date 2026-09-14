@@ -2,14 +2,14 @@ using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.VirtualMachine.Handlers;
 using Ncx.Core.VirtualMachine.State;
-using Ncx.Core.VirtualMachine.Validation;
 
 namespace Ncx.Core.VirtualMachine;
 
 // STATIC mode (virtual machine 1, 3.9, D99): one pass over every program of the file; JUMP and REPEAT recorded, not
 // followed; every CALL of a subprogram of the file followed with the caller's state, TIMES=n in n passes, within the
 // call depth; a CALL of an external program recorded, not followed; a subprogram nothing calls walked once from the
-// default entry state. What convert, compile and check use (D91).
+// default entry state. What convert, compile and check use (D91). The walk of a channel program of a job is taken step
+// by step (VirtualMachine.Steps.cs, VirtualMachine.Jobs.cs).
 public sealed partial class VirtualMachine
 {
     // The subprograms a program of the file entered by CALL during the run (D99).
@@ -51,7 +51,7 @@ public sealed partial class VirtualMachine
 
         // The pre-pass over the file: duplicate labels and missing jump targets are ERRORs before execution, and the
         // rules about a block as it is written are reported once per block (virtual machine 3.6, 5).
-        _validation = new RunValidation(Machine, Diagnostics, Mode);
+        _validation = NewValidation(Diagnostics);
         _validation.CheckFile(program);
         if (Diagnostics.HasErrors)
         {
@@ -73,7 +73,7 @@ public sealed partial class VirtualMachine
                 RaiseFileEvent(program, EventPhase.Begin);
             }
 
-            if (!WalkSection(section, recordFirstVerb: firstProgram))
+            if (!WalkToEnd(section, recordFirstVerb: firstProgram))
             {
                 return new RunResult { Stopped = true };
             }
@@ -82,22 +82,9 @@ public sealed partial class VirtualMachine
             firstProgram = false;
         }
 
-        // A subprogram that no program of the file calls is walked once from the default entry state, and inside it
-        // the validations are suppressed whose state belongs to a caller that does not exist (virtual machine 1, 3.9,
-        // 5, D99).
-        foreach (Section sub in program.Subs)
+        if (!WalkUncalledSubs(program.Subs))
         {
-            if (_calledSubs.Contains(sub))
-            {
-                continue;
-            }
-
-            StartWalk(EntryStateOfUncalledSub(sub.Channel), suppressCallerRules: true);
-            _state.Program.Section = sub;
-            if (!WalkSection(sub, recordFirstVerb: false))
-            {
-                return new RunResult { Stopped = true };
-            }
+            return new RunResult { Stopped = true };
         }
 
         // The expressions STATIC mode left unresolved are counted and reported once (virtual machine 5).
@@ -140,9 +127,46 @@ public sealed partial class VirtualMachine
         return state;
     }
 
-    // Walks the blocks of a program or a subprogram from its BEGIN block to its END block; false when an ERROR stopped
-    // the run.
-    private bool WalkSection(Section section, bool recordFirstVerb)
+    // A subprogram that no program of the file calls is walked once from the default entry state, and inside it the
+    // validations are suppressed whose state belongs to a caller that does not exist (virtual machine 1, 3.9, 5, D99).
+    // False when an ERROR stopped the run.
+    private bool WalkUncalledSubs(IEnumerable<Section> subs)
+    {
+        foreach (Section sub in subs)
+        {
+            if (_calledSubs.Contains(sub))
+            {
+                continue;
+            }
+
+            StartWalk(EntryStateOfUncalledSub(sub.Channel), suppressCallerRules: true);
+            _state.Program.Section = sub;
+            if (!WalkToEnd(sub, recordFirstVerb: false))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // A walk outside a job takes its steps one after the other; false when an ERROR stopped it.
+    private bool WalkToEnd(Section section, bool recordFirstVerb)
+    {
+        var end = new SectionEnd();
+        foreach (Block step in WalkSection(section, recordFirstVerb, end))
+        {
+            // Only the job scheduler waits between the steps of a walk (virtual machine 3.7).
+        }
+
+        return end.Exit != SectionExit.Stopped;
+    }
+
+    // Walks the blocks of a program or a subprogram from its BEGIN block to its END block, and every CALL once its
+    // block is done. Every executed block is one step, handed out before the call it makes is followed, so that the
+    // job scheduler can advance the channel by one block per round, also inside a called subprogram (virtual machine
+    // 3.7); end says whether an ERROR stopped the walk.
+    private IEnumerable<Block> WalkSection(Section section, bool recordFirstVerb, SectionEnd end)
     {
         NcxProgram program = _program ?? throw new InvalidOperationException("A walk needs the program of a run.");
         for (int index = section.FirstBlock; index <= section.LastBlock; index++)
@@ -161,26 +185,43 @@ public sealed partial class VirtualMachine
             // An ERROR stops the run (virtual machine 2.9).
             if (Diagnostics.HasErrors)
             {
-                return false;
+                end.Exit = SectionExit.Stopped;
+                yield break;
             }
+
+            if (!flow.Executed)
+            {
+                continue;
+            }
+
+            // Every channel of a job that is neither finished nor waiting executes one block per round (virtual machine
+            // 3.7).
+            yield return block;
 
             // A CALL is followed once its block is done (virtual machine 1, D99; architecture 5.1).
-            if (flow.FollowsCall && !FollowCall(block))
+            if (flow.FollowsCall)
             {
-                return false;
+                foreach (Block step in FollowCall(block, end))
+                {
+                    yield return step;
+                }
+
+                if (end.Exit == SectionExit.Stopped)
+                {
+                    yield break;
+                }
             }
         }
-
-        return true;
     }
 
-    // CALL enters the SUB section of the file by its NAME (language 4.9, 4.13); false when an ERROR stopped the run.
-    private bool FollowCall(Block block)
+    // CALL enters the SUB section of the file by its NAME (language 4.9, 4.13); end says whether an ERROR stopped the
+    // run.
+    private IEnumerable<Block> FollowCall(Block block, SectionEnd end)
     {
         NcxProgram program = _program ?? throw new InvalidOperationException("A call needs the program of a run.");
         if (block.Find("CALL") is not Word call)
         {
-            return true;
+            yield break;
         }
 
         string name = NameOf(call.Value);
@@ -193,19 +234,21 @@ public sealed partial class VirtualMachine
                 Diagnostics.Error(block, DiagnosticCodes.CallOfProgram,
                     $"{call.ToCanonical()} names a program; a CALL enters a subprogram, and programs are entered from "
                     + "the job only (language 4.13, virtual machine 3.6).");
-                return false;
+                end.Exit = SectionExit.Stopped;
+                yield break;
             }
 
             // A CALL of an external program by file name is not followed in STATIC mode: the call is recorded, and its
             // block left the position unknown (virtual machine 1, 3.9, D99; ApplyFlowWords).
             if (call.Value is StringValue)
             {
-                return true;
+                yield break;
             }
 
             Diagnostics.Error(block, DiagnosticCodes.CallTargetMissing,
                 $"{call.ToCanonical()}: the file has no subprogram {name} (virtual machine 3.6, missing call target).");
-            return false;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         // TIMES=n walks the subprogram n times in sequence, each pass from the state the previous one left, so the
@@ -213,17 +256,20 @@ public sealed partial class VirtualMachine
         int passes = PassesOf(block);
         for (int pass = 0; pass < passes; pass++)
         {
-            if (!EnterSub(sub, name, block))
+            foreach (Block step in EnterSub(sub, name, block, end))
             {
-                return false;
+                yield return step;
+            }
+
+            if (end.Exit == SectionExit.Stopped)
+            {
+                yield break;
             }
         }
-
-        return true;
     }
 
     // One pass through a subprogram with the caller's state at that point (D99).
-    private bool EnterSub(Section sub, string name, Block callBlock)
+    private IEnumerable<Block> EnterSub(Section sub, string name, Block callBlock, SectionEnd end)
     {
         // The STATIC walk keeps a call stack and applies the configured call depth: a CALL beyond it is the ERROR
         // "call depth exceeded", and the subprogram is not entered again (virtual machine 3.9, D99).
@@ -233,7 +279,8 @@ public sealed partial class VirtualMachine
             Diagnostics.Error(callBlock, DiagnosticCodes.CallDepthExceeded,
                 $"CALL={name} is deeper than the call depth of {Options.CallDepth}: call depth exceeded; the "
                 + "subprogram is not entered (virtual machine 3.9, D99).");
-            return false;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         if (!_suppressCallerRules)
@@ -249,20 +296,25 @@ public sealed partial class VirtualMachine
         _state.Vars.PushLocals();
         if (!AssignArguments(callBlock))
         {
-            return false;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         _state.Program.Section = sub;
-        if (!WalkSection(sub, recordFirstVerb: false))
+        foreach (Block step in WalkSection(sub, recordFirstVerb: false, end))
         {
-            return false;
+            yield return step;
+        }
+
+        if (end.Exit == SectionExit.Stopped)
+        {
+            yield break;
         }
 
         _state.Program.Section = caller;
         _state.Vars.PopLocals();
         flow.Calls.Pop();
         flow.Pc = callPc;
-        return true;
     }
 
     // The ARG words of the CALL block go to the callee's locals; an ARG from an expression is UNKNOWN in STATIC mode

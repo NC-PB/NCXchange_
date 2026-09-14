@@ -1,15 +1,14 @@
 using System.Globalization;
 using Ncx.Core.Model;
-using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.VirtualMachine.State;
-using Ncx.Core.VirtualMachine.Validation;
 
 namespace Ncx.Core.VirtualMachine;
 
 // INTERPRETED mode (virtual machine 1, 3.6, 3.9): the program that runs is executed, the pc over its blocks, the
 // variables evaluated, the jumps, repeats and calls followed, within the configured depth and under a block cap against
 // endless loops. What analyze uses by default, and what ncx trace --interpreted shows. The calls are in
-// VirtualMachine.Calls.cs, the resolution of the expressions of a block in ExpressionResolver.cs.
+// VirtualMachine.Calls.cs, the resolution of the expressions of a block in ExpressionResolver.cs, the run step by step
+// in VirtualMachine.Steps.cs.
 public sealed partial class VirtualMachine
 {
     // JUMP=END continues at the PROGRAM=END of the current program; END is no label
@@ -35,38 +34,20 @@ public sealed partial class VirtualMachine
                 + "(virtual machine 1).");
         }
 
-        // An ERROR stops the run: one the parser reported stops it before the first block (virtual machine 2.9).
-        if (program.Diagnostics.HasErrors || Diagnostics.HasErrors)
+        // The program runs on the channel its header names (virtual machine 2.8); without a job nothing waits between
+        // its steps, so they are taken one after the other (VirtualMachine.Steps.cs).
+        if (!Begin(program, programName, channelId: null, prePass: true))
         {
             return new RunResult { Stopped = true };
         }
 
-        _program = program;
-        _resources = new ResourceResolver(Machine);
-        _homeWarnings.Clear();
-        _externalFiles.Clear();
-
-        // The pre-pass over the file: duplicates, missing targets, a LABEL=END, a SUB inside a PROGRAM or a block
-        // outside every section are ERRORs before execution (virtual machine 3.6); the rules about a block as it is
-        // written are reported once per block, however often the flow passes it.
-        _validation = new RunValidation(Machine, Diagnostics, Mode);
-        _validation.CheckFile(program);
-        CheckCallTargets(program);
-        if (Diagnostics.HasErrors || ProgramToRun(program, programName) is not Section running)
+        StepResult step = Step();
+        while (!step.Ended)
         {
-            return new RunResult { Stopped = true };
+            step = Step();
         }
 
-        StartWalk(NewState(running.Channel), suppressCallerRules: false);
-        _state.Program.Section = running;
-        RaiseFileEvent(program, EventPhase.Begin);
-        if (RunSection(running, calledProgram: false) == SectionExit.Stopped)
-        {
-            return new RunResult { Stopped = true };
-        }
-
-        RaiseFileEvent(program, EventPhase.End);
-        return new RunResult { Stopped = false };
+        return new RunResult { Stopped = step.Stopped };
     }
 
     // The program that runs is the first of the file unless the job manifest or the command line names another
@@ -119,8 +100,11 @@ public sealed partial class VirtualMachine
     // Runs a program or a subprogram from its first block with its flow (virtual machine 3.6): after each block pc goes
     // to the next block, to a label of the section, into a called subprogram and back to the block of the CALL, or to
     // the PROGRAM=END of the current program, until the section returns or the program ends. A called external program
-    // runs from the block after its PROGRAM=BEGIN and returns at its PROGRAM=END (CallExternalProgram).
-    private SectionExit RunSection(Section section, bool calledProgram)
+    // runs from the block after its PROGRAM=BEGIN and returns at its PROGRAM=END (CallExternalProgram). Every executed
+    // block is one step, handed out before its flow is followed, so that the job scheduler can advance the channel by
+    // one block per round, also inside a called subprogram (virtual machine 3.7); how the section ended is in end once
+    // the steps are taken.
+    private IEnumerable<Block> RunSection(Section section, bool calledProgram, SectionEnd end)
     {
         NcxProgram file = _program ?? throw new InvalidOperationException("A section runs in the file of a run.");
         int repeatsAtEntry = _state.Flow.Repeats.Count;
@@ -129,7 +113,8 @@ public sealed partial class VirtualMachine
         {
             if (calledProgram && pc == section.LastBlock)
             {
-                return Leave(SectionExit.Returned, repeatsAtEntry);
+                end.Exit = Leave(SectionExit.Returned, repeatsAtEntry);
+                yield break;
             }
 
             _state.Flow.Pc = pc;
@@ -138,7 +123,8 @@ public sealed partial class VirtualMachine
             // An ERROR stops the run (virtual machine 2.9).
             if (Diagnostics.HasErrors)
             {
-                return SectionExit.Stopped;
+                end.Exit = SectionExit.Stopped;
+                yield break;
             }
 
             if (executed is null)
@@ -147,16 +133,22 @@ public sealed partial class VirtualMachine
                 continue;
             }
 
+            // Every channel of a job that is neither finished nor waiting executes one block per round (virtual machine
+            // 3.7).
+            yield return executed;
+
             // PROGRAM=END ends execution of the program: the channel is finished and the run statistics are raised
             // (virtual machine 3.6, 7). SUB=END pops the call and returns to the caller.
             if (executed.Has("PROGRAM", null, "END"))
             {
-                return Leave(SectionExit.ProgramEnded, repeatsAtEntry);
+                end.Exit = Leave(SectionExit.ProgramEnded, repeatsAtEntry);
+                yield break;
             }
 
             if (executed.Has("SUB", null, "END"))
             {
-                return Leave(SectionExit.Returned, repeatsAtEntry);
+                end.Exit = Leave(SectionExit.Returned, repeatsAtEntry);
+                yield break;
             }
 
             // CALL enters the subprogram or the external program and the flow comes back to its block, whose other flow
@@ -164,13 +156,19 @@ public sealed partial class VirtualMachine
             bool toProgramEnd = false;
             if (executed.Find("CALL") is Word call)
             {
-                SectionExit callExit = FollowInterpretedCall(executed, call, pc);
-                if (callExit == SectionExit.Stopped)
+                var callEnd = new SectionEnd();
+                foreach (Block step in FollowInterpretedCall(executed, call, pc, callEnd))
                 {
-                    return SectionExit.Stopped;
+                    yield return step;
                 }
 
-                toProgramEnd = callExit == SectionExit.JumpedToEnd;
+                if (callEnd.Exit == SectionExit.Stopped)
+                {
+                    end.Exit = SectionExit.Stopped;
+                    yield break;
+                }
+
+                toProgramEnd = callEnd.Exit == SectionExit.JumpedToEnd;
             }
 
             // RETURN pops as SUB=END does, and a called external program returns to its caller; in a program, whose
@@ -179,7 +177,8 @@ public sealed partial class VirtualMachine
             {
                 if (section.Kind == SectionKind.Sub || calledProgram)
                 {
-                    return Leave(SectionExit.Returned, repeatsAtEntry);
+                    end.Exit = Leave(SectionExit.Returned, repeatsAtEntry);
+                    yield break;
                 }
 
                 toProgramEnd = true;
@@ -191,7 +190,8 @@ public sealed partial class VirtualMachine
             {
                 if (section.Kind == SectionKind.Sub)
                 {
-                    return Leave(SectionExit.JumpedToEnd, repeatsAtEntry);
+                    end.Exit = Leave(SectionExit.JumpedToEnd, repeatsAtEntry);
+                    yield break;
                 }
 
                 EndRepeatsOutside(section.LastBlock, section, repeatsAtEntry);
@@ -212,7 +212,8 @@ public sealed partial class VirtualMachine
             {
                 if (FollowRepeat(executed, repeat, pc, section, repeatsAtEntry) is not int next)
                 {
-                    return SectionExit.Stopped;
+                    end.Exit = SectionExit.Stopped;
+                    yield break;
                 }
 
                 pc = next;

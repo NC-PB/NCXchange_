@@ -38,7 +38,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 28 | P4-03 Analytics: segment length and tool vector change | 14 | closes M7 |
 | 29 | P5-01 Siemens reader | 15 | |
 | 30 | P5-02 Siemens compiler | 15 | closes M8 |
-| 31 | P6-01 Job scheduler and `SYNC` | 16 | |
+| 31 | ✓ P6-01 Job scheduler and `SYNC` | 16 | |
 | 32 | P6-02 Job compiler and channel binding | 16 | closes M9 |
 | 33 | P7-01 Plugin interfaces and loading | 17 | |
 | 34 | P7-02 Plugin template and `ncx plugin` commands | 17 | |

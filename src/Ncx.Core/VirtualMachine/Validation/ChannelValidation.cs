@@ -3,8 +3,9 @@ using Ncx.Core.Model;
 namespace Ncx.Core.VirtualMachine.Validation;
 
 /// <summary>
-/// Channels and synchronization (language 4.8, 4.14; virtual machine 3.7, 5): SYNC in a single-channel job, and the two
-/// rules of the job scheduler, the deadlock at SYNC and two channels on one spindle between marks.
+/// Channels and synchronization (language 4.8, 4.14; virtual machine 3.7, 5): SYNC in a single-channel job, and the
+/// rules of the job scheduler (Jobs/JobRunner): the deadlock at SYNC, two channels on one spindle or one axis of the
+/// job's [shared] between marks, and the channels a job and its channel words name.
 /// </summary>
 internal static class ChannelValidation
 {
@@ -17,7 +18,7 @@ internal static class ChannelValidation
     public static ValidationFamily Family { get; } = new()
     {
         Name = "Channel",
-        Summary = "Channels and their synchronization in a job (language 4.8, 4.14; VM 3.7, 5).",
+        Summary = "Channels and their synchronization in a job (language 4.8, 4.14; VM 3.7, 5; machine-config 8).",
         Rules =
         [
             ValidationRule.Warning(DiagnosticCodes.SyncInSingleChannelJob,
@@ -26,7 +27,23 @@ internal static class ChannelValidation
                 "Deadlock at SYNC: every channel waits and no mark can be released; the ERROR names the marks.",
                 "VM 3.7, 5") with { RaisedBy = JobScheduler },
             ValidationRule.Warning(DiagnosticCodes.SpindleSharedBetweenMarks,
-                "Two channels on one spindle between marks.", "VM 3.7, 5") with { RaisedBy = JobScheduler },
+                "Two channels on one spindle of [shared] between marks.", "VM 3.7, 5; machine-config 8; D20")
+                with { RaisedBy = JobScheduler },
+            ValidationRule.Warning(DiagnosticCodes.AxisSharedBetweenMarks,
+                "Two channels on one axis of [shared] between marks, checked like the spindles.",
+                "VM 3.7; machine-config 8; D20") with { RaisedBy = JobScheduler },
+            ValidationRule.Error(DiagnosticCodes.ChannelNotInJob,
+                "WITH, WAIT_CHANNEL or START_CHANNEL names a channel the job does not run.", "language 4.8; VM 3.7")
+                with { RaisedBy = JobScheduler },
+            ValidationRule.Warning(DiagnosticCodes.ChannelAlreadyStarted,
+                "START_CHANNEL of a channel that runs or has run; nothing starts.", "language 4.8; VM 3.7")
+                with { RaisedBy = JobScheduler },
+            ValidationRule.Warning(DiagnosticCodes.ChannelOtherThanHeader,
+                "The CHANNEL of the program's header names another channel than the job runs it on; the job's "
+                + "channel applies.", "language 4.14; VM 2.8; machine-config 8") with { RaisedBy = JobScheduler },
+            ValidationRule.Error(DiagnosticCodes.ChannelTwiceInJob,
+                "The job manifest names one channel twice.", "machine-config 8; VM 2.8, 3.7")
+                with { RaisedBy = JobScheduler },
         ],
     };
 

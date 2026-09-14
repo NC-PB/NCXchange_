@@ -20,6 +20,7 @@ namespace Ncx.Core.Model;
 //   VM600-VM649    events (P1-05)
 //   VM650-VM749    expander and generated blocks (P1-06)
 //   VM750-VM849    INTERPRETED mode and its flow (P4-01 part two)
+//   VM850-VM899    the job scheduler (P6-01)
 //   VM900-VM949    expression evaluation (P4-01 part one)
 //
 // Every code has its row, with its severity, its rule and the section it comes from, in the table of the validation

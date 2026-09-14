@@ -133,6 +133,7 @@ public sealed partial class VirtualMachine
     internal BlockFlow Execute(Block block)
     {
         // 1. Parse the words.
+        _lastContext = null;
         if (!ParseAndValidate(block))
         {
             return BlockFlow.Skipped;
@@ -143,6 +144,7 @@ public sealed partial class VirtualMachine
 
         // 2. Resolve role addresses and axis names against the machine configuration.
         BlockContext context = ResolveRolesAndAxes(block);
+        _lastContext = context;
 
         // The validation of virtual machine 5 notes the state the block finds (Validation/RunValidation).
         _validation.BeforeBlock(context);

@@ -107,11 +107,17 @@ internal sealed record RunMachine
         FoundFile? machineFile = folders.FindMachine(machineValue);
         if (machineFile is null)
         {
-            ReportMachineNotFound(machineValue, namedBy, folders, diagnostics);
+            ReportMachineNotFound(machineValue, namedBy, settings.MachineOfJob, folders, diagnostics);
             return NotRead;
         }
 
+        // A job runs on the machine its manifest names unless --machine names another (machine-config 8; implementation
+        // 16, P6-01).
         string subject = namedBy is null ? "The machine file of --machine" : "The machine file that ncx.toml names";
+        if (settings.MachineOfJob is string job)
+        {
+            subject = "The machine file that the job manifest " + job + " names";
+        }
         string? machineText = InputFile.Read(machineFile.FullPath, machineFile.Name,
             DiagnosticCodes.MachineFileUnreadable, subject, "D97, D103", diagnostics);
         if (machineText is null)
@@ -134,16 +140,23 @@ internal sealed record RunMachine
     }
 
     // A name that no machine folder holds and that is no file either is a missing machine file where one is named,
-    // which decides exit code 2 (D97); it is reported on the value of --machine, or on the line of the machine key of
-    // ncx.toml (D98).
+    // which decides exit code 2 (D97); it is reported on the value of --machine, on the line of the machine key of
+    // ncx.toml, or on the job manifest that names it (D98).
     private static void ReportMachineNotFound(
-        string value, ProjectSettings? namedBy, ProjectFolders folders, Diagnostics diagnostics)
+        string value, ProjectSettings? namedBy, string? job, ProjectFolders folders, Diagnostics diagnostics)
     {
         string named = namedBy is null ? "--machine " + value : "The machine " + value + " of ncx.toml";
+        string file = namedBy is null ? value : ProjectSettings.FileName;
+        if (job is not null)
+        {
+            named = "The machine " + value + " of the job manifest " + job;
+            file = job;
+        }
+
         diagnostics.Add(new Diagnostic
         {
             Severity = Severity.Error,
-            File = namedBy is null ? value : ProjectSettings.FileName,
+            File = file,
             Line = namedBy?.MachineLine ?? 1,
             Code = DiagnosticCodes.MachineNotFound,
             Message = $"{named} names no file at that path and no machine file "

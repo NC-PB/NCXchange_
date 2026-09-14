@@ -16,6 +16,9 @@ internal sealed class RunValidation
     private readonly Diagnostics _diagnostics;
     private readonly ExecutionMode _mode;
 
+    // The number of channels of the job whose channel the run is; null for a run outside a job (virtual machine 3.7).
+    private readonly int? _jobChannels;
+
     // Only a machine with a linear axis that has limits compares the targets of its motions (virtual machine 5, D100).
     private readonly bool _comparesLimits;
 
@@ -37,11 +40,14 @@ internal sealed class RunValidation
     /// <param name="machine">The machine file, or the built-in default machine of D103.</param>
     /// <param name="diagnostics">The diagnostics of the run.</param>
     /// <param name="mode">STATIC or INTERPRETED (virtual machine 1).</param>
-    public RunValidation(MachineConfig machine, Diagnostics diagnostics, ExecutionMode mode)
+    /// <param name="jobChannels">The number of channels of the job whose channel the run is; null outside a
+    /// job.</param>
+    public RunValidation(MachineConfig machine, Diagnostics diagnostics, ExecutionMode mode, int? jobChannels = null)
     {
         _machine = machine;
         _diagnostics = diagnostics;
         _mode = mode;
+        _jobChannels = jobChannels;
         _comparesLimits = MotionValidation.HasLinearLimits(machine);
     }
 
@@ -53,7 +59,11 @@ internal sealed class RunValidation
     /// </summary>
     public void CheckFile(NcxProgram program)
     {
-        bool singleChannelJob = ChannelValidation.IsSingleChannelJob(program);
+        // A job knows how many channels it runs; a file checked on its own decides by its programs (virtual machine
+        // 3.7, ChannelValidation).
+        bool singleChannelJob = _jobChannels is int channels
+            ? channels < 2
+            : ChannelValidation.IsSingleChannelJob(program);
         foreach (Section section in program.Sections)
         {
             FlowValidation.CheckSection(program, section, _diagnostics);

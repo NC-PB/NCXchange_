@@ -145,13 +145,22 @@ internal static class Pipeline
             return varsFile;
         }
 
-        string ownVarsFile = Path.ChangeExtension(settings.File, VarsExtension);
+        return OwnVarsFile(settings.File);
+    }
+
+    /// <summary>
+    /// The vars file of an NCX file, &lt;file&gt;.vars.toml next to it, when there is one (virtual machine 3.6;
+    /// machine-config 10); the files of a job have one each (JobPipeline).
+    /// </summary>
+    internal static string? OwnVarsFile(string file)
+    {
+        string ownVarsFile = Path.ChangeExtension(file, VarsExtension);
         return File.Exists(ownVarsFile) ? ownVarsFile : null;
     }
 
     // The start values of the variables: numbers and strings by variable name (machine-config 8), whose mistakes are
     // diagnostics of the vars file on their lines (P2-01). Null when the vars file has an ERROR.
-    private static IReadOnlyDictionary<string, Value>? LoadVars(string varsFile, string varsText,
+    internal static IReadOnlyDictionary<string, Value>? LoadVars(string varsFile, string varsText,
         Diagnostics diagnostics)
     {
         var varsDiagnostics = new Diagnostics(varsFile);
@@ -171,7 +180,7 @@ internal static class Pipeline
     // TODO(question): language 4.9 calls an external program by its file name (CALL="O9010") and virtual machine 3.6
     // searches the working directory, and neither says whether the name carries the extension of the NCX file; the name
     // is taken as written, and with .ncx when the working directory holds no file of that name, until that is answered.
-    private static NcxProgram? LoadExternalProgram(string name, string workingDirectory, MachineConfig machine)
+    internal static NcxProgram? LoadExternalProgram(string name, string workingDirectory, MachineConfig machine)
     {
         string path = Path.Combine(workingDirectory, name);
         if (!File.Exists(path) && File.Exists(path + NcxExtension))
@@ -193,7 +202,7 @@ internal static class Pipeline
     }
 
     // A byte order mark is no part of the text the parser and the TOML loaders read (wave-1 question #80).
-    private static string WithoutByteOrderMark(string text)
+    internal static string WithoutByteOrderMark(string text)
     {
         return text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
             ? text.Substring(InputFile.ByteOrderMark.Length)

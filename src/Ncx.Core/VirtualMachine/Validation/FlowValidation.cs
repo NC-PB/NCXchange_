@@ -53,7 +53,8 @@ internal static class FlowValidation
             ValidationRule.Error(DiagnosticCodes.ExternalProgramContradictsCaller,
                 "An external program that contradicts the caller's UNITS or WORKPLANE. INTERPRETED mode.", "VM 3.6"),
             ValidationRule.Error(DiagnosticCodes.ProgramToRunMissing,
-                "The program the command line or the job names is not a program of the file. INTERPRETED mode.",
+                "The program the command line or the job names is not a program of the file. INTERPRETED mode and "
+                + "jobs.",
                 "language 4.13; VM 3.6"),
         ],
     };

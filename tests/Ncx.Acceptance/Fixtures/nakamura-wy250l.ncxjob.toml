@@ -1,0 +1,18 @@
+# The Nakamura WY-250L pair of docs/spec/examples/sources as one job (implementation 16, P6-01; machine-config 8): the
+# upper turret program O1000 on path 1 and the lower turret program O1000.P-2 on path 2, as ncx convert reads them with
+# nakamura-ntjx.toml, the two converted files next to this manifest.
+[job]
+name = "O1000"
+machine = "nakamura-ntjx.toml"
+
+[[channel]]
+id = 1
+file = "NAKAMURA_WY250L_O1000.path1.ncx"
+
+[[channel]]
+id = 2
+file = "NAKAMURA_WY250L_O1000.path2.ncx"
+
+[shared]
+spindles = ["S1", "S2"]            # the main and the sub spindle, which both paths command
+axes = ["B1"]                      # the sub spindle slide, which the transfer moves

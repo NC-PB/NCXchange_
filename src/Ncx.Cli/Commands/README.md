@@ -10,4 +10,6 @@ One class per command of architecture 10. `FormatCommand.cs` shows the shape: `C
 
 `CompileCommand.cs` takes an NCX file, `--machine` (required unless `ncx.toml` names the machine, D77), `--output <folder>` and `--strict`; `Create(compilers, error)` gets the compilers that `../Program.cs` registers, and `Run(...)` parses the file, hands it with the tool table of the machine (D10) to the compiler of the machine's controller and writes the files it gives into `out/<machine>/`, or into the folder of `--output`.
 
+`JobOption.cs` is `--job <name.ncxjob.toml>` of `check` and `analyze`, in place of the file (machine-config 8; F24): `CheckCommand.RunJob` hands the manifest to `../JobPipeline.cs` and writes the diagnostics, `AnalyzeJob.cs` subscribes the analytics to every channel and writes their reports channel by channel in the order of the manifest.
+
 Never here: the pipeline itself. A command stays thin and calls the stages of `Ncx.Core` and the other projects (phase 0, risks).

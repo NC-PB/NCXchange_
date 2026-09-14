@@ -18,6 +18,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    The fixtures of this project that are no example of the specification, the job manifest of the Nakamura pair
+    (implementation 16, P6-01), embedded under their path from the repository root as the examples are
+    (tests/README.md).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/*.toml" LogicalName="tests/Ncx.Acceptance/Fixtures/%(Filename)%(Extension)"
+                      WithCulture="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../src/Ncx.Analytics/Ncx.Analytics.csproj" />
     <ProjectReference Include="../../src/Ncx.Plugins/Ncx.Plugins.csproj" />

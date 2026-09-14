@@ -38,6 +38,11 @@ internal sealed class RunOptions
     }
 
     /// <summary>
+    /// The file argument, which ncx check makes optional beside --job (architecture 10, JobOption).
+    /// </summary>
+    public Argument<string> File => _file;
+
+    /// <summary>
     /// Adds the file argument and the shared options to a command.
     /// </summary>
     /// <param name="command">check, trace or annotate.</param>
@@ -85,7 +90,7 @@ internal sealed class RunOptions
     {
         return new RunSettings
         {
-            File = parseResult.GetRequiredValue(_file),
+            File = parseResult.GetValue(_file) ?? "",
             MachineFile = parseResult.GetValue(_machine),
             Strict = parseResult.GetValue(_strict),
             SkipBlocks = parseResult.GetValue(_skipBlocks) ?? SkipBlocks.None,

@@ -20,6 +20,7 @@ Everything that knows what an NCX program says and what it means: the model of a
 | `Geometry/` | `Vec3`, planes, angles, arcs, in `double` | virtual machine 3.2; architecture 4.2; D62, D84 |
 | `Machine/` | the records a machine file is loaded into, the cycle catalog, the job manifest | machine-config 1 to 9; architecture 6; D107 |
 | `VirtualMachine/` | the virtual machine, the state of a channel (`VirtualMachine/State/`), the word handlers (`VirtualMachine/Handlers/`), the validation list (`VirtualMachine/Validation/`), the events and `IVmListener` (`VirtualMachine/Events/`) | virtual machine 1 to 5, 7; architecture 5; D99, D106 |
+| `Jobs/` | the job scheduler: one virtual machine per channel program of a job manifest, in rounds, with `SYNC`, `WITH`, `WAIT_CHANNEL`, `START_CHANNEL`, the deadlock and the resources of `[shared]` | virtual machine 3.7; language 4.8, 4.14; machine-config 8; architecture 5.4; D15, D20, D39 |
 | `Expander/` | the expander between parser and virtual machine: the expansion rules of the machine, the program rewriters (`IProgramRewriter`, `RewriteResult`, `RewriteContext`), `limits = "clamp"` | virtual machine 1, 3.10; language 4.15; machine-config 5a; architecture 5.5; D63, D64, D100, D106 |
 
 Two of the four plugin interfaces live here with the code that calls them (D106): `IProgramRewriter` in `Expander/`, `IVmListener` in `VirtualMachine/Events/`.

@@ -13,4 +13,6 @@ Every test project imports `Fixtures.props`. It embeds every file of `docs/spec/
 | `Fixture.List()` | every embedded example, `"2.5D_FRAESEN.ncx"`, `"machines/millturn1.toml"`, ... |
 | `Fixture.RepositoryRoot()` | the folder of `NCXchange.sln`, found from the test assembly, for tests that write into the repository |
 
+A test project may keep inputs of its own that are no example in its `Fixtures/` folder, embedded by its project file under their path from the repository root: `Ncx.Acceptance` embeds the job manifest of the Nakamura pair, `tests/Ncx.Acceptance/Fixtures/nakamura-wy250l.ncxjob.toml`, and reads it through `Jobs/JobFixture.cs`.
+
 The namespace is `Ncx.Tests.Fixtures`. A new test project imports `../Fixtures.props` and declares `<Using Include="Xunit" />`. The examples are never copied: the specification folder stays the single source of truth, a new file there is embedded on the next build, `Ncx.Acceptance` checks that every embedded copy equals its original byte for byte, and `Fixtures/EmbeddedExamplesTests.cs` checks in every test project that none is missing.

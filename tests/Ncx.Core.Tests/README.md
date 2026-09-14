@@ -21,6 +21,7 @@ The tests of `src/Ncx.Core`, one folder per source folder: NCX text in, the expe
 | `VirtualMachine/State/` | the start values and snapshots of every state table | `StateMachines` |
 | `VirtualMachine/Validation/` | one test per rule of the validation list of virtual machine 5; writes `docs/spec/generated/diagnostics.md` | `RuleAssert`, `ValidationMachines`, `DiagnosticsDocument` |
 | `VirtualMachine/Events/` | the events of virtual machine 7, one test per row, every `Before` the previous `After` | `FakeListener`, `EventRuns` |
+| `Jobs/` | the job scheduler of virtual machine 3.7: rounds, marks in execution order, `WITH`, `WAIT_CHANNEL`, `START_CHANNEL`, the deadlock, the resources of `[shared]`, `SYNC_WAIT` and `SYNC_RELEASE`, STATIC jobs | `JobHarness`, `JobSetup` |
 | `Expander/` | expansion rules, program rewriters, `limits = "clamp"`, generated blocks and their origin | `ExpanderHarness`, `ExpanderMachines`, the rewriters `CoolantClutchRule`, `ReplacingRewriter`, `SurroundingRewriter`, `ContextRecorder` |
 
 ## Never here

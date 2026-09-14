@@ -8,7 +8,8 @@ namespace Ncx.Core.VirtualMachine;
 // The calls of INTERPRETED mode (language 4.9, 4.13; virtual machine 3.6, 3.9): CALL enters a subprogram of the file by
 // its NAME, or loads an external program by its file name from the working directory, TIMES=n times in sequence. Each
 // pass pushes the return pc and the locals V1 to V33 and assigns the ARG words to the callee's locals; SUB=END and
-// RETURN pop them, within the depth that calls and repeats share.
+// RETURN pop them, within the depth that calls and repeats share. The blocks of a call are steps of the run like the
+// blocks of the caller (virtual machine 3.7, VirtualMachine.Steps.cs).
 public sealed partial class VirtualMachine
 {
     // The external programs the run has loaded, by the name their CALL gives: each is read, and the rules about its
@@ -25,8 +26,8 @@ public sealed partial class VirtualMachine
 
     // CALL enters the SUB section of the file by its NAME or loads the external program, TIMES=n times in sequence,
     // each pass from the state the pass before left (language 4.9, virtual machine 3.6). A CALL that names a program:
-    // ERROR; programs are entered from the job only (language 4.13).
-    private SectionExit FollowInterpretedCall(Block block, Word call, int callPc)
+    // ERROR; programs are entered from the job only (language 4.13). How the call ended is in end.
+    private IEnumerable<Block> FollowInterpretedCall(Block block, Word call, int callPc, SectionEnd end)
     {
         NcxProgram file = _program ?? throw new InvalidOperationException("A call runs in the file of a run.");
         string name = NameOf(call.Value);
@@ -36,7 +37,8 @@ public sealed partial class VirtualMachine
             Diagnostics.Error(block, DiagnosticCodes.CallOfProgram,
                 $"{call.ToCanonical()} names a program; a CALL enters a subprogram, and programs are entered from the "
                 + "job only (language 4.13, virtual machine 3.6).");
-            return SectionExit.Stopped;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         // A CALL that names no section of the file names an external program by its file name as a string; any other
@@ -50,38 +52,50 @@ public sealed partial class VirtualMachine
         int passes = TimesOf(block, withoutTimes: 1);
         for (int pass = 0; pass < passes; pass++)
         {
-            SectionExit exit = sub is null
-                ? CallExternalProgram(name, block, callPc)
-                : EnterInterpretedSub(sub, name, block, callPc);
-            if (exit != SectionExit.Returned)
+            var passEnd = new SectionEnd();
+            IEnumerable<Block> steps = sub is null
+                ? CallExternalProgram(name, block, callPc, passEnd)
+                : EnterInterpretedSub(sub, name, block, callPc, passEnd);
+            foreach (Block step in steps)
             {
-                return exit;
+                yield return step;
+            }
+
+            if (passEnd.Exit != SectionExit.Returned)
+            {
+                end.Exit = passEnd.Exit;
+                yield break;
             }
         }
 
-        return SectionExit.Returned;
+        end.Exit = SectionExit.Returned;
     }
 
     // One pass through a subprogram of the file with the caller's state, exactly as on the control (virtual machine
     // 3.6, 3.9).
-    private SectionExit EnterInterpretedSub(Section sub, string name, Block callBlock, int callPc)
+    private IEnumerable<Block> EnterInterpretedSub(Section sub, string name, Block callBlock, int callPc,
+        SectionEnd end)
     {
         if (!EnterCall(name, callBlock, callPc))
         {
-            return SectionExit.Stopped;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         Section? caller = _state.Program.Section;
         _state.Program.Section = sub;
-        SectionExit exit = RunSection(sub, calledProgram: false);
-        if (exit == SectionExit.Stopped)
+        foreach (Block step in RunSection(sub, calledProgram: false, end))
         {
-            return exit;
+            yield return step;
+        }
+
+        if (end.Exit == SectionExit.Stopped)
+        {
+            yield break;
         }
 
         _state.Program.Section = caller;
         LeaveCall(callPc);
-        return exit;
     }
 
     // CALL="name" loads the external program from the working directory (virtual machine 3.6). It must have its own
@@ -92,7 +106,7 @@ public sealed partial class VirtualMachine
     // PROGRAM=BEGIN and PROGRAM=END do in a call; they frame it as SUB=BEGIN and SUB=END frame a subprogram: the
     // program runs from the block after its PROGRAM=BEGIN, and its PROGRAM=END returns to the caller, without ending
     // the channel and without the resets of virtual machine 4, until that is answered.
-    private SectionExit CallExternalProgram(string name, Block callBlock, int callPc)
+    private IEnumerable<Block> CallExternalProgram(string name, Block callBlock, int callPc, SectionEnd end)
     {
         bool firstCall = !_externalFiles.TryGetValue(name, out NcxProgram? external);
         if (firstCall)
@@ -103,7 +117,8 @@ public sealed partial class VirtualMachine
                 Diagnostics.Error(callBlock, DiagnosticCodes.ExternalProgramNotFound,
                     $"CALL=\"{name}\": the working directory holds no external program {name} that can be read "
                     + "(virtual machine 3.6, missing call target).");
-                return SectionExit.Stopped;
+                end.Exit = SectionExit.Stopped;
+                yield break;
             }
 
             // What reading the external program found carries its own file name (virtual machine 2.9).
@@ -119,7 +134,8 @@ public sealed partial class VirtualMachine
             || !AgreesWithCaller(external)
             || !EnterCall(name, callBlock, callPc))
         {
-            return SectionExit.Stopped;
+            end.Exit = SectionExit.Stopped;
+            yield break;
         }
 
         Section program = external.Programs[0];
@@ -130,27 +146,42 @@ public sealed partial class VirtualMachine
 
         EnterFile(external, new Diagnostics(external.FileName), prePass: firstCall);
         _state.Program.Section = program;
-        SectionExit exit = Diagnostics.HasErrors ? SectionExit.Stopped : RunSection(program, calledProgram: true);
 
         // Back in the caller's file, what the called program reported joins the diagnostics of the caller, in the order
-        // it was reported.
-        Diagnostics called = Diagnostics;
-        Diagnostics = callerDiagnostics;
-        _validation = callerValidation;
-        foreach (Diagnostic diagnostic in called.Items)
+        // it was reported; also when a job gives the run up inside the call, at a deadlock (virtual machine 3.7).
+        try
         {
-            Diagnostics.Add(diagnostic);
+            if (Diagnostics.HasErrors)
+            {
+                end.Exit = SectionExit.Stopped;
+            }
+            else
+            {
+                foreach (Block step in RunSection(program, calledProgram: true, end))
+                {
+                    yield return step;
+                }
+            }
+        }
+        finally
+        {
+            Diagnostics called = Diagnostics;
+            Diagnostics = callerDiagnostics;
+            _validation = callerValidation;
+            foreach (Diagnostic diagnostic in called.Items)
+            {
+                Diagnostics.Add(diagnostic);
+            }
         }
 
-        if (exit == SectionExit.Stopped)
+        if (end.Exit == SectionExit.Stopped)
         {
-            return exit;
+            yield break;
         }
 
         FillPrePassOf(callerFile);
         _state.Program.Section = caller;
         LeaveCall(callPc);
-        return exit;
     }
 
     // An external program must not contradict the caller's UNITS and WORKPLANE: ERROR (virtual machine 3.6). A UNITS or
@@ -230,7 +261,7 @@ public sealed partial class VirtualMachine
     private void EnterFile(NcxProgram file, Diagnostics diagnostics, bool prePass)
     {
         Diagnostics = diagnostics;
-        _validation = new RunValidation(Machine, diagnostics, Mode);
+        _validation = NewValidation(diagnostics);
         if (prePass)
         {
             _validation.CheckFile(file);

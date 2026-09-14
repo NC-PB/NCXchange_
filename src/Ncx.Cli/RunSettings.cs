@@ -59,4 +59,10 @@ internal sealed record RunSettings
     /// next to the file when there is one (virtual machine 2.7, 3.6; machine-config 8, 10).
     /// </summary>
     public string? VarsFile { get; init; }
+
+    /// <summary>
+    /// The job manifest whose machine MachineFile is, when --machine names none: ncx check --job and ncx analyze --job
+    /// run on the machine of the manifest (machine-config 8; implementation 16, P6-01); null otherwise.
+    /// </summary>
+    public string? MachineOfJob { get; init; }
 }

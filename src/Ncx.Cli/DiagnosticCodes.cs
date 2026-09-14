@@ -14,6 +14,7 @@ namespace Ncx.Cli;
 //   CLI100-CLI199  ncx check, trace and annotate: their pipeline and the machine file of --machine (P1-07)
 //   CLI200-CLI249  the machine of a run: --machine by name, ncx.toml, the cycle catalog of the machine (P2-04)
 //   CLI250-CLI299  ncx convert: the machine file it requires, the reader of the machine's controller (P3-02)
+//   CLI500-CLI549  ncx check --job and ncx analyze --job: the job manifest and the files of its channels (P6-01)
 
 /// <summary>
 /// The diagnostic codes of Ncx.Cli: one constant per rule, named after the rule, the area prefix CLI and three digits

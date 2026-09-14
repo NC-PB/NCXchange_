@@ -193,7 +193,7 @@ Labels, jumps, calls and the reach of the blocks of a program (language 4.9, 4.1
 | `VM751` | ERROR | A REPEAT nested deeper than the configured depth, which calls and repeats share. INTERPRETED mode. | VM 3.6, 5; machine-config 7 |
 | `VM752` | ERROR | Missing call target: an external program the working directory does not hold. INTERPRETED mode. | language 4.9; VM 3.6, 5 |
 | `VM753` | ERROR | An external program that contradicts the caller's UNITS or WORKPLANE. INTERPRETED mode. | VM 3.6 |
-| `VM755` | ERROR | The program the command line or the job names is not a program of the file. INTERPRETED mode. | language 4.13; VM 3.6 |
+| `VM755` | ERROR | The program the command line or the job names is not a program of the file. INTERPRETED mode and jobs. | language 4.13; VM 3.6 |
 
 ## Expression
 
@@ -244,10 +244,15 @@ Roles, functions, coolant channels and machine axes, with a machine file and wit
 
 ## Channel
 
-Channels and their synchronization in a job (language 4.8, 4.14; VM 3.7, 5).
+Channels and their synchronization in a job (language 4.8, 4.14; VM 3.7, 5; machine-config 8).
 
 | Code | Severity | Rule | Section |
 |---|---|---|---|
 | `VM570` | WARNING | SYNC in a single-channel job; the channel does not wait. | VM 3.7, 5 |
 | `VM571` | ERROR | Deadlock at SYNC: every channel waits and no mark can be released; the ERROR names the marks. Raised by the job scheduler. | VM 3.7, 5 |
-| `VM572` | WARNING | Two channels on one spindle between marks. Raised by the job scheduler. | VM 3.7, 5 |
+| `VM572` | WARNING | Two channels on one spindle of [shared] between marks. Raised by the job scheduler. | VM 3.7, 5; machine-config 8; D20 |
+| `VM850` | WARNING | Two channels on one axis of [shared] between marks, checked like the spindles. Raised by the job scheduler. | VM 3.7; machine-config 8; D20 |
+| `VM851` | ERROR | WITH, WAIT_CHANNEL or START_CHANNEL names a channel the job does not run. Raised by the job scheduler. | language 4.8; VM 3.7 |
+| `VM852` | WARNING | START_CHANNEL of a channel that runs or has run; nothing starts. Raised by the job scheduler. | language 4.8; VM 3.7 |
+| `VM853` | WARNING | The CHANNEL of the program's header names another channel than the job runs it on; the job's channel applies. Raised by the job scheduler. | language 4.14; VM 2.8; machine-config 8 |
+| `VM854` | ERROR | The job manifest names one channel twice. Raised by the job scheduler. | machine-config 8; VM 2.8, 3.7 |

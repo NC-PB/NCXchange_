@@ -11,7 +11,8 @@ namespace Ncx.Cli.Commands;
 /// [--analytic tools,runtime] [--static] [--format text|csv] [--skip-blocks none|all|1,3] [--strict]: parse, expand,
 /// run the virtual machine INTERPRETED, or STATIC under --static, with the analytics subscribed, and write their
 /// reports over the block range on the standard output, the diagnostics on the standard error (architecture 10;
-/// virtual machine 1, 8; D67; implementation 14, P4-02). Without --machine the built-in default machine (D103). Exit
+/// virtual machine 1, 8; D67; implementation 14, P4-02). Without --machine the built-in default machine (D103). With
+/// --job &lt;name.ncxjob.toml&gt; in place of the file the channel programs of a job run as one job (AnalyzeJob). Exit
 /// codes of D97, as ncx check.
 /// </summary>
 internal static class AnalyzeCommand
@@ -92,11 +93,23 @@ internal static class AnalyzeCommand
             strictOption,
         };
 
+        // --job runs the channel programs of a job manifest in place of the file (machine-config 8; virtual machine
+        // 3.7).
+        Option<string> jobOption = JobOption.AddTo(command, fileArgument);
+
         // The block range is NCX line numbers of the file from --from to --to (virtual machine 8, D67); the vars file
         // gives the start values of an INTERPRETED run (virtual machine 3.6); --analytic names registered analytics.
         // Anything else is a usage error, exit code 2 before the run starts (D97).
         command.Validators.Add(result =>
         {
+            // The files of a job take their start values from <file>.vars.toml next to each (virtual machine 3.6,
+            // machine-config 8); --vars names those of one file.
+            if (result.GetValue(varsOption) is not null && result.GetValue(jobOption) is not null)
+            {
+                result.AddError("--vars gives the start values of one file and does not go with --job, whose files "
+                    + "take theirs from <file>.vars.toml next to each (virtual machine 3.6, machine-config 8)");
+            }
+
             int? from = result.GetValue(fromOption);
             int? to = result.GetValue(toOption);
             if (from is < 1 || to is < 1)
@@ -122,25 +135,27 @@ internal static class AnalyzeCommand
             }
         });
 
-        command.SetAction(parseResult => Run(
-            new RunSettings
+        command.SetAction(parseResult =>
+        {
+            var settings = new RunSettings
             {
-                File = parseResult.GetRequiredValue(fileArgument),
+                File = parseResult.GetValue(fileArgument) ?? "",
                 MachineFile = parseResult.GetValue(machineOption),
                 Strict = parseResult.GetValue(strictOption),
                 SkipBlocks = parseResult.GetValue(skipBlocksOption) ?? SkipBlocks.None,
                 Interpreted = !parseResult.GetValue(staticOption),
                 VarsFile = parseResult.GetValue(varsOption),
-            },
-            new AnalyzeSettings
+            };
+            var analyze = new AnalyzeSettings
             {
                 Analytics = NamesOf(parseResult.GetValue(analyticOption), analytics),
                 Range = new BlockRange { From = parseResult.GetValue(fromOption), To = parseResult.GetValue(toOption) },
                 Format = parseResult.GetValue(formatOption) == CsvFormat ? TableFormat.Csv : TableFormat.Text,
-            },
-            analytics,
-            output,
-            error));
+            };
+            return parseResult.GetValue(jobOption) is string job
+                ? AnalyzeJob.Run(job, settings, analyze, analytics, output, error)
+                : Run(settings, analyze, analytics, output, error);
+        });
         return command;
     }
 
