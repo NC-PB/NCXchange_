@@ -8,8 +8,9 @@ namespace Ncx.Readers;
 /// reader of a controller family gives every source block it lays out the reading plan, the source blocks in file
 /// order with the blocks of the file structure among them. The file is framed by FILE=BEGIN NCX=1 and FILE=END, the
 /// programs and subprograms of the source become PROGRAM and SUB sections, code a source keeps after its program end
-/// stands in front of PROGRAM=END behind a JUMP=END, a Fanuc M99 in a program loops to a LABEL after the header, and
-/// the contour a cycle names by a block range becomes a SUB section behind its program (language 4.7.1, D65).
+/// stands in front of PROGRAM=END behind a JUMP=END, a Fanuc M99 in a program loops to a LABEL after the header, the
+/// contour a cycle names by a block range becomes a SUB section behind its program (language 4.7.1, D65), and so does
+/// a copy of the block range a repeat names (controller-mapping 6, REPEAT + TIMES).
 /// </summary>
 internal sealed partial class StructurePass
 {
@@ -68,11 +69,13 @@ internal sealed partial class StructurePass
         List<SourceSection> sections = pass.FindSections();
         pass.DecideKinds(sections);
         pass.FindContours(sections);
+        pass.FindRepeats(sections);
         for (int index = 0; index < sections.Count; index++)
         {
             int? nextBegin = index + 1 < sections.Count ? sections[index + 1].Begin : null;
             pass.PlanSection(sections[index], nextBegin);
             pass.PlanContours(sections[index], nextBegin);
+            pass.PlanRepeats(sections[index], nextBegin);
         }
 
         pass.PlanFileEnd();

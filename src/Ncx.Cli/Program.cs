@@ -13,6 +13,7 @@ using Ncx.Core.Model;
 using Ncx.Readers;
 using Ncx.Readers.Fanuc;
 using Ncx.Readers.Heidenhain;
+using Ncx.Readers.Siemens;
 
 namespace Ncx.Cli;
 
@@ -92,6 +93,7 @@ internal static class Program
         var readers = new ReaderRegistry();
         readers.Register(Controller.Fanuc, () => new FanucReader());
         readers.Register(Controller.Heidenhain, () => new HeidenhainReader());
+        readers.Register(Controller.Siemens, () => new SiemensReader());
         return readers;
     }
 

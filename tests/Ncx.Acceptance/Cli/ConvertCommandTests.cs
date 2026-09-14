@@ -2,6 +2,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Ncx.Cli;
 using Ncx.Cli.Commands;
+using Ncx.Core.Machine;
+using Ncx.Readers;
+using Ncx.Readers.Fanuc;
 using Ncx.Tests.Fixtures;
 
 namespace Ncx.Acceptance.Cli;
@@ -70,14 +73,17 @@ public sealed partial class ConvertCommandTests : IDisposable
         Assert.StartsWith("FILE=BEGIN NCX=1\n", _output, StringComparison.Ordinal);
     }
 
-    // Architecture 7, machine-config 1: the controller of the machine file chooses the reader; ncx has none for Siemens
-    // yet, which is an ERROR on the program, and nothing is written; the inputs were read, so the exit code is 1 (D97).
+    // Architecture 7, machine-config 1: the controller of the machine file chooses the reader; a registry without a
+    // reader for Siemens makes that an ERROR on the program, and nothing is written; the inputs were read, so the exit
+    // code is 1 (D97).
     [Fact]
     public void Convert_MachineOfAControllerWithoutReader_ExitsOneWithCli251()
     {
         string file = _project.WriteInWorkingDirectory("part.mpf", "G0 X0 Y0\nM30\n");
+        var readers = new ReaderRegistry();
+        readers.Register(Controller.Fanuc, () => new FanucReader());
 
-        int exitCode = RunConvert(file, "siemens-840dsl-mill");
+        int exitCode = RunConvert(file, "siemens-840dsl-mill", readers: readers);
 
         Assert.Equal(1, exitCode);
         Assert.Equal("", _output);
@@ -252,7 +258,8 @@ public sealed partial class ConvertCommandTests : IDisposable
 
     // ncx convert in the working directory and with the tool folder of the harness; the outputs are kept in _output and
     // _error.
-    private int RunConvert(string file, string? machine, string? outputFile = null, bool strict = false)
+    private int RunConvert(string file, string? machine, string? outputFile = null, bool strict = false,
+        ReaderRegistry? readers = null)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -265,7 +272,7 @@ public sealed partial class ConvertCommandTests : IDisposable
             ToolFolder = _project.ToolFolder,
         };
 
-        int exitCode = ConvertCommand.Run(settings, outputFile, Program.Readers(), output, error);
+        int exitCode = ConvertCommand.Run(settings, outputFile, readers ?? Program.Readers(), output, error);
         _output = output.ToString();
         _error = error.ToString();
         return exitCode;

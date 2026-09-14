@@ -137,8 +137,13 @@ internal sealed partial class StructurePass
     // CONTOUR_10_20, with a count after it where a section of the file has that name already.
     private string NewContourName(SourceContour contour)
     {
+        return NewSectionName(ContourPrefix + contour.First + "_" + contour.Last);
+    }
+
+    // A name for a section the plan makes, with a count after it where a section of the file has that name already.
+    private string NewSectionName(string name)
+    {
         _sectionNames ??= SectionNames();
-        string name = ContourPrefix + contour.First + "_" + contour.Last;
         string unique = name;
         for (int count = 2; !_sectionNames.Add(unique); count++)
         {
@@ -177,7 +182,7 @@ internal sealed partial class StructurePass
             moved.Add(_blocks[index].Line);
         }
 
-        return new ContourLayout { Cycles = _contourOfCycle, Moved = moved };
+        return new ContourLayout { Cycles = _contourOfCycle, Moved = moved, Repeats = _repeatOfBlock };
     }
 
     // A contour range of a section: the labels the cycle names, the name of its SUB section, and the indices of its

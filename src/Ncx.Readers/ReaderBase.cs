@@ -143,6 +143,17 @@ public abstract class ReaderBase : IReader
     }
 
     /// <summary>
+    /// The NAME of the SUB section the structure pass made of the block range a repeat block names, a copy of the range
+    /// that the repeat calls (SourceStructure.Repeat; controller-mapping 6, REPEAT + TIMES); null when it made none,
+    /// and the family keeps the repeat as its source writes it.
+    /// </summary>
+    /// <param name="block">The repeat block.</param>
+    protected string? RepeatOf(SourceBlock block)
+    {
+        return _contours.Repeats.TryGetValue(block.Line, out string? name) ? name : null;
+    }
+
+    /// <summary>
     /// Tells whether the structure pass moved a source block into the SUB section of a contour (language 4.7.1, D65).
     /// </summary>
     /// <param name="block">A source block.</param>

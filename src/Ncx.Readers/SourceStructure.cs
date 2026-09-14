@@ -62,4 +62,12 @@ public sealed record SourceStructure
     /// the range into a SUB section of the file, whose name the reader learns for the block (D65, language 4.7.1).
     /// </summary>
     public SourceContour? Contour { get; init; }
+
+    /// <summary>
+    /// The block range a repeat of the block names by the labels of its first and its last block, which stand before it
+    /// in its section, START END of a SINUMERIK REPEAT START END P=3 (controller-mapping 6, REPEAT + TIMES); null for a
+    /// block that names none. The structure pass copies the range into a SUB section of the file, whose name the
+    /// reader learns for the block, and leaves its blocks where they stand, since the control runs them there as well.
+    /// </summary>
+    public SourceRepeat? Repeat { get; init; }
 }
