@@ -3,7 +3,9 @@ using System.CommandLine.Parsing;
 using System.Text;
 using Ncx.Analytics;
 using Ncx.Analytics.Runtime;
+using Ncx.Analytics.Segments;
 using Ncx.Analytics.ToolList;
+using Ncx.Analytics.ToolVectors;
 using Ncx.Cli.Commands;
 using Ncx.Compilers;
 using Ncx.Core.Machine;
@@ -102,6 +104,8 @@ internal static class Program
         var analytics = new AnalyticsRegistry();
         analytics.Register("tools", options => new ToolListAnalytic(options));
         analytics.Register("runtime", options => new RuntimeAnalytic(options));
+        analytics.Register("segments", options => new SegmentAnalytic(options));
+        analytics.Register("vectors", options => new ToolVectorAnalytic(options));
         return analytics;
     }
 

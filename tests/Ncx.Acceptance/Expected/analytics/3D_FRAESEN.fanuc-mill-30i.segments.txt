@@ -1,0 +1,35 @@
+Segment length: 3D_FRAESEN.ncx, the whole file, on fanuc-mill-30i.toml, INTERPRETED run
+Per MOTION the distance in mm between its start and its end point, the arc length for an ARC (virtual machine 8), over the motions of the workpiece frame whose positions are known (implementation 14, P4-03).
+A bin of the histogram holds the lengths from its lower bound up to, not including, its upper bound.
+
+verb   motions  minimum  maximum  mean
+RAPID  137      0.574    131.56   32.378
+LINE   304      0.071    83.477   34.592
+ARC    375      0.024    38.607   6.689
+all    816      0.024    131.56   21.397
+
+length (mm)   motions
+0 to 0.01     0
+0.01 to 0.1   23
+0.1 to 0.5    34
+0.5 to 1      17
+1 to 5        222
+5 to 10       180
+10 to 50      172
+50 to 100     164
+100 and more  4
+
+The ten shortest motions:
+line  verb  length (mm)
+56    ARC   0.024
+44    ARC   0.025
+48    ARC   0.025
+63    ARC   0.027
+67    ARC   0.027
+71    ARC   0.027
+82    ARC   0.031
+86    ARC   0.031
+90    ARC   0.031
+95    ARC   0.031
+
+Skipped: 4 of 820 motions: 2 in the machine frame (HOME, FRAME=MACHINE), 0 from an unknown position, 0 to an unknown position, 2 from one frame into another, 0 arcs that did not resolve (virtual machine 3.4, 8).

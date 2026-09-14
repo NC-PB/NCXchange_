@@ -1,6 +1,8 @@
 using Ncx.Analytics;
 using Ncx.Analytics.Runtime;
+using Ncx.Analytics.Segments;
 using Ncx.Analytics.ToolList;
+using Ncx.Analytics.ToolVectors;
 using Ncx.Cli;
 using Ncx.Config;
 
@@ -12,14 +14,14 @@ namespace Ncx.Acceptance.Analytics;
 /// </summary>
 public sealed class AnalyticsRegistryTests
 {
-    // Implementation 14, P4-02: the tool list and the runtime estimate are the analytics tools and runtime, written in
-    // that order when --analytic names none.
+    // Implementation 14, P4-02 and P4-03: the tool list, the runtime estimate, the segment length and the tool vector
+    // change are the analytics tools, runtime, segments and vectors, written in that order when --analytic names none.
     [Fact]
-    public void Analytics_Program_RegistersToolsAndRuntimeInThatOrder()
+    public void Analytics_Program_RegistersToolsRuntimeSegmentsAndVectorsInThatOrder()
     {
         AnalyticsRegistry analytics = Program.Analytics();
 
-        Assert.Equal(["tools", "runtime"], analytics.Names);
+        Assert.Equal(["tools", "runtime", "segments", "vectors"], analytics.Names);
     }
 
     // A registered name creates its analytic with the options of the run, the block range among them (D67).
@@ -31,17 +33,24 @@ public sealed class AnalyticsRegistryTests
 
         IAnalytic? tools = analytics.Create("tools", AnalyticRuns.Options(DefaultMachine.Create(), range));
         IAnalytic? runtime = analytics.Create("runtime", AnalyticRuns.Options(DefaultMachine.Create(), range));
+        IAnalytic? segments = analytics.Create("segments", AnalyticRuns.Options(DefaultMachine.Create(), range));
+        IAnalytic? vectors = analytics.Create("vectors", AnalyticRuns.Options(DefaultMachine.Create(), range));
 
         Assert.IsType<ToolListAnalytic>(tools);
         Assert.IsType<RuntimeAnalytic>(runtime);
+        Assert.IsType<SegmentAnalytic>(segments);
+        Assert.IsType<ToolVectorAnalytic>(vectors);
         Assert.Equal(range, runtime.Range);
+        Assert.Equal(range, segments.Range);
+        Assert.Equal(range, vectors.Range);
     }
 
-    // A name nothing is registered under creates nothing; the command line reports it as a usage error.
+    // A name nothing is registered under creates nothing; the command line reports it as a usage error. The loop
+    // statistics of architecture 9 come with M9 (D67), so "loops" is no analytic yet.
     [Fact]
     public void Create_UnknownName_IsNull()
     {
-        Assert.Null(Program.Analytics().Create("segments", AnalyticRuns.Options(DefaultMachine.Create())));
+        Assert.Null(Program.Analytics().Create("loops", AnalyticRuns.Options(DefaultMachine.Create())));
     }
 
     // A name registered twice is a mistake of the composition root (code-guidelines 6).

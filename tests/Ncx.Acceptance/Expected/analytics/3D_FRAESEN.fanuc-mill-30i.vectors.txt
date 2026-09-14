@@ -1,0 +1,29 @@
+Tool vector change: 3D_FRAESEN.ncx, the whole file, on fanuc-mill-30i.toml, INTERPRETED run
+Per MOTION the angle in degrees between the tool vector at its start and at its end (virtual machine 8): TX TY TZ where the program gives them (D81), else the rotary axes of [[axis]] applied to the tool axis.
+The convention until the kinematics module exists (implementation 14, P4-03), not a pose: the tool axis is the normal of the WORKPLANE; a rotary axis named A, B or C turns it about the machine X, Y or Z axis, in the order of [[axis]]; a head axis turns the tool, a table axis the workpiece, and with it the tool vector the other way, while its owner holds the workpiece.
+A bin of the histogram holds the changes from its lower bound up to, not including, its upper bound.
+
+Rotary axes: none named A, B or C in [[axis]]; only TX TY TZ change the tool vector, which is otherwise the normal of the WORKPLANE.
+
+verb   motions  minimum  maximum  mean
+RAPID  139      0        0        0
+LINE   304      0        0        0
+ARC    375      0        0        0
+HOME   2        0        0        0
+all    820      0        0        0
+
+change (degrees)  motions
+0 to 0.01         820
+0.01 to 0.1       0
+0.1 to 0.5        0
+0.5 to 1          0
+1 to 2            0
+2 to 5            0
+5 to 10           0
+10 to 45          0
+45 to 90          0
+90 and more       0
+
+No motion in the range changes the tool vector.
+
+Skipped: 0 of 820 motions: 0 with the tool vector unknown at the start, 0 unknown at the end, 0 with a rotary axis from one frame into another, 0 with a rotary axis that is a length of the polar or cylinder plane (virtual machine 3.1, 3.4, 8).

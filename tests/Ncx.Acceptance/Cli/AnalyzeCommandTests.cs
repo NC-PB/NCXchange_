@@ -114,8 +114,8 @@ public sealed class AnalyzeCommandTests : IDisposable
         int exitCode = _cli.Run("analyze", file, "--analytic", "tools,loops");
 
         Assert.Equal(2, exitCode);
-        Assert.Contains("--analytic names loops, which is no analytic of ncx analyze; the analytics are tools, runtime",
-            _cli.Error, StringComparison.Ordinal);
+        Assert.Contains("--analytic names loops, which is no analytic of ncx analyze; the analytics are tools, "
+            + "runtime, segments, vectors (architecture 9)", _cli.Error, StringComparison.Ordinal);
     }
 
     // Architecture 9: --analytic writes the reports in the order it names them.

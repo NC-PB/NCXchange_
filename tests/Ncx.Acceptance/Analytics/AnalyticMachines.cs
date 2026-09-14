@@ -67,6 +67,32 @@ internal static class AnalyticMachines
         };
     }
 
+    /// <summary>
+    /// A five-axis mill with an A/C table (implementation 14, P4-03): the three-axis mill without [dynamics] and, after
+    /// X, Y and Z in [[axis]], the rotary axes A (A1) and C (C1) in that order, both owned by the table TABLE1, which
+    /// holds the workpiece. No rotary axis has a reference point, so they start unknown (D100).
+    /// </summary>
+    public static MachineConfig FiveAxisTable()
+    {
+        return FiveAxis(Rotary("A", "TABLE1"), Rotary("C", "TABLE1"));
+    }
+
+    /// <summary>
+    /// A five-axis mill with a B head and a C table: B (B1) owned by the tool spindle S1, then C (C1) owned by the
+    /// table TABLE1 (implementation 14, P4-03).
+    /// </summary>
+    public static MachineConfig FiveAxisHeadTable()
+    {
+        return FiveAxis(Rotary("B", "S1"), Rotary("C", "TABLE1"));
+    }
+
+    private static MachineConfig FiveAxis(AxisDef first, AxisDef second)
+    {
+        MachineConfig mill = Mill(dynamics: null);
+        var axes = new List<AxisDef>(mill.Axes) { first, second };
+        return mill with { Machine = mill.Machine with { Name = "Five-axis mill" }, Axes = axes };
+    }
+
     private static AxisDef Linear(string name, decimal? acceleration)
     {
         return new AxisDef
@@ -79,5 +105,10 @@ internal static class AnalyticMachines
             MaxFeed = 6000m,
             Acceleration = acceleration,
         };
+    }
+
+    private static AxisDef Rotary(string name, string owner)
+    {
+        return new AxisDef { Id = name + "1", NcxName = name, Letter = name, Kind = AxisKind.Rotary, Owner = owner };
     }
 }

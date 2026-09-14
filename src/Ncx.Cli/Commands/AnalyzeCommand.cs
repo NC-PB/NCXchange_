@@ -77,8 +77,8 @@ internal static class AnalyzeCommand
         Option<bool> strictOption = RunOptions.StrictOption();
         var command = new Command(
             "analyze",
-            "Run an NCX file INTERPRETED and write the tool list and the runtime estimate over a block range. Without "
-            + "--machine against the built-in default machine.")
+            "Run an NCX file INTERPRETED and write the tool list, the runtime estimate, the segment length and the "
+            + "tool vector change over a block range. Without --machine against the built-in default machine.")
         {
             fileArgument,
             machineOption,

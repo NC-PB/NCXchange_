@@ -1,18 +1,24 @@
 using System.Globalization;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine;
+using Ncx.Core.VirtualMachine.State;
 
 namespace Ncx.Analytics;
 
 /// <summary>
-/// How the reports write their numbers and their title: distances with the three decimals of a position, seconds with
-/// one decimal and as hours, minutes and seconds, always with the invariant culture (code-guidelines 3.4).
+/// How the reports write their numbers and their title: distances with the three decimals of a position, angles with
+/// the three decimals of a sweep, seconds with one decimal and as hours, minutes and seconds, always with the invariant
+/// culture (code-guidelines 3.4).
 /// </summary>
 internal static class ReportText
 {
     // A distance keeps the three decimals of a position in millimetres (MotionRules.PositionDecimals of the virtual
     // machine), without trailing zeros.
     private const string DistanceFormat = "0.###";
+
+    // An angle keeps the three decimals of a degree of the sweep of an arc (MotionEvents.SweepDecimals of the virtual
+    // machine), without trailing zeros.
+    private const string AngleFormat = "0.###";
 
     // Seconds with one decimal: an estimate is no more exact than that.
     private const string SecondsFormat = "0.0";
@@ -35,6 +41,30 @@ internal static class ReportText
     public static string Distance(double millimetres)
     {
         return millimetres.ToString(DistanceFormat, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// An angle in degrees: 41.41.
+    /// </summary>
+    public static string Angle(double degrees)
+    {
+        return degrees.ToString(AngleFormat, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The verb of a MOTION as NCX writes it: RAPID, LINE, ARC, RETRACT, HOME (language 4.3).
+    /// </summary>
+    public static string VerbName(Verb verb)
+    {
+        return verb switch
+        {
+            Verb.Rapid => "RAPID",
+            Verb.Line => "LINE",
+            Verb.Arc => "ARC",
+            Verb.Retract => "RETRACT",
+            Verb.Home => "HOME",
+            _ => verb.ToString().ToUpperInvariant(),
+        };
     }
 
     /// <summary>
