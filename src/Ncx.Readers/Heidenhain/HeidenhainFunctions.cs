@@ -38,6 +38,45 @@ internal static class HeidenhainFunctions
     }
 
     /// <summary>
+    /// Tells whether Read reads an M function of a block that moves into a word of the block's NCX block, without
+    /// keeping the block RAW: false for M91 and M92, which the motion reads in another frame, M140 (RETRACT is a block
+    /// of its own, virtual machine 3.1a), M128 with the feed of its compensating motion after it (D86), a state of a
+    /// table that NCX writes with a value the M function does not carry (wave-1 question #62), and an M function that
+    /// neither the controller nor the tables name, which a reader rule may take (D66). M99 is the cycle's
+    /// (HeidenhainCycles.WritesCall).
+    /// </summary>
+    /// <param name="block">The block that moves.</param>
+    /// <param name="word">An M word of it.</param>
+    /// <param name="templates">The templates of the machine.</param>
+    public static bool ReadsWithMotion(SourceBlock block, SourceWord word, TemplateSet templates)
+    {
+        string? code = NativeCode.Of(word);
+        if (code is null || word.Number is not decimal number || number != decimal.Truncate(number)
+            || code is "M91" or "M92" or "M99" or "M140")
+        {
+            return false;
+        }
+
+        if (code == "M128")
+        {
+            bool after = false;
+            foreach (SourceWord other in block.Words)
+            {
+                if (after && other.Address == "F")
+                {
+                    return false;
+                }
+
+                after |= ReferenceEquals(other, word);
+            }
+
+            return true;
+        }
+
+        return s_ownCodes.Contains(code) || (templates.FindFunctionByCode(code) is string state && HasWord(state));
+    }
+
+    /// <summary>
     /// Reads the M functions of a block that the other concerns left.
     /// </summary>
     /// <param name="block">The block being read.</param>
@@ -168,29 +207,47 @@ internal static class HeidenhainFunctions
     // carry, ORIENT with its angle, RPM with the speed, stays RAW.
     private static void ReadTableState(HeidenhainBlock block, string code, string state)
     {
-        string[] keyAndValue = state.Split('=');
-        string[] keyAndAddr = keyAndValue[0].Split(':');
-        string key = keyAndAddr[0];
-        string? addr = keyAndAddr.Length > 1 ? keyAndAddr[1] : null;
-        string value = keyAndValue.Length > 1 ? keyAndValue[1] : "";
+        string key = KeyOf(state, out string? addr, out string value);
+        if (!HasWord(state))
+        {
+            block.Draft.KeepAsRaw($"{code} is {state} of a table of the machine, which NCX writes with a value the M "
+                + "function does not carry (wave-1 question #62)");
+            return;
+        }
+
         switch (key)
         {
-            case "SPINDLE" when s_spindleStates.Contains(value):
+            case "SPINDLE":
                 block.Draft.AddState(key, SpindleAddress(block.Machine, addr), new IdentValue(value));
                 block.State.LastSpindle = addr;
-                return;
-            case "SPINDLE_MODE" or "FUNC":
-                block.Draft.AddState(key, addr, new IdentValue(value));
                 return;
             case "COOLANT":
                 // The channel STANDARD is the default channel that a bare COOLANT addresses (language 4.6).
                 block.Draft.AddState(key, addr == "STANDARD" ? null : addr, new IdentValue(value));
                 return;
             default:
-                block.Draft.KeepAsRaw($"{code} is {state} of a table of the machine, which NCX writes with a value the "
-                    + "M function does not carry (wave-1 question #62)");
+                // SPINDLE_MODE and FUNC.
+                block.Draft.AddState(key, addr, new IdentValue(value));
                 return;
         }
+    }
+
+    // A state of a function table that NCX writes with the value the M function carries: SPINDLE with CW, CCW or OFF,
+    // SPINDLE_MODE, FUNC and COOLANT (language 4.5, 4.6; machine-config 5).
+    private static bool HasWord(string state)
+    {
+        string key = KeyOf(state, out _, out string value);
+        return key is "SPINDLE_MODE" or "FUNC" or "COOLANT" || (key == "SPINDLE" && s_spindleStates.Contains(value));
+    }
+
+    // The key of a state of a function table, SPINDLE of SPINDLE:TOOL=CW, with its address and its value.
+    private static string KeyOf(string state, out string? addr, out string value)
+    {
+        string[] keyAndValue = state.Split('=');
+        string[] keyAndAddr = keyAndValue[0].Split(':');
+        addr = keyAndAddr.Length > 1 ? keyAndAddr[1] : null;
+        value = keyAndValue.Length > 1 ? keyAndValue[1] : "";
+        return keyAndAddr[0];
     }
 
     // M140 MB MAX retracts along the tool axis to the limit, M140 MB50 by 50, with FMAX or F (controllers heidenhain.md

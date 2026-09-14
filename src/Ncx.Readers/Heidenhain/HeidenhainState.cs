@@ -73,8 +73,8 @@ internal sealed class HeidenhainState
     public HeidenhainPoint? Tangent { get; set; }
 
     /// <summary>
-    /// The chamfer or the rounding the line before a CHF or RND block prepared, which that block writes and the line
-    /// after it is read from (D58); null while none is.
+    /// The chamfer or the rounding the contour element before a CHF or RND block prepared, which that block writes and
+    /// the blocks up to the element after it are read from (D58); null while none is.
     /// </summary>
     public HeidenhainCorner? Corner { get; set; }
 

@@ -37,10 +37,23 @@ internal static class HeidenhainRead
         MachineConfig? machine = MachineConfigLoader.Load(Path.Combine(Fixture.RepositoryRoot(), relativePath),
             diagnostics);
         Assert.True(machine is not null && !diagnostics.HasErrors, diagnostics.ToText());
-        CycleCatalog? catalog = CycleCatalogLoader.Load(
-            Path.Combine(Fixture.RepositoryRoot(), "cycles", "heidenhain.toml"), Controller.Heidenhain, diagnostics);
-        Assert.True(catalog is not null, diagnostics.ToText());
-        return CycleCatalogLoader.WithCatalog(machine, catalog);
+        return WithCatalog(machine);
+    }
+
+    /// <summary>
+    /// The iTNC 530 of machines/ with one text of its file replaced, with the Heidenhain cycle catalog.
+    /// </summary>
+    /// <param name="text">A text of machines/heidenhain-itnc530.toml.</param>
+    /// <param name="replacement">The text that replaces it.</param>
+    public static MachineConfig MillWith(string text, string replacement)
+    {
+        string toml = File.ReadAllText(Path.Combine(Fixture.RepositoryRoot(), "machines", "heidenhain-itnc530.toml"));
+        Assert.Contains(text, toml, StringComparison.Ordinal);
+        var diagnostics = new Diagnostics("heidenhain-itnc530.toml");
+        MachineConfig? machine = MachineConfigLoader.LoadText(toml.Replace(text, replacement, StringComparison.Ordinal),
+            diagnostics);
+        Assert.True(machine is not null && !diagnostics.HasErrors, diagnostics.ToText());
+        return WithCatalog(machine);
     }
 
     /// <summary>
@@ -145,5 +158,14 @@ internal static class HeidenhainRead
     private static string Frame(string snippet)
     {
         return "0 BEGIN PGM TEST MM\n" + snippet + "\n9998 M30\n9999 END PGM TEST MM\n";
+    }
+
+    private static MachineConfig WithCatalog(MachineConfig machine)
+    {
+        var diagnostics = new Diagnostics("cycles/heidenhain.toml");
+        CycleCatalog? catalog = CycleCatalogLoader.Load(
+            Path.Combine(Fixture.RepositoryRoot(), "cycles", "heidenhain.toml"), Controller.Heidenhain, diagnostics);
+        Assert.True(catalog is not null, diagnostics.ToText());
+        return CycleCatalogLoader.WithCatalog(machine, catalog);
     }
 }

@@ -30,7 +30,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 20 | ✓ P3-02 Fanuc reader | 13 | closes M4 |
 | 21 | P3-03 Compiler framework and number formatting | 13 | |
 | 22 | P3-04 Heidenhain compiler | 13 | closes M5; needs `BOHREN.ncx` from 20 |
-| 23 | P3-05 Heidenhain reader | 13 | |
+| 23 | ✓ P3-05 Heidenhain reader | 13 | |
 | 24 | P3-06 Fanuc compiler | 13 | closes M6 |
 | 25 | P3-07 Acceptance project and corpus runner | 13 | |
 | 26 | ✓ P4-01 Expression evaluation and interpreted flow | 14 | ask for the cycle time and the large pairs now |

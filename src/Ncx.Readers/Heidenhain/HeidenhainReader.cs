@@ -169,8 +169,8 @@ public sealed partial class HeidenhainReader : ReaderBase
         var reading = new HeidenhainBlock(block, _tokenizer.ContentOf(block), State, state, Machine, _templates!,
             Diagnostics);
 
-        // A line before a CHF or RND block ends where the corner begins, which the reader computes from where the line
-        // starts, once the whole line is read (D58, HeidenhainCorners).
+        // A contour element before a CHF or RND block ends where the corner begins, which the reader computes from
+        // where the element starts, once the whole element is read (D58, HeidenhainCorners).
         HeidenhainPoint? start = state.Position();
 
         // A reader never throws on bad input (code-guidelines 4): a number beyond the range the reader computes with

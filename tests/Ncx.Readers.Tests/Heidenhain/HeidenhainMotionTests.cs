@@ -5,8 +5,8 @@ namespace Ncx.Readers.Tests.Heidenhain;
 
 /// <summary>
 /// The motion of Klartext (controllers heidenhain.md 2, 7 rules 1 and 5; controller-mapping 2; language 4.3, 6): L,
-/// FMAX and F, IX, R0 RL RR, M91, CC with C, CR, CT, LP, CP, CP IPA beyond 360 degrees, LN, and CHF and RND expanded
-/// into lines and arcs (D58).
+/// FMAX and F, IX, R0 RL RR, M91, CC with C, CR, CT, LP, CP, CP IPA beyond 360 degrees, LN; CHF and RND, expanded into
+/// lines and arcs (D58), are HeidenhainCornerTests.
 /// </summary>
 public sealed class HeidenhainMotionTests
 {
@@ -164,109 +164,6 @@ public sealed class HeidenhainMotionTests
     public void FAuto_IsKeptAsRaw()
     {
         Assert.Equal([DiagnosticCodes.KeptAsRaw], Codes(FramedProgram("1 L X+10 F AUTO")));
-    }
-
-    // A chamfer CHF between two lines is a line cutting the corner: the line before ends where the chamfer begins, and
-    // the chamfer goes to where the line after it begins (D58, language 4.3; controllers heidenhain.md 2).
-    [Fact]
-    public void Chf_BetweenTwoLines_IsExpandedIntoALine()
-    {
-        Assert.Equal(Lines("RAPID X=0 Y=0 COMP=OFF", "LINE X=8 Y=0 F=100", "LINE X=10 Y=2", "LINE Y=10"),
-            Body("1 L X+0 Y+0 R0 FMAX\n2 L X+10 F100\n3 CHF 2\n4 L Y+10"));
-    }
-
-    // A rounding RND between two lines is the arc of radius R tangent to both, turning with the corner: CCW for a turn
-    // to the left, CW for a turn to the right (D58, language 4.3).
-    [Theory]
-    [InlineData("4 L Y+10", "ARC=CCW X=10 Y=2 R=2", "LINE Y=10")]
-    [InlineData("4 L Y-10", "ARC=CW X=10 Y=-2 R=2", "LINE Y=-10")]
-    public void Rnd_BetweenTwoLines_IsExpandedIntoAnArcTangentToBoth(string next, string arc, string line)
-    {
-        Assert.Equal(Lines("RAPID X=0 Y=0 COMP=OFF", "LINE X=8 Y=0 F=100", arc, line),
-            Body("1 L X+0 Y+0 R0 FMAX\n2 L X+10 F100\n3 RND R2\n" + next));
-    }
-
-    // The line after a rounding starts where the arc ends, and its IY counts from the corner point the line before
-    // ends at: the reader writes it from the end of the arc, so that the path ends where the source's does (D58,
-    // language 4.3).
-    [Fact]
-    public void Rnd_BeforeAnIncrementalLine_WritesItsIncrementalWordFromTheEndOfTheArc()
-    {
-        Assert.Equal(Lines("RAPID X=0 Y=0", "LINE X=8 Y=0 F=100", "ARC=CCW X=10 Y=2 R=2", "LINE IY=8", "LINE X=30"),
-            Body("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 RND R2\n4 L IY+10\n5 L X+30"));
-    }
-
-    // The same for a chamfer: IX+10 from the corner (30, 30) ends at X40, IX=9 from the end of the chamfer (D58).
-    [Fact]
-    public void Chf_BeforeAnIncrementalLine_WritesItsIncrementalWordFromTheEndOfTheChamfer()
-    {
-        Assert.Equal(
-            Lines("RAPID X=0 Y=0", "LINE X=29.293 Y=29.293 F=100", "LINE X=31 Y=30", "LINE IX=9", "LINE Y=0"),
-            Body("1 L X+0 Y+0 FMAX\n2 L X+30 Y+30 F100\n3 CHF 1\n4 L IX+10\n5 L Y+0"));
-    }
-
-    // A chamfer and a rounding on one contour: the line between them starts at the end of the chamfer and ends where
-    // the rounding begins, and nothing stays RAW (D58).
-    [Fact]
-    public void ChfAndRnd_OnOneContour_AreExpandedWithoutRaw()
-    {
-        string source = "0 BEGIN PGM H MM\n1 L X+0 Y+0 F100\n2 L X+10\n3 CHF 2\n4 L Y+10\n5 RND R3\n6 L X+0\n7 M30\n"
-            + "8 END PGM H MM\n";
-        string text = Text(source);
-
-        Assert.Equal(Lines("LINE X=0 Y=0 F=100", "LINE X=8 Y=0", "LINE X=10 Y=2", "LINE X=10 Y=7",
-            "ARC=CCW X=7 Y=10 R=3", "LINE X=0"), BodyOf(text));
-        Assert.DoesNotContain(DiagnosticCodes.KeptAsRaw, Codes(Program(source)));
-        AssertFormatsToItself(text);
-    }
-
-    // A rounding between two lines in one direction has no corner to round and writes nothing (D58).
-    [Fact]
-    public void Rnd_BetweenTwoLinesInOneDirection_WritesNothing()
-    {
-        Assert.Equal(Lines("RAPID X=0 Y=0", "LINE X=10 F=100", "LINE X=20"),
-            Body("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 RND R2\n4 L X+20"));
-    }
-
-    // A CHF or RND with its own F stays RAW, and the lines about it are read as the source writes them (the
-    // TODO(question) of HeidenhainCorners).
-    [Theory]
-    [InlineData("3 CHF 2 F50")]
-    [InlineData("3 RND R2 F50")]
-    public void ChfOrRnd_WithItsOwnFeed_IsKeptAsRaw(string corner)
-    {
-        Assert.Equal(Lines("RAPID X=0 Y=0", "LINE X=10 F=100", $"RAW:HEIDENHAIN=\"{corner}\"", "LINE Y=10"),
-            Body("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n" + corner + "\n4 L Y+10"));
-    }
-
-    // A corner the reader does not expand stays RAW with the lines about it as the source writes them: after a rapid
-    // move, from a point the reader does not know, before an arc, before a line that leaves the working plane, longer
-    // than a line of the corner, before a skipped line, before a line that changes the radius compensation (D58, D5).
-    [Theory]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 FMAX\n3 CHF 2\n4 L Y+10")]
-    [InlineData("2 L X+10 F100\n3 CHF 2\n4 L Y+10")]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 RND R2\n4 CR X+20 Y+0 R+5 DR+")]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 CHF 2\n4 L Y+10 Z-5")]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 CHF 20\n4 L Y+10")]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 RND R2\n/4 L Y+10")]
-    [InlineData("1 L X+0 Y+0 FMAX\n2 L X+10 F100\n3 RND R2\n4 L Y+10 RL")]
-    public void ChfOrRnd_WhereTheReaderDoesNotExpandTheCorner_IsKeptAsRaw(string snippet)
-    {
-        NcxProgram program = FramedProgram(snippet);
-
-        Assert.Contains(DiagnosticCodes.KeptAsRaw, Codes(program));
-        Assert.Contains("RAW:HEIDENHAIN=\"3 ", Body(snippet), StringComparison.Ordinal);
-    }
-
-    // The expanded corners check without an ERROR (virtual machine 3.1, 3.2).
-    [Fact]
-    public void Corners_CheckWithoutError()
-    {
-        string text = Text("0 BEGIN PGM M MM\n1 TOOL CALL 1 Z S1000\n2 M3\n3 L X+0 Y+0 R0 FMAX\n4 L X+10 F100\n"
-            + "5 CHF 2\n6 L Y+10\n7 RND R3\n8 L IX-10\n9 M30\n10 END PGM M MM\n");
-        Diagnostics check = Check(text);
-
-        Assert.False(check.HasErrors, check.ToText());
     }
 
     // The motion checks without an ERROR (virtual machine 3.1, 3.2).

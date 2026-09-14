@@ -200,6 +200,17 @@ internal static partial class HeidenhainCycles
         state.Pattern = points;
     }
 
+    /// <summary>
+    /// Tells whether a CYCL CALL or M99 reads into a CYCLE_CALL of the active definition (Call): the definition is
+    /// known and written as a CYCLE; one kept RAW keeps its calls RAW, and so does a call of no definition or of one a
+    /// caller or a called subprogram defines (controllers heidenhain.md 5; heidenhain 7 rules 7 and 9).
+    /// </summary>
+    /// <param name="state">The source-side state of the reader.</param>
+    public static bool WritesCall(HeidenhainState state)
+    {
+        return !state.DefinitionUnknown && state.Definition is { RawReason: null };
+    }
+
     // A CYCL DEF of a machining cycle replaces the active definition, which stays active until the next CYCL DEF
     // (controllers heidenhain.md 5). One kept as RAW keeps its block RAW and writes no CYCLE block, so the NCX cycle
     // stays as it was, on or off; false for such a definition.

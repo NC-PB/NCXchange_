@@ -106,6 +106,24 @@ internal sealed class HeidenhainDraftBlock
     }
 
     /// <summary>
+    /// The value of the word of this key and address; null when the block holds none.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="addr">The address; null for the word without one.</param>
+    public Value? Find(string key, string? addr)
+    {
+        foreach (Word word in Words)
+        {
+            if (word.Key == key && word.Addr == addr)
+            {
+                return word.Value;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The block as its canonical words, the verb first; for comparing two blocks.
     /// </summary>
     public string ToText()

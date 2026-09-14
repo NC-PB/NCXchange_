@@ -29,9 +29,25 @@ internal static class HeidenhainArcs
             return;
         }
 
+        // Up to the element after a chamfer or a rounding the current position is the corner point
+        // (HeidenhainCorners.CurrentPosition).
         List<SourceWord> words = HeidenhainMotion.AxisWords(block, [first, second]);
-        HeidenhainPoint? current = state.Position();
-        int decimals = HeidenhainNumbers.LeastDecimals;
+        state.Pole = PoleOf(words, first, HeidenhainCorners.CurrentPosition(block), out int decimals);
+        state.PoleDecimals = decimals;
+    }
+
+    /// <summary>
+    /// The pole of CC X+50 Y+50 from its words in the plane: absolute, CC IX IY incremental from the current position,
+    /// CC alone the current position (controllers heidenhain.md 2); null where it is not known.
+    /// </summary>
+    /// <param name="words">The axis words of the CC in the plane.</param>
+    /// <param name="first">The first axis of the plane.</param>
+    /// <param name="current">The current position; null where it is not known.</param>
+    /// <param name="decimals">The decimals of the source words the pole is taken from, at least three.</param>
+    public static HeidenhainPoint? PoleOf(IReadOnlyList<SourceWord> words, string first, HeidenhainPoint? current,
+        out int decimals)
+    {
+        decimals = HeidenhainNumbers.LeastDecimals;
         decimal? x = words.Count == 0 ? current?.First : null;
         decimal? y = words.Count == 0 ? current?.Second : null;
         foreach (SourceWord word in words)
@@ -45,11 +61,10 @@ internal static class HeidenhainArcs
             y = isFirst ? y : value;
         }
 
-        // TODO(question): heidenhain 2 does not say what a CC with one axis of the plane leaves for the other, the
-        // coordinate of the earlier pole or of the current position; the pole is then not known, and the arcs about it
-        // stay RAW.
-        state.Pole = x is decimal poleX && y is decimal poleY ? new HeidenhainPoint(poleX, poleY) : null;
-        state.PoleDecimals = decimals;
+        // TODO(question): wave-2 question #86, heidenhain 2 does not say what a CC with one axis of the plane leaves
+        // for the other, the coordinate of the earlier pole or of the current position; the pole is then not known, and
+        // the arcs about it stay RAW.
+        return x is decimal poleX && y is decimal poleY ? new HeidenhainPoint(poleX, poleY) : null;
     }
 
     /// <summary>
@@ -79,6 +94,8 @@ internal static class HeidenhainArcs
             return;
         }
 
+        // The arc after an expanded chamfer or rounding ends where the source's does (D58).
+        HeidenhainCorners.CompleteEnd(block, main);
         main.Add("CENTER", first, HeidenhainNumbers.Of(pole.First))
             .Add("CENTER", second, HeidenhainNumbers.Of(pole.Second));
         EndArc(block, pole, direction == "CCW");
@@ -118,15 +135,20 @@ internal static class HeidenhainArcs
 
         List<SourceWord> axes = HeidenhainMotion.AxisWords(block, [first, second, tool]);
         HeidenhainDraftBlock main = block.Draft.Main.WithVerb("ARC", new IdentValue(direction!));
-        if (!HeidenhainMotion.AddAxes(block, main, axes) || HeidenhainMotion.ValueOf(block, radius) is not Value value)
+        if (!HeidenhainMotion.AddAxes(block, main, axes)
+            || HeidenhainMotion.ValueOf(block, radius) is not Value written)
         {
             return;
         }
 
+        // The arc after an expanded rounding ends where the source's does and keeps its centre, with R positive where
+        // the rounding leaves a half turn or less of it (D58; language 4.3, R).
+        HeidenhainCorners.CompleteEnd(block, main);
+        Value value = HeidenhainCorners.RadiusAfterCorner(block, written);
         main.Add("R", value);
         HeidenhainPoint? end = state.Position();
         bool ccw = direction == "CCW";
-        HeidenhainPoint? center = start is not null && end is not null && radius.Number is decimal r
+        HeidenhainPoint? center = start is not null && end is not null && HeidenhainNumbers.NumberOf(value) is decimal r
             ? RadiusCenter(start, end, r, ccw)
             : null;
         EndArc(block, center, ccw);
@@ -227,7 +249,7 @@ internal static class HeidenhainArcs
         // D84); otherwise the end point is converted to Cartesian (heidenhain 7 rule 5).
         if (incremental && Math.Abs(sweep) > 360m)
         {
-            main.Add("ANGLE", HeidenhainNumbers.Of(Math.Abs(sweep)));
+            main.Add("ANGLE", HeidenhainNumbers.Of(HeidenhainCorners.SweepAfterCorner(block, Math.Abs(sweep))));
         }
 
         if (!PolarPoint(block, null, angle, out decimal x, out decimal y)
@@ -261,17 +283,40 @@ internal static class HeidenhainArcs
     public static bool PolarPoint(HeidenhainBlock block, SourceWord? radius, SourceWord? angle, out decimal x,
         out decimal y)
     {
+        // Up to the element after a chamfer or a rounding the current position is the corner point
+        // (HeidenhainCorners.CurrentPosition).
+        HeidenhainState state = block.Heidenhain;
+        if (PolarPoint(state.Pole!, state.PoleDecimals, HeidenhainCorners.CurrentPosition(block), radius, angle, out x,
+            out y))
+        {
+            return true;
+        }
+
+        block.Draft.KeepAsRaw("a polar coordinate is converted to Cartesian from numbers and, for IPR, IPA or a "
+            + "missing PR or PA, from the current position (controllers heidenhain.md 7 rule 5)");
+        return false;
+    }
+
+    /// <summary>
+    /// The Cartesian point of a polar coordinate about a pole, as PolarPoint of a block computes it; false where a word
+    /// is no number or the current position it needs is not known.
+    /// </summary>
+    /// <param name="pole">The pole.</param>
+    /// <param name="poleDecimals">The decimals of the source words the pole was taken from.</param>
+    /// <param name="current">The current position; null where it is not known.</param>
+    /// <param name="radius">The PR or IPR word; null to keep the radius of the current position.</param>
+    /// <param name="angle">The PA or IPA word; null to keep the angle of the current position.</param>
+    /// <param name="x">The coordinate of the first axis of the plane.</param>
+    /// <param name="y">The coordinate of the second axis of the plane.</param>
+    public static bool PolarPoint(HeidenhainPoint pole, int poleDecimals, HeidenhainPoint? current, SourceWord? radius,
+        SourceWord? angle, out decimal x, out decimal y)
+    {
         x = 0;
         y = 0;
-        HeidenhainState state = block.Heidenhain;
-        HeidenhainPoint pole = state.Pole!;
-        HeidenhainPoint? current = state.Position();
         bool needsCurrent = radius is null || angle is null || radius.Address == "IPR" || angle.Address == "IPA";
         if ((radius is not null && radius.Number is null) || (angle is not null && angle.Number is null)
             || (needsCurrent && current is null))
         {
-            block.Draft.KeepAsRaw("a polar coordinate is converted to Cartesian from numbers and, for IPR, IPA or a "
-                + "missing PR or PA, from the current position (controllers heidenhain.md 7 rule 5)");
             return false;
         }
 
@@ -292,7 +337,7 @@ internal static class HeidenhainArcs
             }
         }
 
-        int decimals = Math.Max(state.PoleDecimals, Decimals(words));
+        int decimals = Math.Max(poleDecimals, Decimals(words));
         x = HeidenhainNumbers.Round((double)pole.First + (r * Math.Cos(a * Math.PI / 180)), decimals);
         y = HeidenhainNumbers.Round((double)pole.Second + (r * Math.Sin(a * Math.PI / 180)), decimals);
         return true;
@@ -338,10 +383,16 @@ internal static class HeidenhainArcs
         block.Heidenhain.Tangent = radialX == 0 && radialY == 0 ? null : along;
     }
 
-    // The centre of the arc of radius r from start to end in its direction, as the virtual machine computes it
-    // (virtual machine 3.2): the midpoint plus h along the left normal, on the left for CCW with r > 0 and CW with
-    // r < 0.
-    private static HeidenhainPoint? RadiusCenter(HeidenhainPoint start, HeidenhainPoint end, decimal r, bool ccw)
+    /// <summary>
+    /// The centre of the arc of radius r from start to end in its direction, as the virtual machine computes it
+    /// (virtual machine 3.2): the midpoint plus h along the left normal, on the left for CCW with r > 0 and CW with
+    /// r &lt; 0; null where the arc ends where it starts.
+    /// </summary>
+    /// <param name="start">Where the arc starts.</param>
+    /// <param name="end">Where the arc ends.</param>
+    /// <param name="r">The radius, negative for more than a half turn (language 4.3, R).</param>
+    /// <param name="ccw">True for an arc counterclockwise.</param>
+    public static HeidenhainPoint? RadiusCenter(HeidenhainPoint start, HeidenhainPoint end, decimal r, bool ccw)
     {
         double dx = (double)(end.First - start.First);
         double dy = (double)(end.Second - start.Second);
