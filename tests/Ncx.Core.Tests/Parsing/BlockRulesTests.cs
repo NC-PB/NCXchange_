@@ -228,6 +228,19 @@ public sealed class BlockRulesTests
         BlockWithError(text, DiagnosticCodes.PartnerWordMissing);
     }
 
+    // ARG is the argument of the CALL in the same block, and only of a CALL: a REPEAT has no callee whose local
+    // variable the argument could become (language 4.9, ARG row; virtual machine 3.6, 5; wave-1 question #57).
+    [Fact]
+    public void BlockRule5_ArgBesideRepeatWithoutCall_IsError()
+    {
+        var diagnostics = new Diagnostics("test.ncx");
+        ParseText.Block("REPEAT=1 TIMES=3 ARG:A=1", diagnostics);
+
+        Diagnostic diagnostic = ParseText.Single(diagnostics, DiagnosticCodes.PartnerWordMissing);
+        Assert.Equal(Severity.Error, diagnostic.Severity);
+        Assert.Equal("ARG needs CALL in the same block (language 5 rule 5).", diagnostic.Message);
+    }
+
     // With the partner in the block the words are accepted (language 5 rule 5, 4.2, 4.3, 4.5, 4.8, 4.9).
     [Theory]
     [InlineData("JUMP=1 IF={$Q3 < $Q2}")]

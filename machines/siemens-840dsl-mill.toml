@@ -36,8 +36,8 @@ auto_preload = false               # the compiler writes the PRELOAD words the p
 preload_position = "after_change"  # the corpus writes the next T right after M6 (controller-mapping 3)
 offsets_with_change = false        # D from OFFSET, written where OFFSET stands (siemens 12 rule 3)
 tool_name_allowed = true           # T="NAME" under tool management (siemens 5)
-# TODO(question): a named TOOL needs a {name} template (T=\"{name}\" M6, machine-config 3), and change has one form; which template writes TOOL="NAME" on a machine that also takes numbers?
-# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+# TODO(question): a named TOOL needs a {name} template (T=\"{name}\" M6, machine-config 3), and change has one form; which template writes TOOL="NAME" on a machine that also takes numbers? (D172)
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3 (D150).
 
 [home]
 template = "G74 {axes}"            # reference point approach with machine axis names, own block, no transformation active (siemens 3)
@@ -49,7 +49,7 @@ template = "PRESETON({axis},{value})"   # declares the current position of one a
 [roles]
 TOOL = "S1"                        # the only spindle of a mill (language 4.10)
 TABLE = "TABLE1"
-# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2) (D128).
 
 [[resource]]
 id = "S1"
@@ -133,7 +133,7 @@ BY = ""                            # Siemens has no distance retract word (contr
 ON = "CYCLE832({tol},{mode},{rotary})"
 OFF = "CYCLE832(0,0,1)"
 mode = { FINISH = 1, ROUGH = 3 }   # value of {mode}: 1 finish, 3 rough (siemens 3)
-# TODO(question): {rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no orientation tolerance; which value, or which template without it, is written then?
+# TODO(question): {rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no orientation tolerance; which value, or which template without it, is written then? (D151)
 
 [cycles]
 catalog = "siemens.toml"           # the 840D sl cycle catalog shipped with NCXchange (siemens 7)
@@ -142,7 +142,7 @@ catalog = "siemens.toml"           # the 840D sl cycle catalog shipped with NCXc
 unassigned = "error"
 block_cap = 1000000
 call_depth = 8
-# TODO(question): machine-config 7 shows the variable map for Fanuc only; how Heidenhain-named Q variables compile to R parameters or DEF names on Siemens is not given, so there is no map.
+# TODO(question): machine-config 7 shows the variable map for Fanuc only; how Heidenhain-named Q variables compile to R parameters or DEF names on Siemens is not given, so there is no map (D173).
 
 [system_variables]                 # NCX SYS_ names to native system variables (D51)
 SYS_POS_X = "$AA_IW[X]"            # workpiece position (siemens 8)

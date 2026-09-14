@@ -105,7 +105,7 @@ public static class NcxWriter
         // when the words reach column 54 or later (language 5 rule 7, D92).
         // TODO(question): language 5 rule 7 counts columns and does not say what a column is beyond ASCII (a UTF-16
         // unit, a code point, a character as an editor shows it). A column is one character of the string here, as the
-        // lexer counts the columns of its diagnostics, until that is answered.
+        // lexer counts the columns of its diagnostics, until D166 is answered.
         int spaces = Math.Max(CommentColumn - 1 - line.Length, SpacesAfterLongWords);
         return line.Append(' ', spaces).Append(block.Comment).ToString();
     }

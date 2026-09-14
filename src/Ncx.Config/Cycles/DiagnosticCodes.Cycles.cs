@@ -8,7 +8,7 @@ namespace Ncx.Config;
 // ERROR (a name written twice in one file, a name or a parameter word NCX cannot write, a contour of more than two
 // words); an entry that can be used but does not hold together is a WARNING (a word of absolute_from_surface without
 // its parameter or without SURFACE, a key that the entries of its controller family leave out), like the unknown
-// keys of P2-01.
+// keys of P2-01 (D141).
 public static partial class DiagnosticCodes
 {
     /// <summary>

@@ -200,7 +200,7 @@ internal sealed class VariableStore
     {
         // TODO(question): machine-config 8 shows plain keys only (Q1 = 10), and virtual machine 2.7 reads an indexed
         // register "from the vars file" without saying how the file names it (wave-1 question #89); the key is the
-        // name as the program writes it with its index, "SYS_WEAR_Z[99]" = 0.012, until that is answered.
+        // name as the program writes it with its index, "SYS_WEAR_Z[99]" = 0.012, until D120 is answered.
         return index is int register ? name + "[" + register.ToString(CultureInfo.InvariantCulture) + "]" : name;
     }
 
@@ -212,7 +212,7 @@ internal sealed class VariableStore
         // CALL pushes the local variables V1 to V33; ARG words are assigned to the callee's locals (virtual machine
         // 3.6).
         // TODO(question): virtual machine 3.6 does not say whether the callee's locals start unassigned or as a copy
-        // of the caller's; they start unassigned, as the locals of a Fanuc G65 macro call do.
+        // of the caller's; they start unassigned, as the locals of a Fanuc G65 macro call do (D148).
         _callerLocals.Push(_locals);
         _locals = new();
     }

@@ -5,7 +5,7 @@ namespace Ncx.Config.Templates;
 
 /// <summary>
 /// The templates of one machine: every template text of its records parsed once into a <see cref="Template"/>, with
-/// the decimal separator its [format] writes and the comma its controller reads. The compilers render them, the readers
+/// the decimal separator the machine writes and the comma its controller reads. The compilers render them, the readers
 /// match them and map a native code back to the state of a function table, and all of them ask the one set of the
 /// machine (architecture 6, D105, D107).
 /// </summary>
@@ -27,8 +27,8 @@ public sealed class TemplateSet
     private readonly List<KeyValuePair<string, Template>> _functionStates = [];
 
     /// <summary>
-    /// Parses every template text of the machine once, numbers written with the decimal separator of its [format] and
-    /// read with the point and, on a Heidenhain machine or one whose [format] writes the comma, with the comma. A
+    /// Parses every template text of the machine once, numbers written with the <see cref="DecimalSeparator"/> of the
+    /// machine and read with the point and, on a Heidenhain machine or one that writes the comma, with the comma. A
     /// template that cannot be parsed leaves it unusable, is an ERROR of the machine file and stays in the set with its
     /// braces as literal text (machine-config introduction).
     /// </summary>
@@ -36,8 +36,8 @@ public sealed class TemplateSet
     /// <param name="diagnostics">The diagnostics of the machine file.</param>
     public TemplateSet(MachineConfig machine, Diagnostics diagnostics)
     {
-        string decimalSeparator = DecimalSeparator(machine.Format);
-        bool readsComma = ReadsComma(machine.Machine, decimalSeparator);
+        DecimalSeparator = DecimalSeparatorOf(machine);
+        bool readsComma = ReadsComma(machine.Machine, DecimalSeparator);
         List<KeyValuePair<string, string>> functionStates = FunctionStates(machine);
 
         // Each template text is parsed once, however many tables write it (code-guidelines 7): the M9 that switches
@@ -49,7 +49,7 @@ public sealed class TemplateSet
                 continue;
             }
 
-            var template = new Template(text, MachineFileLine, decimalSeparator, readsComma, diagnostics);
+            var template = new Template(text, MachineFileLine, DecimalSeparator, readsComma, diagnostics);
             _byText.Add(text, template);
             _templates.Add(template);
         }
@@ -59,6 +59,15 @@ public sealed class TemplateSet
             _functionStates.Add(new KeyValuePair<string, Template>(state.Key, _byText[state.Value]));
         }
     }
+
+    /// <summary>
+    /// The decimal separator the machine writes numbers with, "," or ".": decimal_separator of its [format] where the
+    /// file writes it, otherwise the one of its controller family, the comma for Heidenhain and the point for Fanuc,
+    /// Siemens and the default machine of D103 (machine-config 2; controllers heidenhain.md 1, 8 rule 2;
+    /// differences.md, Numbers). The templates render their numbers with it, and a compiler writes every number of the
+    /// machine with it.
+    /// </summary>
+    public string DecimalSeparator { get; }
 
     /// <summary>
     /// Every template of the machine, each text once: the ends of programs, the tool change, home and setpos, the
@@ -96,7 +105,7 @@ public sealed class TemplateSet
         // TODO(question): a code that several states write, M9 of every coolant channel of the Nakamura, M3 of MAIN
         // and TOOL on the Mori Seiki, M3 P11 of MAIN and SUB on the Doosan (whose M34 and M134 tell them apart),
         // names the first state in the order of machine-config 5 and of the file; how the reader chooses among them
-        // with its source state (architecture 7) is open.
+        // with its source state (architecture 7) is open (D155).
         foreach (KeyValuePair<string, Template> state in _functionStates)
         {
             Template template = state.Value;
@@ -109,15 +118,19 @@ public sealed class TemplateSet
         return null;
     }
 
-    // Numbers are written with the decimal separator of [format], the comma on Heidenhain (machine-config 2,
-    // controllers heidenhain.md 1 and 8 rule 2).
-    // TODO(question): machine-config 2 gives no default for decimal_separator. A file that leaves it out is written
-    // with the point, the dot of Fanuc and Siemens (controllers differences.md, Numbers), while the writer of Klartext
-    // produces the comma (controllers heidenhain.md 1, 8 rule 2); whether a Heidenhain file without decimal_separator
-    // writes the comma is open.
-    private static string DecimalSeparator(OutputFormat? format)
+    // Numbers are written with decimal_separator of [format] where the file writes it (machine-config 2). A file that
+    // leaves it out writes the separator of its controller family: the writer of Klartext must produce the comma
+    // (controllers heidenhain.md 1, 8 rule 2; differences.md, Numbers; the comment of machine-config 2, "," for
+    // Heidenhain), Fanuc and Siemens write the dot (differences.md, Numbers), and so does the default machine of D103,
+    // which names no controller (wave-1 question #64).
+    private static string DecimalSeparatorOf(MachineConfig machine)
     {
-        return format?.DecimalSeparator == Template.DecimalComma ? Template.DecimalComma : Template.DecimalPoint;
+        if (machine.Format?.DecimalSeparator is string written)
+        {
+            return written == Template.DecimalComma ? Template.DecimalComma : Template.DecimalPoint;
+        }
+
+        return machine.Machine.Controller == Controller.Heidenhain ? Template.DecimalComma : Template.DecimalPoint;
     }
 
     // The comma is the decimal separator of Klartext and its reader accepts both (controllers heidenhain.md 7 rule 8;
@@ -139,7 +152,7 @@ public sealed class TemplateSet
     // CSS and RPM_MAX as words of their own (language 4.5, 4.11), SPINDLE_SYNC with two roles or OFF (4.5) and the
     // default coolant channel as COOLANT without an address (4.6). A state is named as the word of its table with the
     // key as its value, SPINDLE:MAIN=ORIENT, SPINDLE_SYNC=ON, COOLANT:STANDARD=ON; making the word of the language
-    // from it is left to the reader.
+    // from it is left to the reader (D154).
     private static List<KeyValuePair<string, string>> FunctionStates(MachineConfig machine)
     {
         var states = new List<KeyValuePair<string, string>>();

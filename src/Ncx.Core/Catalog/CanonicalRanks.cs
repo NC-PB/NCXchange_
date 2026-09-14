@@ -51,7 +51,7 @@ internal static class CanonicalRanks
     // and lists bucket 5 as CENTER:X, CENTER:Y, CENTER:Z, then the incremental forms; the catalog follows the list of
     // bucket 5. Under POLAR and CYLINDER the plane of ARC is the X word or the cylinder axis with the C word, and
     // CENTER keeps its meaning there (virtual machine 3.1, 3.2, D102), so CENTER:C and CENTER:IC are plane axis
-    // addresses that D90 does not list; the catalog ranks C after Z and IC after IZ, as bucket 3 puts C after Z.
+    // addresses that D90 does not list; the catalog ranks C after Z and IC after IZ, as bucket 3 puts C after Z (D143).
     public const int CenterX = 300;
     public const int CenterY = 310;
     public const int CenterZ = 320;
@@ -159,7 +159,7 @@ internal static class CanonicalRanks
     public const int Section = 1120;
 
     // TODO(question): D90 gives the pseudo-words @SAVE and @RESTORE of generated blocks no bucket, and every word has a
-    // rank. They stand last until that is answered; ncx format never writes a generated block (language 4.15).
+    // rank. They stand last until D167 is answered; ncx format never writes a generated block (language 4.15).
     public const int Save = 1130;
     public const int Restore = 1140;
 }

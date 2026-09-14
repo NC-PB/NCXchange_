@@ -53,7 +53,7 @@ public static partial class DrillingFamily
                 SiemensEntry("CHIP_BREAK", "CYCLE83", s_cycle83, SiemensPeckParams(), s_siemensAxnRuleWords, 0m),
                 SiemensEntry("TAP", "CYCLE84", s_cycle84, SiemensTapParams(), s_siemensAxnRuleWords, null),
                 SiemensEntry("REAM", "CYCLE85", s_cycle85, SiemensReamParams(), s_siemensRuleWords, null),
-                SiemensEntry("BORE", "CYCLE86", s_cycle86, SiemensPlanes(), s_siemensRuleWords, null),
+                SiemensEntry("BORE", "CYCLE86", s_cycle86, SiemensModalFeedParams(), s_siemensRuleWords, null),
             ],
         };
     }
@@ -99,8 +99,9 @@ public static partial class DrillingFamily
         };
     }
 
-    // CYCLE81 and CYCLE82 use the modal F, which the reader turns into CYCLE_F: an address word before the call, no
-    // position of the signature (controller-mapping 5, machine-config 6).
+    // "The cycle feed is the modal F" (siemens 7): CYCLE81, CYCLE82 and CYCLE86 use it, and the reader turns it into
+    // CYCLE_F, an address word before the call and no position of the signature (controller-mapping 5, machine-config
+    // 6; wave-1 question #24).
     private static Dictionary<string, string> SiemensModalFeedParams()
     {
         Dictionary<string, string> parameters = SiemensPlanes();
@@ -111,7 +112,7 @@ public static partial class DrillingFamily
     // CYCLE83 uses the modal F as well and carries _AXN, the drilling axis, which is exactly AXIS (controller-mapping
     // 5, D59).
     // TODO(question): how the constant PECK of NCX is written with FDEP, FDPR and _DAM is not in the documents; PECK is
-    // not mapped (cycles/siemens.toml).
+    // not mapped (cycles/siemens.toml; D181).
     private static Dictionary<string, string> SiemensPeckParams()
     {
         Dictionary<string, string> parameters = SiemensPlanes();
@@ -121,6 +122,8 @@ public static partial class DrillingFamily
     }
 
     // CYCLE84: PIT the pitch and _AXN the drilling axis (controller-mapping 5).
+    // TODO(question): whether CYCLE84, rigid tapping with the feed from PIT and SST, takes the modal F is not in the
+    // documents; CYCLE_F is not mapped (cycles/siemens.toml; D181).
     private static Dictionary<string, string> SiemensTapParams()
     {
         Dictionary<string, string> parameters = SiemensPlanes();

@@ -38,7 +38,7 @@ preload_position = "after_change"  # T0 and T2 stand right after T1 M6 in the so
 offsets_with_change = false        # G43 H and D are written where the OFFSET words stand (fanuc 5)
 tool_name_allowed = false          # Fanuc tools are numbers
 # No change_preloaded: BOHREN.fanuc.nc writes T2 M6 also when tool 2 is preloaded, so every change is written with its T word.
-# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3 (D150).
 
 [home]
 template = "G28 {axes}"            # reference point return; {axes} in the G91 form, G91 G28 Z0 and G28 X0 Y0 in the sources (fanuc 4, machine-config 3)
@@ -50,7 +50,7 @@ template = "G92 {axes}"            # G92 declares the current position (fanuc 4)
 [roles]
 TOOL = "S1"                        # the only spindle of a mill (language 4.10)
 TABLE = "TABLE1"
-# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2) (D128).
 
 [[resource]]
 id = "S1"

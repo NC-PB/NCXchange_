@@ -38,7 +38,7 @@ internal static class ArcResolver
         // end; otherwise the arc turns from the start to the end in the direction of the verb.
         // TODO(question): start = end is read as equal plane coordinates. Whether an end within the arc tolerance of
         // the start is a full circle, and what an arc of radius 0 (a center on the start) is, the documents do not say;
-        // such arcs resolve to what their coordinates give (a sweep near 0 or near 360, a radius near 0).
+        // such arcs resolve to what their coordinates give (a sweep near 0 or near 360, a radius near 0) (D122).
         double sweep = Angle.FullTurn;
         if (!SameInPlane(start, end))
         {

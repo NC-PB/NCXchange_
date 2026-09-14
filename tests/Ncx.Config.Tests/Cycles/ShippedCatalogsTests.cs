@@ -86,7 +86,6 @@ public sealed class ShippedCatalogsTests
     // carries X, Z or R, G70..G76 are one-shot (language 4.7.1, fanuc 6).
     [Theory]
     [InlineData("TURN_OD", true)]
-    [InlineData("TURN_ID", true)]
     [InlineData("THREAD", true)]
     [InlineData("FACE", true)]
     [InlineData("FINISH", false)]
@@ -100,6 +99,44 @@ public sealed class ShippedCatalogsTests
 
         Assert.NotNull(entry);
         Assert.Equal(modal, entry.Modal);
+    }
+
+    // Language 4.7.1 and controller-mapping 5: G90 (OD/ID) is one cycle, CYCLE=TURN_OD; the specification wins over the
+    // phase file that listed a TURN_ID beside it (implementation README; wave-1 question #17).
+    [Fact]
+    public void FanucG90_OuterAndInnerDiameter_IsTheOneCycleTurnOd()
+    {
+        CycleCatalog fanuc = Load("fanuc.toml", Controller.Fanuc);
+
+        var namesOfG90 = new List<string>();
+        foreach (CycleEntry entry in fanuc.Entries)
+        {
+            if (entry.Native == "G90")
+            {
+                namesOfG90.Add(entry.Name);
+            }
+        }
+
+        Assert.Equal(["TURN_OD"], namesOfG90);
+        Assert.Null(fanuc.Find("TURN_ID"));
+    }
+
+    // Siemens 7: "The cycle feed is the modal F", and CYCLE85 has its own FFR. So CYCLE86 (BORE), CYCLE830 (DEEP_HOLE)
+    // and CYCLE840 (TAP_COMPENSATING) take CYCLE_F from the modal F as CYCLE81 to CYCLE83 do (wave-1 question #24);
+    // CYCLE84 waits for D181.
+    [Theory]
+    [InlineData("CYCLE81", "F")]
+    [InlineData("CYCLE82", "F")]
+    [InlineData("CYCLE83", "F")]
+    [InlineData("CYCLE85", "FFR")]
+    [InlineData("CYCLE86", "F")]
+    [InlineData("CYCLE830", "F")]
+    [InlineData("CYCLE840", "F")]
+    public void SiemensCycleFeed_EveryCycleButCycle84_IsTheModalFOrItsOwnFeed(string native, string feed)
+    {
+        CycleEntry entry = NativeEntry("siemens.toml", Controller.Siemens, native);
+
+        Assert.Equal(feed, entry.CycleF);
     }
 
     // P2-03: a G71 entry carries Contour, the P and Q that name the first and the last block of the contour of

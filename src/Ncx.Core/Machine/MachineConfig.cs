@@ -291,7 +291,8 @@ public sealed record MachineConfig
         // axis with that NCX name (virtual machine 3.8 rule 3). The rotary axis of a holder is the axis its
         // [[resource]] names, the C axis the spindle becomes in AXIS mode (machine-config 4).
         // TODO(question): rule 3 lets A, B and C all resolve to the holder's rotary axis; this resolves only the name
-        // whose letter the axis carries (C to C2 of the sub spindle), so that A stays the A slide of the Mori Seiki.
+        // whose letter the axis carries (C to C2 of the sub spindle), so that A stays the A slide of the Mori Seiki
+        // (D147).
         bool standardRotaryName = ncxName is "A" or "B" or "C";
         ResourceDef? holder = FindResource(workpieceHolder);
         if (standardRotaryName && holder?.Axis is string holderAxisId)

@@ -49,7 +49,7 @@ internal static class ToolChangeRules
         // raised by the caller from the Before and After snapshots.
         // TODO(question): virtual machine 3.5 and the sample of code-guidelines 2 keep a different preload after
         // TOOL=k, while the state diagram of architecture 5.2 draws TOOL=k as a transition from Pending to Loaded; the
-        // preload is kept, as the virtual machine says, until that is answered.
+        // preload is kept, as the virtual machine says, until D132 is answered.
         holder.SpindleTool = tool;
         holder.Preloaded = holder.Preloaded == tool ? null : holder.Preloaded;
     }

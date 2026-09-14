@@ -16,8 +16,8 @@
     <!--
       TODO(question): while InvariantGlobalization is true the .NET analyzers do not report CA1305 at all (checked
       2026-09-13: decimal.Parse(text) passes, and is an error with InvariantGlobalization false), so the two settings
-      of code-guidelines 3.4 and 9 cancel out. Both are kept as written until the maintainer decides; meanwhile the
-      culture rule rests on review.
+      of code-guidelines 3.4 and 9 cancel out. Both are kept as written until the maintainer decides (D108);
+      meanwhile the culture rule rests on review.
     -->
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>

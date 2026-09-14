@@ -88,7 +88,7 @@ internal static class SpindleHandlers
     {
         // TODO(question): virtual machine 2.4 gives every spindle a syncPartner and syncPhase without saying on which
         // of the two they stand; they stand on the following spindle, naming the leading one, so that rule 5 knows
-        // which spindle b is, until that is answered.
+        // which spindle b is, until D171 is answered.
         foreach (KeyValuePair<string, SpindleState> spindle in context.State.Spindles)
         {
             spindle.Value.SyncPartner = null;

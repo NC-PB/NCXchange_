@@ -37,7 +37,7 @@ public static partial class DrillingFamily
     // Z and R of the cycle block are the absolute DEPTH and CLEARANCE, Q the peck of G83 and G73, F and P the cycle's
     // own feed and dwell, which never touch the modal F of the program (fanuc 6, controller-mapping 5, D29).
     // TODO(question): fanuc 6 names the dwell P for G82 only; P stands on every entry as controller-mapping 5 writes
-    // "F and P on the G8x block", as cycles/fanuc.toml does.
+    // "F and P on the G8x block", as cycles/fanuc.toml does (D177).
     private static CycleEntry FanucEntry(string name, string native, bool peck, string[] ruleWords)
     {
         var parameters = new Dictionary<string, string>

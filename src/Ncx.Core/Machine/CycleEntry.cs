@@ -2,7 +2,7 @@ namespace Ncx.Core.Machine;
 
 // TODO(question): machine-config 6 has no key for the kind of a parameter ("Params with their kinds", phase 2 P2-03).
 // Every parameter is taken as a number or an expression, as a native parameter of D94 is, and AXIS as the axis name of
-// language 4.7; the entry records no kind until the documents give one.
+// language 4.7; the entry records no kind until the documents give one (D115).
 
 /// <summary>
 /// One entry of a cycle catalog: the NCX cycle name, the native cycle it maps to, the NCX words of its parameters with
@@ -72,7 +72,7 @@ public sealed record CycleEntry
     public ExpansionRule? Rule { get; init; }
 
     // TODO(question): machine-config 6 has no key for the words a rule carries, so only the built-in drilling family
-    // names them; a catalog file cannot name them for a cycle of its own.
+    // names them; a catalog file cannot name them for a cycle of its own (D157).
 
     /// <summary>
     /// The NCX words that a rule of the reader and the compiler of the controller family carries instead of a native
@@ -194,7 +194,7 @@ public sealed record CycleEntry
         // TODO(question): machine-config 6 says an entry "can be overridden per machine" without saying whether an
         // override replaces the whole entry or the keys it writes. Key by key is taken, because the entries of
         // machine-config 5a and doosan-puma-2600sy.toml write name, native and pre alone and would otherwise lose the
-        // address words of G83.
+        // address words of G83 (D140).
         var writtenKeys = new List<string>(WrittenKeys);
         foreach (string key in entry.WrittenKeys)
         {

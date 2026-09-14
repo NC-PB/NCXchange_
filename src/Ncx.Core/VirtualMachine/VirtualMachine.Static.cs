@@ -61,7 +61,7 @@ public sealed partial class VirtualMachine
         // One pass top to bottom over every program of the file (virtual machine 1).
         // TODO(question): virtual machine 1 walks every program of the file and does not say which state a program
         // after the first starts from; each starts from the state of a channel at the start of a run, as a program
-        // that the job enters on its channel does (language 4.13), until that is answered.
+        // that the job enters on its channel does (language 4.13), until D134 is answered.
         ChannelState? lastProgram = null;
         bool firstProgram = true;
         foreach (Section section in program.Programs)
@@ -120,7 +120,7 @@ public sealed partial class VirtualMachine
         ChannelState state = NewState(channelId);
 
         // TODO(question): D99 takes units, workplane, diameter and feed mode "as at the first verb of the file's first
-        // program" and does not say what they are when that program has no verb; they stay initial until that is
+        // program" and does not say what they are when that program has no verb; they stay initial until D135 is
         // answered.
         if (_firstVerbState is ChannelSnapshot first)
         {
@@ -269,7 +269,7 @@ public sealed partial class VirtualMachine
     // (language 4.9, virtual machine 1, 3.6). False when an ERROR stopped the run.
     // TODO(question): language 4.9 names an argument by its address (ARG:A=1) and "the callee sees it as a local
     // variable", while the locals a CALL pushes are V1 to V33 (virtual machine 3.6); an ARG is assigned under its own
-    // name, which is a local of the callee for V1 to V33 only, until that is answered.
+    // name, which is a local of the callee for V1 to V33 only, until D149 is answered.
     private bool AssignArguments(Block callBlock)
     {
         foreach (Word word in callBlock.Words)
@@ -404,7 +404,7 @@ public sealed partial class VirtualMachine
         }
 
         // TODO(question): TIMES from an expression is not evaluated in STATIC mode (virtual machine 1), and D99 walks
-        // the subprogram n times; with n unknown it is walked once, so that its blocks are checked, until that is
+        // the subprogram n times; with n unknown it is walked once, so that its blocks are checked, until D136 is
         // answered.
         return 1;
     }

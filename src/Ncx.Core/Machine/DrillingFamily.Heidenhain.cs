@@ -25,7 +25,7 @@ public static partial class DrillingFamily
     // DRILL and DRILL_DWELL are cycle 200, PECK and CHIP_BREAK cycle 203, TAP 207, REAM 201, BORE 202
     // (controller-mapping 5). The signature of cycle 202 is not in the documents.
     // TODO(question): which Q211 makes a cycle 200 a DRILL and which Q256 or Q213 makes a cycle 203 a CHIP_BREAK is not
-    // in the documents (cycles/heidenhain.toml); FindNative takes the first entry.
+    // in the documents (cycles/heidenhain.toml); FindNative takes the first entry (D163).
     private static CycleCatalog HeidenhainFamily()
     {
         return new CycleCatalog

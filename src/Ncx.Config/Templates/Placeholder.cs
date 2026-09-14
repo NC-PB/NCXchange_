@@ -3,13 +3,13 @@ using Ncx.Core.Model;
 
 namespace Ncx.Config.Templates;
 
-// TODO(question): architecture 6 draws Placeholder with Name, Format and Literal, while the phase file (P2-02) parses
-// a template into literal text and placeholders with a name and a format suffix. Literal is left out and the template
-// keeps its literal text itself, until the meaning of Literal is settled.
+// A template is literal text and placeholders with a name and a format suffix (phase 2, P2-02): the template keeps
+// its literal text between the placeholders, and a placeholder is its Name, Format, Width and IsText, as architecture
+// 6 draws it (wave-1 question #42).
 //
 // TODO(question): the introduction of machine-config lists the placeholders, while its sections 3 and 5 and the
 // example machine files also write {point}, {order}, {channel}, {radius}, {pair} and {ratio}. Any name is accepted as a
-// placeholder; whether a name the introduction does not list deserves a diagnostic is open.
+// placeholder; whether a name the introduction does not list deserves a diagnostic is open (D152).
 
 /// <summary>
 /// One placeholder of a template, a name in braces with an optional format suffix: {tool}, {tool:02},
@@ -48,11 +48,10 @@ public sealed record Placeholder
     {
         get
         {
-            // TODO(question): the documents give no value kind per placeholder, and the phase file reads every
-            // placeholder without a suffix as a signed decimal, which cannot capture the words of {name}
-            // (T="{name}"), {axes} (G28 U0 W0), {move} (TURN FMAX) or {channels} (1,2) that the specification's own
-            // templates carry. The words are taken from the descriptions of the introduction and of machine-config 5;
-            // every other placeholder is a number, {kind} included, which both example machines map to numbers.
+            // The placeholders that hold words are the ones their descriptions give words: {name}, {axis}, {axes}
+            // and {position:NAME} in the introduction of machine-config, {axes} as "U0 W0" in 3, {move} and
+            // {channels} in 5 (T="{name}", G28 U0 W0, TURN FMAX, 1,2). Every other placeholder is a number, {kind}
+            // included, which both example machines map to numbers (wave-1 question #44).
             if (Name.StartsWith(PositionPrefix, StringComparison.Ordinal))
             {
                 return true;

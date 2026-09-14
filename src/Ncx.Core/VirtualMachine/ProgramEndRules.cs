@@ -27,9 +27,8 @@ internal static class ProgramEndRules
         state.Unknown.Remove("F");
 
         // Spindle direction, rpm, vc, mode, sync and phase, css: PROGRAM=END sets OFF, mode SPINDLE, sync OFF (virtual
-        // machine 4).
-        // TODO(question): "sets OFF" may mean the direction alone or the direction and CSS, the two rows with an OFF
-        // value; both are set OFF until that is answered.
+        // machine 4). "Sets OFF" applies to the items that have an OFF value, the direction and CSS (virtual machine
+        // 2.4, language 4.11; wave-1 question #99).
         foreach (KeyValuePair<string, SpindleState> spindle in state.Spindles)
         {
             spindle.Value.Direction = SpindleDirection.Off;

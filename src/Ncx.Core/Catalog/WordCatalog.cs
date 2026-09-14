@@ -111,7 +111,7 @@ public static class WordCatalog
         // TODO(question): language 4.7.1 lets a program name any cycle of the machine's cycle catalog with the
         // parameter names of that catalog (CYCLE=RECT_POCKET LENGTH=60 WIDTH=40), which are no words of this catalog
         // and, under D94, no native parameters, while ncx format reads a program without a machine file (D91). Only
-        // the native form opens a block to keys the catalog does not know until that is answered.
+        // the native form opens a block to keys the catalog does not know until D114 is answered.
         //
         // The native form is the cycle word with a controller address: CYCLE:HEIDENHAIN=251 (language 4.7).
         foreach (Word word in block.Words)

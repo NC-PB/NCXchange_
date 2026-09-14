@@ -64,7 +64,7 @@ magazine = false
 channel = 2
 
 # D100: home and limits are machine coordinates (the G53 frame). HOME on this machine is L711, the move to the tool change point ([home] below), so the home of X, Y and Z is that point. The limits of a C axis are its display range, not a travel limit; those of the B swivel are travel limits.
-# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters (D137).
 
 [[axis]]
 id = "X1"

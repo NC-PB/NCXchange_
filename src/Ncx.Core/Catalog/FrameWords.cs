@@ -70,8 +70,8 @@ internal static class FrameWords
             CanonicalRank = CanonicalRanks.Verb,
             ResetRank = CanonicalRanks.ShiftReset,
             Section = "4.2",
-            Description = "Datum shift in the active frame, appended to the frame chain; SHIFT=RESET removes the "
-                + "shifts and what follows them.",
+            Description = "Datum shift in the active frame, appended to the frame chain; SHIFT=RESET removes the last "
+                + "shift and what follows it.",
         },
         new WordDefinition
         {

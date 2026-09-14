@@ -36,7 +36,7 @@ auto_preload = false               # the compiler writes the PRELOAD words the p
 preload_position = "after_change"  # TOOL DEF stands right after TOOL CALL in the sources
 offsets_with_change = true         # length and radius come from the tool table with the call; OFFSET words are not written (heidenhain 4)
 tool_name_allowed = false          # TOOL CALL "NAME" is documented for the TNC 640 (heidenhain 4); the sources use numbers
-# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3.
+# TODO(question): the preload templates of machine-config 3 use {tool}, while its placeholder list defines {tool} as the tool in the spindle after the block and {next} as the preloaded tool; this file follows the table of machine-config 3 (D150).
 
 # No [home] table: HOME is written as L ... FMAX M91 to the home (home2 under POINT=2) of each [[axis]] (heidenhain 8 rule 5, machine-config 3).
 # No [setpos] table: the compiler folds SETPOS into SHIFT (machine-config 3).
@@ -44,7 +44,7 @@ tool_name_allowed = false          # TOOL CALL "NAME" is documented for the TNC 
 [roles]
 TOOL = "S1"                        # the only spindle of a mill (language 4.10)
 TABLE = "TABLE1"
-# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2).
+# TODO(question): language 4.10 recommends no role name for the tool holder of a mill, and the default machine of D103 calls both its holder and its tool spindle TOOL; H1 has no role here, TOOL and PRELOAD without a role address go to default_holder (VM 3.8 rule 2) (D128).
 
 [[resource]]
 id = "S1"
@@ -109,8 +109,8 @@ CW = "M3"
 CCW = "M4"
 OFF = "M5"
 RPM = "TOOL CALL S{rpm}"           # a speed change without a tool (heidenhain 4); with TOOL the compiler folds RPM into the TOOL CALL (heidenhain 8 rule 3)
-# TODO(question): heidenhain 4 and controller-mapping 3 allow TOOL CALL S without a tool number on newer controls; whether the iTNC 530 is one of them is not said.
-# TODO(question): ORIENT has no generic form here: heidenhain 4 calls M19 the builder's and heidenhain 5 names cycle 13 (spindle orientation) without its syntax, so ORIENT is left out.
+# TODO(question): heidenhain 4 and controller-mapping 3 allow TOOL CALL S without a tool number on newer controls; whether the iTNC 530 is one of them is not said (D180).
+# No ORIENT: controller-mapping 4 gives the Heidenhain ORIENT as an M function with angle from the machine file, and heidenhain 4 calls M19 the builder's, so no generic ORIENT is written here (wave-1 question #9).
 # No VC, CSS_OFF, RPM_MAX: constant surface speed is FUNCTION TURNDATA SPIN of the TNC 640 turning mode (heidenhain 4), not a word of this milling control.
 rpm_min = 20                       # machine limits, not the program's RPM_MAX clamp: the expander warns or clamps (D64)
 rpm_max = 14000
@@ -127,7 +127,7 @@ BY = "M140 MB{distance}"           # RETRACT=50 as M140 MB50 (heidenhain 2)
 ON = "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T{tol}\nCYCL DEF 32.2 HSC-MODE:{mode} TA{rotary}"   # cycle 32 (heidenhain 2, machine-config 5)
 OFF = "CYCL DEF 32.0 TOLERANZ\nCYCL DEF 32.1 T0"
 mode = { FINISH = 0, ROUGH = 1 }   # value of {mode}: HSC-MODE 0 finish, 1 rough (heidenhain 2)
-# TODO(question): TA{rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no rotary tolerance; which value, or which template without TA, is written then?
+# TODO(question): TA{rotary} needs TOLERANCE:ROTARY, which a program may leave out (language 4, D85), and a machine without rotary axes has no rotary tolerance; which value, or which template without TA, is written then? (D151)
 
 [cycles]
 catalog = "heidenhain.toml"        # the Heidenhain cycle catalog shipped with NCXchange (machine-config 6)
@@ -136,4 +136,4 @@ catalog = "heidenhain.toml"        # the Heidenhain cycle catalog shipped with N
 unassigned = "error"
 block_cap = 1000000
 call_depth = 8
-# TODO(question): no [system_variables] table: machine-config 7 points to FN 18 ids for Heidenhain, and heidenhain.md lists none.
+# TODO(question): no [system_variables] table: machine-config 7 points to FN 18 ids for Heidenhain, and heidenhain.md lists none (D182).

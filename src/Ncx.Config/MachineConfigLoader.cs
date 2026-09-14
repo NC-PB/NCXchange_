@@ -59,7 +59,7 @@ public static partial class MachineConfigLoader
         // [machine] names the machine and its controller (machine-config 1).
         // TODO(question): machine-config names no required key. The loader requires [machine] with name and
         // controller, id and type of every [[resource]], id, ncx and kind of every [[axis]] and id of every [[node]],
-        // the keys without which a record cannot be built or referenced; every other key is optional.
+        // the keys without which a record cannot be built or referenced; every other key is optional (D138).
         if (!root.Has("machine"))
         {
             diagnostics.Error(1, DiagnosticCodes.MissingKey,

@@ -36,6 +36,6 @@ internal sealed record Plane(string Name, string FirstAxis, string SecondAxis, s
     // X (virtual machine 3.1, 3.2, 3.4, D102).
     // TODO(question): the documents name the cylinder axis for a lathe only (Z); for a machine whose cylinder turns
     // about another axis (an A axis on a mill) neither the cylinder axis nor the rotary word is said, so this is the
-    // lathe's plane.
+    // lathe's plane (D146).
     public static Plane Cylinder { get; } = new("CYLINDER", "Z", "C", "X");
 }

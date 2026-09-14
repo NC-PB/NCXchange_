@@ -41,7 +41,7 @@ internal readonly record struct Vec3(double X, double Y, double Z)
     // ROUND).
     // TODO(question): no document says how many decimals "the units' decimals" are (D62 is the math library, and the
     // [format] decimals of machine-config 2 belong to the compiler, per address and machine), so the caller passes
-    // them.
+    // them (D121).
     public static decimal RoundToDecimal(double coordinate, int decimals)
     {
         return Math.Round((decimal)coordinate, decimals, MidpointRounding.AwayFromZero);

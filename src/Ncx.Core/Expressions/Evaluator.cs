@@ -92,7 +92,7 @@ internal sealed partial class Evaluator
 
         // TODO(question): language 4.12 gives an index a meaning for the SYS_ names only (it "selects a register or
         // table row", D51), while the grammar allows it on every variable; an index on any other variable, $Q1[2], is
-        // an ERROR until that is settled.
+        // an ERROR until D145 is settled.
         if (variable.Index is not null)
         {
             Report(DiagnosticCodes.IndexNeedsSystemVariable,
@@ -169,7 +169,7 @@ internal sealed partial class Evaluator
         // TODO(question): virtual machine 2.7 reads a register the virtual machine does not hold from the vars file,
         // and 3.6 names only the ERROR, for a name the configuration does not map as for an unknown state (wave-1
         // question #89); the vars file counts for both, so that a run without a machine file, whose default machine
-        // maps no SYS_ name, can read a register, until that is answered.
+        // maps no SYS_ name, can read a register, until D120 is answered.
         if (_vars.GetSystemStartValue(variable.Name, register) is VariableValue start)
         {
             return ResultOf(start);
@@ -186,7 +186,7 @@ internal sealed partial class Evaluator
 
     // The index selects a register or table row (language 4.12): a whole number; null after the ERROR.
     // TODO(question): language 4.12 does not say what an index that is not a whole number selects; it is an ERROR
-    // until that is settled.
+    // until D145 is settled.
     private int? RegisterOf(VariableNode variable, decimal index)
     {
         if (index != decimal.Truncate(index) || index < int.MinValue || index > int.MaxValue)
@@ -241,9 +241,9 @@ internal sealed partial class Evaluator
 
     // The operators with two operands (language 4.12, orexpr to power), the left operand evaluated before the right.
     // TODO(question): language 4.12 does not say whether AND and OR skip their right operand when the left one decides
-    // the value; both are evaluated, as for every other operator, so 0 AND 1 / 0 is the division by zero.
+    // the value; both are evaluated, as for every other operator, so 0 AND 1 / 0 is the division by zero (D168).
     // TODO(question): language 4.12 does not say whether == and != compare strings; every operator takes numbers, and
-    // a string is the ERROR of virtual machine 5, until that is settled.
+    // a string is the ERROR of virtual machine 5, until D169 is settled.
     private ExprResult? EvaluateBinary(BinaryNode binary)
     {
         ExprResult? left = EvaluateNode(binary.Left);

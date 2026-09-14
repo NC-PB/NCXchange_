@@ -1,8 +1,9 @@
 namespace Ncx.Core.Catalog;
 
-// TODO(question): language 4.1 writes TOLERANCE:ROTARY with the fixed address ROTARY, and neither the ADDR row of
-// language 3 nor the AddrKind of architecture 4 says what that address names. The catalog calls it a tolerance kind,
-// after the offset kind of OFFSET:LEN, and accepts ROTARY only (WordDefinition.AddrRanks), until that is answered.
+// Language 4.1 writes TOLERANCE:ROTARY with the fixed address ROTARY, which the catalog calls a tolerance kind after
+// the offset kind of OFFSET:LEN; it accepts ROTARY only and refuses OFF on it, as the rows of 4.1 give the word
+// (PAR152, PAR153). Which kind an address has is the catalog's own representation: only None decides behaviour, a
+// word written with an address it does not take (PAR150; architecture 4; wave-1 questions #30, #34).
 
 /// <summary>
 /// What the address of a word names, the ADDR of language 3: an axis name, an offset kind, a coolant channel, a

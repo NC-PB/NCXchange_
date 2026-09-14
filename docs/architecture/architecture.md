@@ -237,7 +237,7 @@ classDiagram
     Diagnostics "1" *-- "*" Diagnostic
 ```
 
-Enumerations: `WordKind` (Program, Frame, Motion, Tool, Spindle, Function, Cycle, Channel, Flow, Lathe, Resource, Pseudo), `ValueKind` (None, Integer, Decimal, Number, Ident, List, String, Expr, NumberOrExpr, StateKey), `Scope` (File, Header, Block, Modal), `AddrKind` (None, Axis, OffsetKind, Channel, Role, Variable, Controller), `Severity` (ERROR, WARNING, INFO, where INFO carries notes that are neither). A diagnostic code is an area prefix and three digits (`PAR`, `VM`, `CFG`, `RDR`, `CMP`, `ANA`, `PLG`, `CLI`), rendered as `file(line): ERROR VM042: message`, with `OriginLine` rendered as `file(line, from 12)` for a diagnostic on a generated block (D98). Comment-only lines and blank lines are not blocks but `Trivia` (line number, text) kept in place; a block keeps its trailing comment text in `Comment` (D92). `StateKeyValue` is the internal value of the pseudo-words `@SAVE` and `@RESTORE`: a state key `KEY[:ADDR]` naming a state variable of the channel, produced only when the parser runs with the option the expander uses for generated text (D95). The catalog entries of `@SAVE` and `@RESTORE` have `WordKind.Pseudo` and `IsInternal = true`; the parser accepts an internal entry only under `ParserOptions.AllowPseudoWords` (D95).
+Enumerations: `WordKind` (Program, Frame, Motion, Tool, Spindle, Function, Cycle, Channel, Flow, Lathe, Resource, Pseudo), `ValueKind` (None, Integer, Decimal, Number, Ident, List, String, Expr, NumberOrExpr, StateKey), `Scope` (None, File, Program, Header, Block, Modal, WithPartner), `AddrKind` (None, Axis, OffsetKind, ToleranceKind, Channel, Role, Function, Variable, Argument, Controller), `Severity` (ERROR, WARNING, INFO, where INFO carries notes that are neither). A diagnostic code is an area prefix and three digits (`PAR`, `VM`, `CFG`, `RDR`, `CMP`, `ANA`, `PLG`, `CLI`), rendered as `file(line): ERROR VM042: message`, with `OriginLine` rendered as `file(line, from 12)` for a diagnostic on a generated block (D98). Comment-only lines and blank lines are not blocks but `Trivia` (line number, text) kept in place; a block keeps its trailing comment text in `Comment` (D92). `StateKeyValue` is the internal value of the pseudo-words `@SAVE` and `@RESTORE`: a state key `KEY[:ADDR]` naming a state variable of the channel, produced only when the parser runs with the option the expander uses for generated text (D95). The catalog entries of `@SAVE` and `@RESTORE` have `WordKind.Pseudo` and `IsInternal = true`; the parser accepts an internal entry only under `ParserOptions.AllowPseudoWords` (D95).
 
 ### 4.1 Parsing
 
@@ -696,13 +696,14 @@ classDiagram
     class Template {
         +string Text
         +List~Placeholder~ Placeholders
-        +string Render(IDictionary~string,object~ values)
-        +bool Matches(string nativeLine, out Dictionary~string,string~ captured)
+        +string Render(TemplateValues values, Block block, Diagnostics diagnostics)
+        +bool Matches(string nativeLine, out TemplateValues captured)
     }
     class Placeholder {
         +string Name
         +string Format
-        +bool Literal
+        +int Width
+        +bool IsText
     }
     class FunctionTable {
         +Dictionary~string,string~ States
@@ -881,13 +882,13 @@ classDiagram
         +void Apply(SourceBlock block)
     }
     class NcxBuilder {
-        +Block Begin(int sourceLine)
+        +NcxBuilder Begin(int sourceLine)
         +NcxBuilder Verb(string verb)
         +NcxBuilder Word(string key, string addr, Value value)
         +NcxBuilder Comment(string text)
         +void Trivia(string text)
         +void End()
-        +void Raw(string controller, string text)
+        +NcxBuilder Raw(string controller, string text)
         +NcxProgram Build()
     }
     IReader <|.. ReaderBase

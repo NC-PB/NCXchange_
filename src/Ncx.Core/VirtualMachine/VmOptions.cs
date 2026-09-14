@@ -50,7 +50,7 @@ public sealed record VmOptions
     public static VmOptions ForMachine(MachineConfig machine)
     {
         // TODO(question): machine-config names no key for the arc tolerance of D36 ("the tolerance from the machine
-        // configuration", virtual machine 3.2); it stays null, the D36 defaults per units, until one is named.
+        // configuration", virtual machine 3.2); it stays null, the D36 defaults per units, until one is named (D139).
         return new VmOptions
         {
             BlockCap = machine.Variables.BlockCap,

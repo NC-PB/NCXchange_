@@ -108,10 +108,10 @@ public sealed class NcxBuilder
     /// <param name="text">The source text as read.</param>
     public NcxBuilder Raw(string controller, string text)
     {
-        // TODO(question): architecture 7 draws Raw(controller, text) as a call of its own that returns nothing, which
-        // reads as a whole RAW block, and gives it no line; the phase plan lists it among the calls of a block. It adds
-        // the word RAW:controller="text" to the block being built, so that a whole source block is
-        // Begin(line).Raw(controller, text).End(), until that is answered.
+        // RAW has the scope block and ranks among the words of its block (language 4.1, 5 rule 6), and a reader
+        // writes DC(), ACP() and ACN() as C= plus RAW in one block (controller-mapping 2). So Raw adds the word
+        // RAW:controller="text" to the block being built; a whole RAW block, ReaderBase.EmitRaw of architecture 7, is
+        // Begin(line).Raw(controller, text).End() (wave-1 question #78).
         return Word(RawKey, controller, new StringValue(text));
     }
 
@@ -191,7 +191,7 @@ public sealed class NcxBuilder
         // NcxProgram.Trivia), and a reader begins each block with the line of its source block (architecture 7). Where
         // the lines of a reader's blocks decrease, as when it moves a section kept below M30 in front of PROGRAM=END
         // (language 4.13), or where two blocks of one source line stand around a trivia line, the writer may place the
-        // trivia line away from its call. The builder keeps the line of the block begun last until that is answered.
+        // trivia line away from its call. The builder keeps the line of the block begun last until D142 is answered.
         _trivia.Add(new Trivia(_lastLine, text));
     }
 

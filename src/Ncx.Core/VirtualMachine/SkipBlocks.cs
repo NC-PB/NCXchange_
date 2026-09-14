@@ -59,7 +59,7 @@ public sealed record SkipBlocks
         // TODO(question): language 4.1 writes a bare SKIP for the unnumbered switch (Fanuc and Siemens /, Heidenhain /)
         // and SKIP=n for switch n, and virtual machine 3.6 names the list form "for numbered switches"; neither says
         // whether a switch list skips a bare SKIP (on Fanuc / and /1 are the same switch). A switch list skips the
-        // numbered blocks only until that is answered; skip_blocks all skips the bare ones.
+        // numbered blocks only until D133 is answered; skip_blocks all skips the bare ones.
         return block.SkipNumber is int number && Switches.Contains(number);
     }
 }

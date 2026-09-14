@@ -37,7 +37,7 @@ internal static class SpindleWords
 
         // TODO(question): the row of SPINDLE_MODE writes "addr = spindle role" where the other spindle words write
         // "optional addr", while language 4.10 says that a word without a role address targets the default resource
-        // of its kind. The catalog keeps the address optional, as 4.10 says for every role address.
+        // of its kind. The catalog keeps the address optional, as 4.10 says for every role address (D113).
         new WordDefinition
         {
             Key = "SPINDLE_MODE",

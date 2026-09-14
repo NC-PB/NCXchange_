@@ -59,7 +59,8 @@ public sealed record CycleCatalog
     }
 
     // TODO(question): a Siemens position without a value takes the default of the cycle (siemens 7), and that default
-    // is not in the documents (VARI of CYCLE83); a block that leaves out a fixed value fits no entry that fixes it.
+    // is not in the documents (VARI of CYCLE83); a block that leaves out a fixed value fits no entry that fixes it
+    // (D181).
 
     /// <summary>
     /// The entry of a native cycle whose fixed values the source block carries: CYCLE83 with VARI=1 is PECK, with
@@ -110,7 +111,7 @@ public sealed record CycleCatalog
 
     // TODO(question): language 4.7 calls n of CYCLE:<controller>=n "the native cycle number of that family" and shows
     // Heidenhain only (251); how a Fanuc cycle (G71 or 71) or a Siemens cycle (CYCLE952) is written as n is not in the
-    // documents. FindNative compares n with the native of an entry as the catalog writes it.
+    // documents. FindNative compares n with the native of an entry as the catalog writes it (D144).
 
     /// <summary>
     /// Whether a native cycle written with this controller address, CYCLE:HEIDENHAIN=251, passes through this catalog:

@@ -182,6 +182,16 @@ public sealed class TemplateSetTests
         ON = "CYCLE832({tol},{mode},{rotary})"
         """;
 
+    // A Fanuc machine whose file has no [format].
+    private const string FanucWithoutFormat = """
+        [machine]
+        name = "Fanuc mill without format"
+        controller = "fanuc"
+
+        [retract]
+        BY = "M140 MB{distance}"
+        """;
+
     // A Fanuc machine whose [format] writes the comma, as no example file does.
     private const string FanucWritingTheComma = """
         [machine]
@@ -488,6 +498,50 @@ public sealed class TemplateSetTests
         Assert.True(template.Matches(text, out TemplateValues captured));
         Assert.True(captured.TryGetNumber("distance", out decimal distance));
         Assert.Equal(2.5m, distance);
+    }
+
+    // The writer of Klartext must produce the comma (controllers heidenhain.md 1, 8 rule 2; differences.md, Numbers;
+    // the machine-config 2 comment: "," for Heidenhain), so a Heidenhain file without decimal_separator writes the
+    // comma (wave-1 question #64).
+    [Fact]
+    public void DecimalSeparator_HeidenhainFileWithoutTheKey_IsTheComma()
+    {
+        TemplateSet templates = Templates(HeidenhainWithoutFormat);
+        var values = new TemplateValues();
+        values.Set("distance", 2.5m);
+
+        Assert.Equal(",", templates.DecimalSeparator);
+        Assert.Equal("M140 MB2,5", Render(templates, "M140 MB{distance}", values));
+    }
+
+    // Fanuc and Siemens write the dot (controllers differences.md, Numbers): a file without decimal_separator writes
+    // the point there (wave-1 question #64).
+    [Theory]
+    [InlineData(SiemensMachine)]
+    [InlineData(FanucWithoutFormat)]
+    public void DecimalSeparator_FanucOrSiemensFileWithoutTheKey_IsThePoint(string toml)
+    {
+        Assert.Equal(".", Templates(toml).DecimalSeparator);
+    }
+
+    // The default machine of D103 names no controller and writes the point, as Fanuc and Siemens do.
+    [Fact]
+    public void DecimalSeparator_DefaultMachine_IsThePoint()
+    {
+        var templates = new TemplateSet(DefaultMachine.Create(), new Diagnostics("default machine"));
+
+        Assert.Equal(".", templates.DecimalSeparator);
+    }
+
+    // decimal_separator of [format], where the file writes it, wins over the controller's default (machine-config 2;
+    // wave-1 question #64).
+    [Theory]
+    [InlineData(HeidenhainWritingThePoint, ".")]
+    [InlineData(CommaMachine, ",")]
+    [InlineData(FanucWritingTheComma, ",")]
+    public void DecimalSeparator_WrittenKey_WinsOverTheController(string toml, string separator)
+    {
+        Assert.Equal(separator, Templates(toml).DecimalSeparator);
     }
 
     // [format] decides what the compiler writes (machine-config 2): a Heidenhain machine whose file says the point

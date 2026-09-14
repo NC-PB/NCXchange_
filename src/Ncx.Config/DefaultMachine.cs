@@ -18,12 +18,13 @@ public static class DefaultMachine
         // One work spindle MAIN with the C axis, one tool holder with the tool spindle TOOL (D103).
         // TODO(question): D103 names both the tool holder and the tool spindle TOOL, and a role resolves to one
         // resource (virtual machine 3.8 rule 1); TOOL is the tool spindle here, and the holder, which has no role, is
-        // the default holder that TOOL and PRELOAD without a role address target (rule 2).
+        // the default holder that TOOL and PRELOAD without a role address target (rule 2; D128).
         // TODO(question): D103 does not say which spindle SPINDLE and RPM without a role address target;
-        // default_spindle is the tool spindle of the default holder, the spindle that turns the tool of a mill program.
+        // default_spindle is the tool spindle of the default holder, the spindle that turns the tool of a mill program
+        // (D129).
         // TODO(question): machine-config names no key for the arc tolerance of D36 ("the tolerance from the machine
         // configuration", virtual machine 3.2); the default machine sets none, so the D36 defaults, 0.01 mm and
-        // 0.0005 in, apply.
+        // 0.0005 in, apply (D139).
         return new MachineConfig
         {
             Machine = new MachineIdentity

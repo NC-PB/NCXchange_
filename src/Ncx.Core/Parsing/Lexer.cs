@@ -115,10 +115,10 @@ internal static class Lexer
                 continue;
             }
 
-            // TODO(question): language 3 lets a semicolon outside a string start the comment, while architecture 4.1
-            // and the phase plan (P0-04) keep the braces of an expression together as well; a semicolon inside braces
-            // is an ERROR either way, of the expression here, of the unclosed brace the other way. The braces are kept
-            // together as architecture 4.1 draws it until that is answered.
+            // Language 3 lets a semicolon outside a string start the comment, and the lexer honours quoted strings
+            // and {...} expressions (architecture 4.1; phase 0, P0-04): a semicolon inside braces belongs to the
+            // expression, which reports it as an ERROR. Read the other way it would be the ERROR of an unclosed brace,
+            // so only the diagnostics of that invalid line differ (wave-1 question #56).
             // The comment starts at the first semicolon outside strings and expressions and runs to the end of the
             // line (language 3, Comment; architecture 4.1).
             if (braceDepth == 0 && character == ';')

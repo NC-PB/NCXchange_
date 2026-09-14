@@ -55,7 +55,7 @@ internal static class TemplatePattern
     // TODO(question): a padded placeholder reads exactly the digits it pads to, so that T{tool:02}{offset:02} splits
     // T0101 into 01 and 01. Whether it also reads a source that leaves the leading zero out (Fanuc T101 for T0101), and
     // what a number wider than its suffix renders to (tool 123 in {tool:02} is written 123, which the pattern does not
-    // read back), is open.
+    // read back), is open (D153).
     private static string GroupOf(Placeholder placeholder, string numberGroup)
     {
         if (placeholder.IsText)

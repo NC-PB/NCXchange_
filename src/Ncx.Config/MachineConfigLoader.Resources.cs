@@ -189,9 +189,9 @@ public static partial class MachineConfigLoader
 
     // More than one resource of a kind without an explicit default in the configuration is an ERROR when the machine
     // is loaded: spindles without default_spindle, tool holders without default_holder (virtual machine 3.8 rule 2).
-    // TODO(question): rule 2 says "of a kind"; the kinds here are what the two defaults serve, the spindles for
-    // default_spindle, work and tool spindles counted together because SPINDLE without an address may target either,
-    // and the tool holders for default_holder.
+    // The kinds are what the two defaults serve: default_spindle serves work and tool spindles alike, so the spindles
+    // are counted together, and default_holder the tool holders (language 4.5, SPINDLE row; 4.10, TOOL "the only
+    // spindle on a mill"; virtual machine 3.8 rule 2; wave-1 question #50).
     private static void CheckDefaults(MachineConfig machine, int line, Diagnostics diagnostics)
     {
         var spindles = new List<string>();

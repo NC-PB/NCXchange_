@@ -66,7 +66,7 @@ internal sealed partial class Evaluator
 
             // FRAC is the part after the decimal point (language 4.12).
             // TODO(question): language 4.12 does not define FRAC of a negative number; FRAC(-2.7) is -0.7, with the
-            // sign of the number, so that INT(x) + FRAC(x) is x, until that is settled.
+            // sign of the number, so that INT(x) + FRAC(x) is x, until D119 is settled.
             ExprFunction.Frac => ExprResult.Of(first - decimal.Truncate(first)),
 
             // ROUND rounds half away from zero (language 4.12): ROUND(2.5) is 3, ROUND(-2.5) is -3.
@@ -86,7 +86,7 @@ internal sealed partial class Evaluator
     // after the ERROR.
     // TODO(question): language 4.12 gives no number of arguments per function, and the parser accepts the grammar's
     // one or more (P0-05); these are the counts the mathematics of each function needs, ROUND without a number of
-    // decimals, until that is settled.
+    // decimals, until D118 is settled.
     private bool ArgumentCountFits(CallNode call)
     {
         if (call.Function is ExprFunction.Min or ExprFunction.Max)
@@ -198,7 +198,7 @@ internal sealed partial class Evaluator
     // ATAN2(y, x): the angle of the point x, y in degrees (language 4.12).
     // TODO(question): language 4.12 names ATAN2 without the order of its arguments, the range of its value or its
     // value at 0, 0; it takes (y, x) and gives -180 to 180, as Siemens ATAN2 and the C library do, and ATAN2(0, 0) is
-    // an ERROR, until that is settled.
+    // an ERROR, until D119 is settled.
     private ExprResult? ArcTangent2(CallNode call, decimal y, decimal x)
     {
         if (y == 0 && x == 0)

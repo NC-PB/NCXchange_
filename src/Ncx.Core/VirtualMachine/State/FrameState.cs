@@ -14,9 +14,8 @@ internal sealed class FrameState
         // units start UNKNOWN (virtual machine 2.1): the program sets them before its first motion (D11, D34).
         Units = Units.Unknown;
 
-        // workplane and origin start from TOML, XY and 0 (virtual machine 2.1).
-        // TODO(question): virtual machine 2.1 takes the start workplane and origin "from TOML (XY)" and "from TOML
-        // (0)", and machine-config names no key for either; they are XY and 0 until it does.
+        // workplane and origin start at XY and 0 (virtual machine 2.1). Configuration defaults apply to source readers
+        // only (D34), so no key of the machine file sets them (wave-1 question #73).
         Workplane = Workplane.XY;
         Origin = 0;
 

@@ -2,7 +2,7 @@
 # Written from controllers/fanuc.md 3 and 6, controller-mapping.md 5, language 4.7 and 4.7.1, and the drilling source examples/sources/BOHREN.fanuc.nc. Not verified on a machine.
 # The drilling family (DRILL, DRILL_DWELL, PECK, CHIP_BREAK, TAP, REAM, BORE) is defined in code; its entries here say which G code and which addresses carry it
 # on a Fanuc machining center. A machine file overrides an entry in its own [cycles] table (machine-config 6), as a lathe does for its drilling codes (see below).
-# TODO(question): machine-config 6 has no key for the kind of a parameter ("Params with their kinds", phase 2 P2-03); every parameter of this file is a number or an expression.
+# TODO(question): machine-config 6 has no key for the kind of a parameter ("Params with their kinds", phase 2 P2-03); every parameter of this file is a number or an expression (D115).
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 # Drilling family, machining centers (fanuc 6, controller-mapping 5)
@@ -12,7 +12,7 @@
 # - CYCLE_RETRACT is the group 10 word of the cycle block: G99 returns to the R level (CLEARANCE), G98 to the initial level (SAFE) (controller-mapping 5).
 # - SAFE is the initial level, the drilling-axis position before the cycle block; it has no address (controller-mapping 5).
 # - SURFACE has no address: R minus the clearance of the machine file, or 0 (controller-mapping 5).
-#   TODO(question): machine-config has no key for that clearance.
+#   TODO(question): machine-config has no key for that clearance (D158).
 # - Z and R are absolute under G90; the reader converts to the absolute DEPTH and CLEARANCE (fanuc 6). Z is the drilling axis of G17; on a mill the drilling axis
 #   is the tool axis of G17..G19 (controller-mapping 5, AXIS), and no address carries AXIS.
 # - K on the cycle block repeats the cycle at incremental steps; the reader expands it into CYCLE_CALL blocks (fanuc 6, controller-mapping 5).
@@ -23,11 +23,11 @@
 # The NCX words of a drilling entry are its params plus the rules above. SURFACE and SAFE (no address on Fanuc) and CYCLE_RETRACT (G98/G99; on Heidenhain and
 # Siemens also a rule, not a parameter) come from these reader and compiler rules in code. So the words that G81, CYCL DEF 200 and CYCLE81 share (SURFACE,
 # CLEARANCE, DEPTH, SAFE, CYCLE_F, CYCLE_DWELL, CYCLE_RETRACT; phase 2 P2-03) are the params of each entry plus the rules of its family, not the params keys alone.
-# TODO(question): machine-config 6 has no key that lists the NCX words an entry carries by a reader or compiler rule instead of a native parameter.
+# TODO(question): machine-config 6 has no key that lists the NCX words an entry carries by a reader or compiler rule instead of a native parameter (D157).
 #
 # CYCLE_DWELL = "P" on every drilling entry: controller-mapping 5 gives CYCLE_F and CYCLE_DWELL as "F and P on the G8x block", and cycle 200 (Q211) and
 # CYCLE81 (DTB) carry the dwell, so a dwell read from them survives on G81. fanuc 6 names the dwell P only for G82 ("G82 adds a dwell P").
-# TODO(question): whether a Fanuc control executes the P of G81, G83, G73, G85 and G86 is not in the documents; the entries follow controller-mapping 5.
+# TODO(question): whether a Fanuc control executes the P of G81, G83, G73, G85 and G86 is not in the documents; the entries follow controller-mapping 5 (D177).
 
 [[cycle]]
 name = "DRILL"
@@ -77,7 +77,7 @@ params = { DEPTH = "Z", CLEARANCE = "R", CYCLE_DWELL = "P", CYCLE_F = "F" }     
 # G83.5/G87.5 and G83.6/G87.6 (controller-mapping 5, D59; examples/POLAR_FACE.ncx: DRILL with AXIS=X is G87). A lathe overrides the mill entries above in
 # its machine file, as doosan-puma-2600sy.toml sketches for G83 with the PECK_MODE functions.
 # TODO(question): the catalog has no key that picks an entry by the drilling axis (AXIS) or by the machine kind (mill or lathe), and the documents do not say
-# which NCX cycle a lathe G85/G89 is; so this family catalog holds no lathe drilling entry.
+# which NCX cycle a lathe G85/G89 is; so this family catalog holds no lathe drilling entry (D160).
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 # Turning cycles of the lathes, G-code system A (gcode_system = "A": the Nakamura, Doosan and Mori Seiki machines of the corpus; fanuc 3 and 6)
@@ -88,27 +88,21 @@ params = { DEPTH = "Z", CLEARANCE = "R", CYCLE_DWELL = "P", CYCLE_F = "F" }     
 # On mills and in the systems B and C the same numbers are absolute programming, the coordinate set and the feed per minute; the readers select their tables by
 # gcode_system (fanuc 3). System B writes the three cycles as G77/G78/G79 (fanuc 3, controller-mapping 5).
 # TODO(question): the catalog has no key that ties an entry to a G-code system; and for system C fanuc 3 gives G20/G21/G24 while controller-mapping 5 and
-# language 4.7.1 give G77/G78/G79 "in B and C". Only the system A entries are written.
-# TODO(question): R (the taper of a pass, fanuc 6) has no NCX word.
+# language 4.7.1 give G77/G78/G79 "in B and C". Only the system A entries are written (D174).
+# TODO(question): R (the taper of a pass, fanuc 6) has no NCX word (D175).
 
 [[cycle]]
 name = "TURN_OD"
 native = "G90"
 modal = true
 params = { CYCLE_F = "F" }                                                             # G90 X60. Z-70. F0.3 cuts one pass (language 4.7.1)
-
-[[cycle]]
-name = "TURN_ID"
-native = "G90"
-modal = true
-params = { CYCLE_F = "F" }
-# TODO(question): TURN_OD and TURN_ID are both G90 (OD/ID, fanuc 6); the documents do not say how the reader tells them apart.
+# G90 turns outer and inner diameters alike: one cycle, TURN_OD (language 4.7.1, controller-mapping 5; wave-1 question #17).
 
 [[cycle]]
 name = "THREAD"
 native = "G92"
 modal = true
-# TODO(question): fanuc 6 names G92 the thread cycle but does not describe its F; whether F is PITCH (the thread lead) is open, so no parameter is mapped.
+# TODO(question): fanuc 6 names G92 the thread cycle but does not describe its F; whether F is PITCH (the thread lead) is open, so no parameter is mapped (D175; the NCX name of G92 is D161).
 
 [[cycle]]
 name = "FACE"
@@ -119,9 +113,9 @@ params = { CYCLE_F = "F" }                                                      
 # G70..G76 (finish, rough OD, rough face, pattern repeat, face cut-off, OD groove, compound thread) are one-shot blocks (fanuc 6, language 4.7.1): modal = false.
 # P and Q of every one of them name the first and the last block of the contour that follows (fanuc 6, controller-mapping 5, language 4.7.1); NCX carries the
 # contour as a SUB section of the file, referenced by CONTOUR=name on the cycle block (D65, language 4.7): contour = ["P", "Q"] (machine-config 6).
-# TODO(question): the other words of G70..G76 (depth of cut, allowances, retract, thread data) are not described in fanuc.md; no parameter is mapped.
+# TODO(question): the other words of G70..G76 (depth of cut, allowances, retract, thread data) are not described in fanuc.md; no parameter is mapped (D175).
 # TODO(question): G73 (pattern repeat) and G74 (face cut-off) have no NCX name in the documents, and their numbers are CHIP_BREAK and left-hand tapping on a mill;
-# not written.
+# not written (D176).
 
 [[cycle]]
 name = "FINISH"
@@ -155,4 +149,4 @@ contour = ["P", "Q"]
 
 # GROOVE and COMPOUND_THREAD carry the contour range as fanuc 6, controller-mapping 5, language 4.7.1 and phase 2 P2-03 ("G70..G76 with Contour") say.
 # TODO(question): an OD groove and a compound thread have no contour blocks, and the Fanuc lathe manuals (not among the documents) use P and Q of G74..G76 for
-# infeeds and thread data. Taking contour off G75 and G76 needs a decision row that amends fanuc 6, controller-mapping 5 and language 4.7.1.
+# infeeds and thread data. Taking contour off G75 and G76 needs a decision row that amends fanuc 6, controller-mapping 5 and language 4.7.1 (D176).

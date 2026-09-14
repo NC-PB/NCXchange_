@@ -305,7 +305,7 @@ public sealed class ExprParser
         }
 
         // TODO(question): language 4.12 gives no number of arguments per function (ATAN2 two, MIN and MAX two or
-        // more?); the parser accepts what the grammar accepts, one or more, until that is settled.
+        // more?); the parser accepts what the grammar accepts, one or more, until D118 is settled.
         var arguments = new List<ExprNode>();
         do
         {

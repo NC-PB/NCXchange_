@@ -65,10 +65,9 @@ internal sealed class ChannelState
             Coolant[channel] = false;
         }
 
-        // The named functions come from TOML (virtual machine 2.5).
-        // TODO(question): virtual machine 2.5 gives function[name] the start value "from TOML", and machine-config 5
-        // names the states of a function but no start state; every function starts without a state until FUNC sets
-        // one.
+        // The named functions come from TOML (virtual machine 2.5): every [func] entry of the machine, without a state
+        // until FUNC sets one. Configuration defaults apply to source readers only (D34), so no key of the machine
+        // file gives a function a start state (wave-1 question #74).
         foreach (string function in machine.Functions.Keys)
         {
             Functions[function] = null;

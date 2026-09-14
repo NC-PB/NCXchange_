@@ -1,9 +1,8 @@
 namespace Ncx.Core.Machine;
 
-// TODO(question): the documents say the family is "defined in the same way inside NCXchange" (machine-config 6) and
-// "defined in code" (phase 2, P2-03), not where. It lives with the records of the machine model in Ncx.Core, so that
-// the virtual machine, which runs the built-in family itself (virtual machine 3.3), and the loader in Ncx.Config both
-// reach it.
+// The family is "defined in the same way inside NCXchange" (machine-config 6) and "defined in code" (phase 2, P2-03).
+// It lives with the records of the machine model in Ncx.Core (D107), so that the virtual machine, which runs the
+// built-in family itself (virtual machine 3.3), and the loader in Ncx.Config both reach it (wave-1 question #66).
 
 /// <summary>
 /// The built-in drilling family of language 4.7, DRILL, DRILL_DWELL, PECK, CHIP_BREAK, TAP, REAM and BORE, defined in

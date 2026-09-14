@@ -19,7 +19,7 @@ variable) sort under their rank by the address text. The ten verbs share one ran
 | 60 | `NAME` | string; with `SUB=BEGIN`: integer, string, identifier |  |  |  | with partner | 4.1 | Program name with PROGRAM=BEGIN, name of a subprogram section with SUB=BEGIN (4.9, 4.13), optional program selector with START_CHANNEL (4.8); an identifier or an integer names a subprogram section only (D90). |
 | 70 | `NUMBER` | integer |  |  |  | with partner | 4.1 | Program number (Fanuc O0001), with PROGRAM=BEGIN. |
 | 80 | `CHANNEL` | integer |  |  |  | header | 4.1 | Channel the program runs on, a header word after PROGRAM=BEGIN; default 1 (4.14). |
-| 90 | `SHIFT` | none, `RESET` | verb | carries |  | modal | 4.2 | Datum shift in the active frame, appended to the frame chain; SHIFT=RESET removes the shifts and what follows them. |
+| 90 | `SHIFT` | none, `RESET` | verb | carries |  | modal | 4.2 | Datum shift in the active frame, appended to the frame chain; SHIFT=RESET removes the last shift and what follows it. |
 | 90 | `TILT` | none, `RESET` | verb | carries |  | modal | 4.2 | Tilted working plane by the spatial angles A, B, C, appended to the chain; TILT=RESET removes it and what follows. |
 | 90 | `TILT_AXIS` | none, `RESET` | verb | carries |  | modal | 4.2 | Tilted working plane by the rotary axis positions of this machine, appended to the chain; TILT_AXIS=RESET removes it and what follows (D82). |
 | 90 | `SETPOS` | none | verb | carries |  | block | 4.2 | Declares that the current position has these coordinates in the active workpiece frame; nothing moves (D55, D101). |

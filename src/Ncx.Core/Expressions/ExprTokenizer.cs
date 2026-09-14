@@ -57,7 +57,7 @@ internal static class ExprTokenizer
             // ADDR (language 4.9, 4.12). Keys, addresses and identifiers are uppercase and a parser may accept
             // lowercase and normalize (language 3, Case), so a variable name in lowercase is normalized.
             // TODO(question): language 3, Case, does not say whether function names and the words AND, OR, NOT and
-            // MOD count as identifiers; they are normalized like the variable names until that is settled.
+            // MOD count as identifiers; they are normalized like the variable names until D112 is settled.
             if (char.IsAsciiLetter(character))
             {
                 int end = index + 1;

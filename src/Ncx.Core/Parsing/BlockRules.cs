@@ -30,14 +30,15 @@ internal static class BlockRules
     // PROGRAM=BEGIN, SUB=BEGIN or START_CHANNEL, NUMBER with PROGRAM=BEGIN, CHANNEL as a header word, the cycle
     // parameters with CYCLE, TOLERANCE:ROTARY only with TOLERANCE (language 4.1, 4.7). Neither rule 5 nor the
     // validation list of virtual machine 5 makes their absence an ERROR of the parser, so only the words of rule 5 are
-    // checked here until that is answered; the header words are read from the PROGRAM=BEGIN block only.
+    // checked here until D116 is answered; the header words are read from the PROGRAM=BEGIN block only.
     private static readonly Dictionary<string, string[]> s_partners = new()
     {
         ["IF"] = ["JUMP", "CALL"],
 
-        // TODO(question): the phase plan (P0-04) pairs ARG and TIMES with CALL or REPEAT, while language 4.9 makes ARG
-        // the argument of the CALL in its block only; ARG is accepted with either until that is answered.
-        ["ARG"] = ["CALL", "REPEAT"],
+        // ARG is the argument of the CALL in the same block, which the callee sees as a local variable, and a REPEAT
+        // has no callee; TIMES counts the passes of a CALL or of a REPEAT (language 4.9, rows ARG and TIMES; virtual
+        // machine 3.6, 5; wave-1 question #57).
+        ["ARG"] = ["CALL"],
         ["TIMES"] = ["CALL", "REPEAT"],
         ["WITH"] = ["SYNC"],
         ["FRAME"] = ["RAPID", "LINE", "ARC", "RETRACT", HomeKey, "CYCLE_CALL"],
@@ -99,7 +100,7 @@ internal static class BlockRules
     // axis words for SHIFT and SETPOS, the spatial angles A, B, C for TILT and the rotary axis angles of this machine
     // for TILT_AXIS; neither says whether TILT and TILT_AXIS refuse a linear axis word (TILT X=1) or whether the four
     // take the incremental forms (SHIFT IX=5). Every axis name, absolute or incremental, standard or of the D93 form,
-    // stands under the four until that is answered; only the axis words that name no axis are refused.
+    // stands under the four until D117 is answered; only the axis words that name no axis are refused.
     private static void CheckAxisWords(Block block, Diagnostics diagnostics)
     {
         bool nativeBlock = WordCatalog.IsNativeParameterAllowed(block);

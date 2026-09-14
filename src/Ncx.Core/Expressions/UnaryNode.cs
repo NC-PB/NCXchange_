@@ -21,7 +21,7 @@ public sealed record UnaryNode(UnaryOperator Operator, ExprNode Operand) : ExprN
 
         // TODO(question): the phase file (P0-05) writes NOT, like the minus, directly before its operand, but its own
         // case {$Q1 < $Q2 AND NOT $Q3} has a space, and NOT written directly before a function name reads back as one
-        // name (NOTSIN). NOT is written with one space until the canonical text of NOT is settled.
+        // name (NOTSIN). NOT is written with one space until the canonical text of NOT is settled (D112).
         return ExprSymbols.Of(Operator) + " " + Operand.ToCanonical();
     }
 }

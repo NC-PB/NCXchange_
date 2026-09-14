@@ -52,7 +52,7 @@ spindle = "S3"
 magazine = false
 
 # D100: home and limits are machine coordinates (the G53 frame); the reference point is the machine zero of every linear axis. The limits of a C axis are its display range, not a travel limit.
-# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters.
+# TODO(question): machine-config 4 does not say whether home, limits and [positions] of an X axis programmed in diameters (D60) are diameters, as the control shows them, or radii, as the VM stores X (VM 3.1); the X values of this file are diameters (D137).
 
 [[axis]]
 id = "X1"
@@ -119,7 +119,7 @@ home = 0
 [[axis]]
 id = "C2"
 ncx = "C2"                         # a program writes C; the VM resolves it to C2 while the sub spindle holds the workpiece (VM 3.8 rule 3)
-# TODO(question): docs/ does not give the address of the sub spindle C axis on the Puma 2600SY; C is written here, as for the Nakamura.
+# TODO(question): docs/ does not give the address of the sub spindle C axis on the Puma 2600SY; C is written here, as for the Nakamura (D179).
 letter = "C"
 incremental_letter = "H"
 kind = "rotary"

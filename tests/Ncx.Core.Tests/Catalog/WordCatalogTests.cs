@@ -314,8 +314,8 @@ public sealed class WordCatalogTests
             Assert.Single(name.ValueKindsWithPartner));
     }
 
-    // SHIFT=RESET removes the shifts from the frame chain and stands with the frame words; it is not the verb
-    // (language 4.2, 5 rule 6 bucket 12, D90).
+    // SHIFT=RESET removes the last shift and what follows it from the frame chain and stands with the frame words; it
+    // is not the verb (language 4.2, 5 rule 6 bucket 12, D31, D90).
     [Theory]
     [InlineData("SHIFT=RESET")]
     [InlineData("TILT=RESET")]

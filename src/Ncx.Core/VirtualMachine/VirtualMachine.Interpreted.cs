@@ -263,7 +263,7 @@ public sealed partial class VirtualMachine
     // REPEAT=label repeats the blocks from the label to this block TIMES more times (language 4.9, virtual machine
     // 3.6): the first time the flow reaches the block, a repeat with its passes goes on the repeat stack and pc goes
     // back to the label; every later time one pass is used, until none is left and the flow goes on after the block.
-    // ARG with REPEAT, which the parser accepts (wave-1 question #57), gives nothing a value: a REPEAT has no callee.
+    // A REPEAT assigns no ARG: an ARG stands only beside a CALL (language 4.9, 5 rule 5; wave-1 question #57).
     // Returns the pc to continue at; null when an ERROR stopped the run.
     // TODO(question): language 4.9 repeats the blocks "TIMES more times" and virtual machine 3.6 speaks of "REPEAT with
     // TIMES"; neither says what a REPEAT without TIMES does. It repeats them once, as a Heidenhain CALL LBL without REP

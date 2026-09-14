@@ -370,7 +370,7 @@ public sealed partial class VirtualMachine
     // state words of step 3.
     // TODO(question): language 5 rule 2 gives the frame verbs their own axis words without saying whether they take
     // the incremental forms (SHIFT IX=5, SETPOS IC=0); the parser lets them stand (BlockRules), and they change nothing
-    // here until that is answered.
+    // here until D117 is answered.
     private void ApplyFrameVerb(BlockContext context)
     {
         switch (context.Block.Verb?.Key)
@@ -393,7 +393,7 @@ public sealed partial class VirtualMachine
     // SHIFT X=60 Y=40 Z=-5: a datum shift in the frame active where the word stands, appended to the chain and folded
     // into the position; omitted axes are 0 (language 4.2, virtual machine 3.4, D31).
     // TODO(question): D60 halves "X" under DIAMETER=ON and keeps "other radial distances" radius values; whether the X
-    // of a SHIFT, a distance of the frame, is a diameter is not said. It is kept as written, like CENTER:IX, until that
+    // of a SHIFT, a distance of the frame, is a diameter is not said. It is kept as written, like CENTER:IX, until D125
     // is answered.
     private void ApplyShift(BlockContext context)
     {
@@ -479,7 +479,7 @@ public sealed partial class VirtualMachine
 
         // TODO(question): virtual machine 3.4 says the rotary axis positions are known from the TILT_AXIS words
         // without naming the frame; they are the axis positions of this machine (language 4.2) and are kept in the
-        // MACHINE frame until that is answered.
+        // MACHINE frame until D126 is answered.
         foreach (KeyValuePair<string, decimal?> axisAngle in axisAngles)
         {
             _state.Motion.Position[axisAngle.Key] = axisAngle.Value is decimal known
@@ -601,7 +601,7 @@ public sealed partial class VirtualMachine
     // act inside their block only. A HOME that found no reference point is "directly before" a SETPOS only until
     // another block names the axis (D101).
     // TODO(question): D101 accepts SETPOS "directly after a HOME of that axis" without saying whether a block that
-    // does not name the axis may stand between them (POLAR_FACE has none); it may, until that is answered.
+    // does not name the axis may stand between them (POLAR_FACE has none); it may, until D127 is answered.
     private void ResetBlockScope(BlockContext context)
     {
         _state.Frame.MachineFrameBlock = false;

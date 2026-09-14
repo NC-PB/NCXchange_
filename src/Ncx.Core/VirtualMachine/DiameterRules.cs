@@ -33,10 +33,9 @@ internal static class DiameterRules
         }
 
         // Under AXIS=X the drilling axis is X and the coordinates along it are X values, diameters like every other X
-        // (language 4.7, virtual machine 3.3, D59, D60).
-        // TODO(question): language 4.7 names SURFACE, CLEARANCE and DEPTH as the X values of an AXIS=X cycle, and SAFE,
-        // the fourth absolute coordinate along the drilling axis, is not named; it is halved with them until that is
-        // answered.
+        // (language 4.7, virtual machine 3.3, D59, D60). SAFE is one of them: the X values of an AXIS=X cycle are
+        // halved like every other X (virtual machine 3.3, D60), and SAFE is an absolute coordinate along the drilling
+        // axis as SURFACE, CLEARANCE and DEPTH are (language 4.2, DIAMETER row; 4.7; wave-1 question #98).
         return cycleAxis == "X" && s_drillingAxisCoordinates.Contains(word.Key);
     }
 

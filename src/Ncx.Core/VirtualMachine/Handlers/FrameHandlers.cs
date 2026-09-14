@@ -136,7 +136,7 @@ internal static class FrameHandlers
     private static void ApplyMirror(Word word, BlockContext context)
     {
         // TODO(question): language 4.2 gives MIRROR the value OFF where the other chain words have RESET; OFF is read
-        // as the reset form of the mirror, cutting the chain at the last mirror, until that is answered.
+        // as the reset form of the mirror, cutting the chain at the last mirror, until D124 is answered.
         if (BlockContext.IdentOf(word) == "OFF")
         {
             FrameRules.Cut(context.State, TransformKind.Mirror);

@@ -56,7 +56,7 @@ internal sealed class ResourceResolver
     public string? ResolveSpindle(string? role, Block block, ChannelState state, Diagnostics diagnostics)
     {
         // TODO(question): D103 creates a resource on the spot for a role the default machine lacks without saying of
-        // which kind for a spindle word; it is a work spindle, which D103 gives a rotary axis of its own.
+        // which kind for a spindle word; it is a work spindle, which D103 gives a rotary axis of its own (D170).
         return Resolve(role, _machine.ResolveDefaultSpindle(), static resource => resource.IsSpindle, "spindle",
             ResourceType.WorkSpindle, block, state, diagnostics);
     }
@@ -233,7 +233,7 @@ internal sealed class ResourceResolver
 
         // TODO(question): language 4.6 addresses "a named channel from the machine configuration", and neither virtual
         // machine 3.8 nor 5 says what a channel the configuration does not name is; it is treated like an unknown
-        // function: an ERROR with a machine file, the D103 WARNING without one.
+        // function: an ERROR with a machine file, the D103 WARNING without one (D130).
         if (!WithoutMachineFile)
         {
             diagnostics.Error(block, DiagnosticCodes.UnknownCoolantChannel,
@@ -360,7 +360,7 @@ internal sealed class ResourceResolver
     // In SPINDLE mode, C= on the axis of a work spindle is an ERROR; in AXIS mode it is allowed (rule 4). The words
     // that command or declare the position of an axis are those of the motion verbs and of SETPOS.
     // TODO(question): rule 4 names C= without naming the verbs; a C word under SHIFT or TILT_AXIS is a shift or an
-    // angle, not a position of the spindle, and is not checked until that is answered.
+    // angle, not a position of the spindle, and is not checked until D131 is answered.
     private void CheckSpindleAxisWords(BlockContext context)
     {
         if (context.Block.Verb?.Key is not ("RAPID" or "LINE" or "ARC" or "CYCLE_CALL" or "SETPOS"))
@@ -442,7 +442,7 @@ internal sealed class ResourceResolver
     private ResourceDef CreateOnTheSpot(string role, ResourceType type)
     {
         // TODO(question): D103 names neither the id of a resource created on the spot nor the name of the rotary axis
-        // of a work spindle created so; the resource takes the role as its id and the axis is C_ and the role.
+        // of a work spindle created so; the resource takes the role as its id and the axis is C_ and the role (D170).
         ResourceDef created = type == ResourceType.WorkSpindle
             ? new ResourceDef { Id = role, Type = type, Axis = CreatedAxisPrefix + role }
             : new ResourceDef { Id = role, Type = type };

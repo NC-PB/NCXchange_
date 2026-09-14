@@ -134,6 +134,24 @@ public sealed class DrillingFamilyTests
         Assert.Equal(0m, siemens.Find("CHIP_BREAK")?.Fixed["VARI"]);
     }
 
+    // Siemens 7: "The cycle feed is the modal F", CYCLE85 has its own FFR; so BORE on CYCLE86 takes CYCLE_F from the
+    // modal F as DRILL, DRILL_DWELL, PECK and CHIP_BREAK do, as an address word before the call and no position of
+    // the signature (machine-config 6; wave-1 question #24). TAP on CYCLE84 waits for D181.
+    [Theory]
+    [InlineData("DRILL", "F")]
+    [InlineData("DRILL_DWELL", "F")]
+    [InlineData("PECK", "F")]
+    [InlineData("CHIP_BREAK", "F")]
+    [InlineData("REAM", "FFR")]
+    [InlineData("BORE", "F")]
+    public void Catalog_SiemensCycleFeed_IsTheModalFOrTheOwnFeedOfCycle85(string name, string feed)
+    {
+        CycleEntry? entry = DrillingFamily.Catalog(Controller.Siemens).Find(name);
+
+        Assert.NotNull(entry);
+        Assert.Equal(feed, entry.CycleF);
+    }
+
     // Controller-mapping 5: the Fanuc pitch is F / S, or F in the per-revolution mode; no address carries PITCH, a
     // rule of the reader and the compiler does.
     [Fact]
