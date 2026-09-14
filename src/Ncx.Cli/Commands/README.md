@@ -6,4 +6,6 @@ One class per command of architecture 10. `FormatCommand.cs` shows the shape: `C
 
 `ConvertCommand.cs` takes a controller program, `--machine` (required unless `ncx.toml` names the machine, D77), `--output <file>` and `--strict`; `Create(readers, output, error)` gets the readers that `../Program.cs` registers, and `Run(...)` reads the program with the reader of the machine's controller, writes it with `NcxWriter` and checks it STATIC.
 
+`AnalyzeCommand.cs` takes the file, `--machine`, `--vars`, `--from` and `--to` (D67), `--analytic tools,runtime`, `--static`, `--format text|csv`, `--skip-blocks` and `--strict` (`AnalyzeSettings.cs` holds what goes beyond the run); `Create(analytics, output, error)` gets the analytics that `../Program.cs` registers, and `Run(...)` hands `../Pipeline.cs` a factory that makes them for the machine of the run, then writes their reports.
+
 Never here: the pipeline itself. A command stays thin and calls the stages of `Ncx.Core` and the other projects (phase 0, risks).

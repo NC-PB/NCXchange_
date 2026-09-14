@@ -9,10 +9,10 @@ using Ncx.Core.VirtualMachine.Events;
 namespace Ncx.Cli;
 
 /// <summary>
-/// The stages that ncx check, trace and annotate share, in the order of virtual machine 1 and architecture 10: read the
-/// file and the machine file, load the machine, parse, expand, run STATIC (or INTERPRETED for trace --interpreted),
-/// collect the diagnostics. The three commands differ only in the listeners they subscribe and in what they write of
-/// the run.
+/// The stages that ncx check, trace, annotate and analyze share, in the order of virtual machine 1 and architecture 10:
+/// read the file and the machine file, load the machine, parse, expand, run STATIC (or INTERPRETED for trace
+/// --interpreted and analyze), collect the diagnostics. The commands differ only in the listeners they subscribe and
+/// in what they write of the run.
 /// </summary>
 internal static class Pipeline
 {
@@ -26,6 +26,19 @@ internal static class Pipeline
     /// <param name="settings">The file, the machine and the shared options of the command line.</param>
     /// <param name="listeners">The listeners of the run, which trace and annotate subscribe; none for check.</param>
     public static PipelineRun Run(RunSettings settings, IReadOnlyList<IVmListener> listeners)
+    {
+        return Run(settings, (_, _) => listeners);
+    }
+
+    /// <summary>
+    /// Runs the stages for one NCX file with listeners made for the machine of the run, which the analytics of ncx
+    /// analyze read (architecture 9; machine-config 4, 5).
+    /// </summary>
+    /// <param name="settings">The file, the machine and the shared options of the command line.</param>
+    /// <param name="listenersFor">Makes the listeners of the run once the machine is loaded, from the machine and the
+    /// name of its file, null for the built-in default machine; not called when the run does not start.</param>
+    public static PipelineRun Run(RunSettings settings,
+        Func<MachineConfig, string?, IReadOnlyList<IVmListener>> listenersFor)
     {
         var diagnostics = new Diagnostics(settings.File);
 
@@ -83,11 +96,11 @@ internal static class Pipeline
         NcxProgram expanded = Expander.Expand(program, machine, []);
         bool runnable = !expanded.Diagnostics.HasErrors;
 
-        // Run STATIC, the mode of check (virtual machine 1, D91), or INTERPRETED under trace --interpreted (virtual
-        // machine 1, 3.6), with the run options of the command line (D37, D53) over the options the machine file gives
-        // (machine-config 7). An ERROR of the parser or the expander stops the run before its first block (virtual
-        // machine 2.9). An INTERPRETED run loads the external programs its CALLs name from the working directory
-        // (virtual machine 3.6).
+        // Run STATIC, the mode of check (virtual machine 1, D91), or INTERPRETED under trace --interpreted and for
+        // analyze (virtual machine 1, 3.6), with the run options of the command line (D37, D53) over the options the
+        // machine file gives (machine-config 7). An ERROR of the parser or the expander stops the run before its first
+        // block (virtual machine 2.9). An INTERPRETED run loads the external programs its CALLs name from the working
+        // directory (virtual machine 3.6).
         VmOptions options = VmOptions.ForMachine(machine) with
         {
             SkipBlocks = settings.SkipBlocks,
@@ -100,7 +113,7 @@ internal static class Pipeline
                 ? name => LoadExternalProgram(name, settings.WorkingDirectory, machine)
                 : null,
         };
-        foreach (IVmListener listener in listeners)
+        foreach (IVmListener listener in listenersFor(machine, runMachine.FileName))
         {
             vm.Subscribe(listener);
         }

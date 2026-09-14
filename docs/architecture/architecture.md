@@ -1066,7 +1066,7 @@ The API is shaped for NC programmers with little C# (code-guidelines.md, section
 | `ncx compile --job <job.toml>` | job manifest | parser per channel, job compiler | one NC file per channel |
 | `ncx format <file.ncx> [--check] [--output <file>]` | NCX | parser, NcxWriter | canonical text to stdout or `--output`; with `--check` no output, exit 1 on a difference |
 | `ncx check <file.ncx> [--machine <toml>] [--skip-blocks none\|all\|1,3] [--expand-cycles]` | NCX | parser, expander, VM STATIC | diagnostics only |
-| `ncx analyze <file.ncx or job> [--machine <toml>] [--vars file] [--from n --to m]` | NCX | parser, VM INTERPRETED, analytics over the block range | text tables |
+| `ncx analyze <file.ncx or job> [--machine <toml>] [--vars <toml>] [--from <line>] [--to <line>] [--analytic tools,runtime] [--static] [--format text\|csv] [--skip-blocks none\|all\|1,3]` | NCX | parser, expander, VM INTERPRETED (STATIC under `--static`) with `ExpandCycles`, analytics over the block range | the reports of the analytics `--analytic` names, all without it, in aligned text or CSV (VM 8) |
 | `ncx trace <file.ncx> [--format text\|csv]` with the options of `check` | NCX | parser, expander, VM STATIC | one row per changed state variable per executed block: channel, block, variable, old, new (VM 6), in aligned text or CSV |
 | `ncx annotate <file.ncx>` with the options of `check` | NCX | parser, expander, VM STATIC | the program with the previous values appended to each block's comment (VM 6) |
 | `ncx plugin new <name>`, `build`, `check`, `test` | template | copies the plugin template, builds it into `plugins/`, registers it in `ncx.toml`, loads and lists a DLL's interfaces | a runnable plugin without knowing `dotnet new` |

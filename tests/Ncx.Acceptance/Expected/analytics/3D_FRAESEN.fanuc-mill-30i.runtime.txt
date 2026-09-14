@@ -1,0 +1,24 @@
+Runtime estimate: 3D_FRAESEN.ncx, the whole file, on fanuc-mill-30i.toml, INTERPRETED run
+An estimate from the values of the machine file, not a measured cycle time (virtual machine 8, D64).
+Motions: trapezoidal profile (virtual machine 8, D64), path_mode continuous, corner_speed 2000 mm/min, block_time 0.001 s.
+
+axis  rapid (mm/min)  max_feed (mm/min)  acceleration (mm/s^2)
+X     36000           20000              4000
+Y     36000           20000              4000
+Z     30000           20000              3500
+
+spindle  accel_time (s)
+S1       1.5
+
+tool  holder  seconds  time
+1     H1      191.5    0:03:12
+
+section                     line  seconds  time
+(before the first SECTION)        191.5    0:03:12
+
+channel  seconds  time
+1        191.5    0:03:12
+
+Not timed: 4 motions of unknown length, 0 motions without a known feed or rapid rate, 0 cycle calls whose motions the virtual machine does not know, 0 dwells of unknown seconds.
+Not in the estimate: the travel of rotary axes (0 motions turned one; the runtime of rotary moves belongs to the kinematics module, virtual machine 9), tool changes, waits at marks.
+Estimated time: 191.5 s (0:03:12), the longest channel.

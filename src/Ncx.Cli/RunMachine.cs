@@ -30,6 +30,12 @@ internal sealed record RunMachine
     /// </summary>
     public bool IsDefault { get; init; }
 
+    /// <summary>
+    /// The machine file as the diagnostics name it, which the reports of ncx analyze name as well (implementation 14,
+    /// risks); null for the built-in default machine.
+    /// </summary>
+    public string? FileName { get; init; }
+
     // A file that cannot be found or read: the run does not start, exit code 2 (D97).
     private static RunMachine NotRead => new() { InputsRead = false };
 
@@ -104,7 +110,7 @@ internal sealed record RunMachine
             return Stopped;
         }
 
-        return WithCatalog(machine, machineFile, folders, diagnostics);
+        return WithCatalog(machine, machineFile, folders, diagnostics) with { FileName = machineFile.Name };
     }
 
     // A name that no machine folder holds and that is no file either is a missing machine file where one is named,

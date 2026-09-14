@@ -1,6 +1,9 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Text;
+using Ncx.Analytics;
+using Ncx.Analytics.Runtime;
+using Ncx.Analytics.ToolList;
 using Ncx.Cli.Commands;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
@@ -13,7 +16,7 @@ namespace Ncx.Cli;
 /// <summary>
 /// The composition root of ncx (code-guidelines 5): the root command with its commands, built by hand, run once. The
 /// commands of architecture 10 join as their tasks arrive: ncx format (phase 0, P0-06), then check, trace and annotate
-/// (phase 1, P1-07), then convert (phase 3, P3-02).
+/// (phase 1, P1-07), then convert (phase 3, P3-02), then analyze (phase 4, P4-02).
 /// </summary>
 internal static class Program
 {
@@ -52,6 +55,7 @@ internal static class Program
             TraceCommand.Create(output, error),
             AnnotateCommand.Create(output, error),
             ConvertCommand.Create(Readers(), output, error),
+            AnalyzeCommand.Create(Analytics(), output, error),
         };
 
         // A usage error is reported as a diagnostic and decides exit code 2 before the run starts (D97, D98;
@@ -85,5 +89,17 @@ internal static class Program
         readers.Register(Controller.Fanuc, () => new FanucReader());
         readers.Register(Controller.Heidenhain, () => new HeidenhainReader());
         return readers;
+    }
+
+    /// <summary>
+    /// The analytics by the name ncx analyze --analytic takes, one registration line each (architecture 9; D67;
+    /// code-guidelines 5, Registry).
+    /// </summary>
+    internal static AnalyticsRegistry Analytics()
+    {
+        var analytics = new AnalyticsRegistry();
+        analytics.Register("tools", options => new ToolListAnalytic(options));
+        analytics.Register("runtime", options => new RuntimeAnalytic(options));
+        return analytics;
     }
 }

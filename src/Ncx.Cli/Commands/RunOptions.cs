@@ -26,14 +26,7 @@ internal sealed class RunOptions
 
     private readonly Option<bool> _strict = StrictOption();
 
-    private readonly Option<SkipBlocks> _skipBlocks = new("--skip-blocks")
-    {
-        Description = "Which SKIP blocks the virtual machine skips: none (the default), all, or the block skip "
-            + "switches that are on, 1,3.",
-        HelpName = "none|all|1,3",
-        DefaultValueFactory = _ => SkipBlocks.None,
-        CustomParser = ParseSkipBlocks,
-    };
+    private readonly Option<SkipBlocks> _skipBlocks = SkipBlocksOption();
 
     private readonly Option<bool> _expandCycles = new("--expand-cycles")
     {
@@ -66,6 +59,22 @@ internal sealed class RunOptions
     public static Option<bool> StrictOption()
     {
         return new Option<bool>("--strict") { Description = "Exit with 1 on a WARNING as well." };
+    }
+
+    /// <summary>
+    /// --skip-blocks, the run option skip_blocks on the command line: none, all, or the block skip switches that are
+    /// on (D53, language 4.1); check, trace, annotate and analyze accept it.
+    /// </summary>
+    public static Option<SkipBlocks> SkipBlocksOption()
+    {
+        return new Option<SkipBlocks>("--skip-blocks")
+        {
+            Description = "Which SKIP blocks the virtual machine skips: none (the default), all, or the block skip "
+                + "switches that are on, 1,3.",
+            HelpName = "none|all|1,3",
+            DefaultValueFactory = _ => SkipBlocks.None,
+            CustomParser = ParseSkipBlocks,
+        };
     }
 
     /// <summary>
