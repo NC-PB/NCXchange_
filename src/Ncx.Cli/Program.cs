@@ -61,6 +61,7 @@ internal static class Program
             ConvertCommand.Create(Readers(), output, error),
             AnalyzeCommand.Create(Analytics(), output, error),
             CompileCommand.Create(Compilers(), error),
+            PluginCommand.Create(output, error),
         };
 
         // A usage error is reported as a diagnostic and decides exit code 2 before the run starts (D97, D98;

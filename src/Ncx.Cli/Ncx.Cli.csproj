@@ -41,4 +41,15 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    The plugin template next to the tool, in templates/ncx-plugin/ of its own folder, which ncx plugin new copies
+    (code-guidelines 11; implementation 17, P7-02); what a build of the template in its own folder leaves in bin/ and
+    obj/ is no part of it.
+  -->
+  <ItemGroup>
+    <None Include="../../templates/ncx-plugin/**"
+          Exclude="../../templates/ncx-plugin/**/bin/**;../../templates/ncx-plugin/**/obj/**"
+          Link="templates/ncx-plugin/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

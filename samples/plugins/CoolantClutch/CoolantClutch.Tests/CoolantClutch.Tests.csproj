@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The tests of the coolant clutch sample, run with the tests of the solution (implementation 17, P7-02). They run the
+    rule without ncx, so Ncx.Plugins and what it brings are referenced and copied here.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../CoolantClutch.csproj" />
+    <ProjectReference Include="../../../../src/Ncx.Plugins/Ncx.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Ncx.Config" />
+    <Using Include="Ncx.Core.Expander" />
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.Parsing" />
+    <Using Include="Ncx.Core.Writing" />
+  </ItemGroup>
+
+</Project>

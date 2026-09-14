@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The reader rule of D66 as a sample plugin (implementation 17, P7-02): it folds M5, M51, M3 S back into
+    COOLANT:THROUGH=ON. It references Ncx.Plugins alone, which brings Ncx.Core, Ncx.Readers and Ncx.Compilers with it
+    (D106), and copies none of them next to the plugin, because ncx gives a plugin its own when it loads it
+    (architecture 9).
+  -->
+
+  <PropertyGroup>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <DefaultItemExcludes>$(DefaultItemExcludes);ThroughCoolantSourceRule.Tests/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Ncx.Plugins/Ncx.Plugins.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <!-- The namespaces of ncx for every .cs file, so that none of them needs a using line (code-guidelines 11). -->
+  <ItemGroup>
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.Writing" />
+    <Using Include="Ncx.Readers" />
+  </ItemGroup>
+
+</Project>

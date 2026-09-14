@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The tests of the plugin, which ncx plugin test runs. They reference the plugin, and from the folder of ncx the
+    assemblies the tests run it with. The tests run without ncx, so these are copied next to the tests.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    The folder of ncx. ncx plugin new writes it here; ncx plugin test builds against the folder of the ncx it runs
+    with.
+  -->
+  <PropertyGroup>
+    <NcxFolder Condition="'$(NcxFolder)' == ''">NCX_FOLDER</NcxFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MyShopRules.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(NcxFolder)/Ncx.Plugins.dll" />
+    <Reference Include="$(NcxFolder)/Ncx.Core.dll" />
+    <Reference Include="$(NcxFolder)/Ncx.Config.dll" />
+    <Reference Include="$(NcxFolder)/Ncx.Readers.dll" />
+    <Reference Include="$(NcxFolder)/Ncx.Compilers.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Ncx.Config" />
+    <Using Include="Ncx.Core.Expander" />
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.Parsing" />
+    <Using Include="Ncx.Core.Writing" />
+  </ItemGroup>
+
+</Project>

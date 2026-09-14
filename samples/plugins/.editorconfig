@@ -1,0 +1,6 @@
+# The tests of the sample plugins keep the test style of code-guidelines 8, as tests/.editorconfig does for the tests
+# of the repository.
+
+[*Tests.cs]
+# CA1707: test names are Rule_Scenario_Expectation, with underscores (code-guidelines 8).
+dotnet_diagnostic.CA1707.severity = none

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A plugin for ncx: one DLL that ncx loads from plugins/ (docs/plugins.md of NCXchange). It references Ncx.Plugins
+    and the three assemblies Ncx.Plugins brings with it, Ncx.Core, Ncx.Readers and Ncx.Compilers, from the folder of
+    ncx, and no package. ncx gives a plugin its own copies of these four when it loads it, so none of them is copied
+    next to the plugin (Private="false").
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- The tests are a project of their own, in MyShopRules.Tests. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);MyShopRules.Tests/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!--
+    The folder of ncx. ncx plugin new writes it here; ncx plugin build and ncx plugin test build against the folder of
+    the ncx they run with.
+  -->
+  <PropertyGroup>
+    <NcxFolder Condition="'$(NcxFolder)' == ''">NCX_FOLDER</NcxFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(NcxFolder)/Ncx.Plugins.dll" Private="false" />
+    <Reference Include="$(NcxFolder)/Ncx.Core.dll" Private="false" />
+    <Reference Include="$(NcxFolder)/Ncx.Readers.dll" Private="false" />
+    <Reference Include="$(NcxFolder)/Ncx.Compilers.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- The namespaces of ncx for every .cs file, so that none of them needs a using line. -->
+  <ItemGroup>
+    <Using Include="Ncx.Compilers" />
+    <Using Include="Ncx.Core.Expander" />
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.VirtualMachine.Events" />
+    <Using Include="Ncx.Core.VirtualMachine.State" />
+    <Using Include="Ncx.Core.Writing" />
+    <Using Include="Ncx.Readers" />
+  </ItemGroup>
+
+</Project>
