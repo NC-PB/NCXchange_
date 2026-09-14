@@ -7,8 +7,8 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// The M functions of a Klartext block (controllers heidenhain.md 1, 2, 4; controller-mapping 1, 2, 4; machine-config
-/// 5): M0 and M1 as STOP, the functions of the machine's tables compared by number (D105), the controller's own M126 and
-/// M127 as ROTARY_PATH, M116 and M117 as ROTARY_FEED, M128 and M129 as TCPM, M136 and M137 as FEED_MODE, M140 MB as
+/// 5): M0 and M1 as STOP, the functions of the machine's tables compared by number (D105), the controller's own M126
+/// and M127 as ROTARY_PATH, M116 and M117 as ROTARY_FEED, M128 and M129 as TCPM, M136 and M137 as FEED_MODE, M140 MB as
 /// RETRACT, and any other M function as MFUNC with a WARNING. M91 is the motion's, M99 the cycle's, M30 and M2 the
 /// structure pass's.
 /// </summary>
@@ -96,8 +96,8 @@ internal static class HeidenhainFunctions
         block.Draft.AddState("MFUNC", null, new IntegerValue(mfunc, text));
     }
 
-    // The M functions of the controller that NCX has words for (controllers heidenhain.md 1, 2; controller-mapping 1 and
-    // 2, STOP, ROTARY_PATH, ROTARY_FEED, TCPM, FEED_MODE; D86); true when the code is one of them.
+    // The M functions of the controller that NCX has words for (controllers heidenhain.md 1, 2; controller-mapping 1
+    // and 2, STOP, ROTARY_PATH, ROTARY_FEED, TCPM, FEED_MODE; D86); true when the code is one of them.
     private static bool ReadOwnCode(HeidenhainBlock block, SourceWord word, string code)
     {
         string? key = code switch

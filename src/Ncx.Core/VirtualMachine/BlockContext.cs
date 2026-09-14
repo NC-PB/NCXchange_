@@ -49,9 +49,9 @@ internal sealed class BlockContext
     public required Diagnostics CallerRuleDiagnostics { get; init; }
 
     /// <summary>
-    /// The resource id each word addresses after step 2: the spindle of SPINDLE and RPM, the holder of TOOL, PRELOAD and
-    /// OFFSET, the holder of WORKPIECE, the function of FUNC, the channel of COOLANT. A word that could not be resolved
-    /// is missing and changes nothing (virtual machine 3.8).
+    /// The resource id each word addresses after step 2: the spindle of SPINDLE and RPM, the holder of TOOL, PRELOAD
+    /// and OFFSET, the holder of WORKPIECE, the function of FUNC, the channel of COOLANT. A word that could not be
+    /// resolved is missing and changes nothing (virtual machine 3.8).
     /// </summary>
     public Dictionary<Word, string> ResourceOf { get; } = new(ReferenceEqualityComparer.Instance);
 

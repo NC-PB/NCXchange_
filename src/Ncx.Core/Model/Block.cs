@@ -132,7 +132,8 @@ public sealed record Block
     /// </summary>
     /// <param name="key">The key, uppercase: "COOLANT".</param>
     /// <param name="addr">The address, uppercase: "THROUGH"; null for the word without an address.</param>
-    /// <param name="value">The value as written after the equals sign: "ON", "4", "10.5"; empty for a bare word.</param>
+    /// <param name="value">The value as written after the equals sign: "ON", "4", "10.5"; empty for a bare
+    /// word.</param>
     public bool Has(string key, string? addr, string value)
     {
         return Find(key, addr) is Word word && word.Value.ToCanonical() == value;

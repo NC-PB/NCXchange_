@@ -44,7 +44,8 @@ internal static class HomeRules
                 continue;
             }
 
-            // Afterwards the axis is known in the MACHINE frame at the reference coordinates (virtual machine 3 step 5).
+            // Afterwards the axis is known in the MACHINE frame at the reference coordinates
+            // (virtual machine 3 step 5).
             if (context.Resources.ReferencePoint(axis, point) is decimal reference)
             {
                 context.State.Motion.Position[axis] = new AxisPosition(reference, PositionFrame.Machine, Known: true);

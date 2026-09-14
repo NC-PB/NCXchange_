@@ -79,7 +79,8 @@ internal sealed class BlockEvents
         AddFunctions();
         AddVariables();
 
-        // 3. The verb (step 5): CYCLE_CALL, MOTION; then DWELL and STOP, which act when the motion of the block is done.
+        // 3. The verb (step 5): CYCLE_CALL, MOTION; then DWELL and STOP, which act when the motion of the block is
+        // done.
         List<MotionEvent> motions = MotionEvents.Of(_context, _before, _after, arc, cycleMotions);
         AddCycleCall();
         _events.AddRange(motions);
@@ -109,8 +110,8 @@ internal sealed class BlockEvents
 
         // 6. What the block closes: SUB_END at SUB=END, where the walk leaves the subprogram, PROGRAM_END at
         // PROGRAM=END with the run statistics (virtual machine 7). STATIC mode records RETURN, JUMP=END and REPEAT
-        // without following them (virtual machine 1, D99), so it leaves a subprogram at its SUB=END and a program at its
-        // PROGRAM=END; INTERPRETED mode leaves a subprogram at a RETURN as well (virtual machine 3.6, 7).
+        // without following them (virtual machine 1, D99), so it leaves a subprogram at its SUB=END and a program at
+        // its PROGRAM=END; INTERPRETED mode leaves a subprogram at a RETURN as well (virtual machine 3.6, 7).
         if (_block.Has("SUB", null, "END") || ReturnsFromSub())
         {
             _events.Add(SubEvent(EventPhase.End));
@@ -236,7 +237,8 @@ internal sealed class BlockEvents
                 continue;
             }
 
-            VariableValue? old = !VariableStore.IsLocal(name) && _before.Vars.TryGetValue(name, out VariableValue? known)
+            VariableValue? old = !VariableStore.IsLocal(name)
+                && _before.Vars.TryGetValue(name, out VariableValue? known)
                 ? known
                 : null;
             _events.Add(VarChangeEvent(name, old, VariableHandlers.ValueOf(word.Value)));

@@ -177,7 +177,12 @@ internal sealed partial class StructurePass
             words.Add(Number(ChannelKey, channel));
         }
 
-        return InPlace(begin, words) with { CarriesSkip = false, TakesComment = !usesComment, UsesComment = usesComment };
+        return InPlace(begin, words) with
+        {
+            CarriesSkip = false,
+            TakesComment = !usesComment,
+            UsesComment = usesComment,
+        };
     }
 
     // SUB=BEGIN NAME=n: the name the source gives, else its number, O0100 as NAME=100 (controller-mapping 1, 6;

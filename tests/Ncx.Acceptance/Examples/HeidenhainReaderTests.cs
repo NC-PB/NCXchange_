@@ -16,10 +16,11 @@ namespace Ncx.Acceptance.Examples;
 
 /// <summary>
 /// The Heidenhain reader over the example sources end to end, through the library: the reader with
-/// machines/heidenhain-itnc530.toml loaded by its path, then the canonical writer (phase 3, P3-05; ncx convert joins with
-/// P3-02 part two). 2.5D_FRAESEN.h reads into the blocks of examples/2.5D_FRAESEN.ncx with the WARNING about the missing
-/// M30, BOHREN.h into Expected/BOHREN.ncx of the Fanuc source except the blocks the two sources write otherwise,
-/// 3D_FRAESEN.h in well under a second, and under NCX_CORPUS every Heidenhain file of the corpus without a crash.
+/// machines/heidenhain-itnc530.toml loaded by its path, then the canonical writer (phase 3, P3-05; ncx convert joins
+/// with P3-02 part two). 2.5D_FRAESEN.h reads into the blocks of examples/2.5D_FRAESEN.ncx with the WARNING about the
+/// missing M30, BOHREN.h into Expected/BOHREN.ncx of the Fanuc source except the blocks the two sources write
+/// otherwise, 3D_FRAESEN.h in well under a second, and under NCX_CORPUS every Heidenhain file of the corpus without a
+/// crash.
 /// </summary>
 public sealed partial class HeidenhainReaderTests
 {
@@ -43,8 +44,8 @@ public sealed partial class HeidenhainReaderTests
     // of O0001 and BLK FORM (as for 2.5D_FRAESEN); the offsets with the TOOL CALL and the speed in it (D7, heidenhain 7
     // rule 2); the R0 of the first positioning; SAFE and CYCLE_RETRACT=SAFE from Q204 against G99 and R5. (the open
     // question of controller-mapping 5), the plunge feed Q206=565,487 against F565, the dwell Q211=0 that G81 does not
-    // write, cycle 203 as PECK where the Fanuc source writes G73 (wave-1 question #20); the fourth operation, a cycle 203
-    // in Klartext and single moves in the Fanuc source; M29 S500 of the Fanuc tapping; M91 moves against G28
+    // write, cycle 203 as PECK where the Fanuc source writes G73 (wave-1 question #20); the fourth operation, a cycle
+    // 203 in Klartext and single moves in the Fanuc source; M29 S500 of the Fanuc tapping; M91 moves against G28
     // (2.5D_FRAESEN note 4).
     private static readonly BohrenDifference[] s_bohrenReading =
     [
@@ -55,7 +56,8 @@ public sealed partial class HeidenhainReaderTests
         new("SPINDLE=CW RPM=10000", null, "SPINDLE=CW"),
         new("RAPID X=10 Y=10", null, "RAPID X=10 Y=10 COMP=OFF"),
         new("RAPID Z=5 OFFSET:LEN=1", null, "RAPID Z=5"),
-        new(Cycle("DRILL", "", "CLEARANCE", "CYCLE_F=565"), null, Cycle("DRILL", "", "SAFE", "CYCLE_F=565.487 CYCLE_DWELL=0")),
+        new(Cycle("DRILL", "", "CLEARANCE", "CYCLE_F=565"), null,
+            Cycle("DRILL", "", "SAFE", "CYCLE_F=565.487 CYCLE_DWELL=0")),
         new(Cycle("CHIP_BREAK", "PECK=1.2 ", "CLEARANCE", "CYCLE_F=565"), null, Peck()),
         new(Cycle("PECK", "PECK=1.2 ", "CLEARANCE", "CYCLE_F=565"), null, Peck()),
         new("LINE Z=3.8 F=565", "HOME Z", Peck() + "\nCYCLE_CALL\nCYCLE_CALL X=30\nCYCLE_CALL X=50\nCYCLE_CALL X=70\n"
@@ -66,8 +68,8 @@ public sealed partial class HeidenhainReaderTests
         new("SPINDLE=CW RPM=500", null, "SPINDLE=CW"),
         new("RAPID Z=5 OFFSET:LEN=2", null, "RAPID Z=5"),
         new("RPM=500 FUNC:RIGID_TAP=ON", null, ""),
-        new("CYCLE=TAP SURFACE=0 CLEARANCE=5 DEPTH=-20 CYCLE_RETRACT=CLEARANCE CYCLE_F=750 CYCLE_DWELL=0 PITCH=1.5", null,
-            "CYCLE=TAP SURFACE=0 CLEARANCE=5 DEPTH=-20 SAFE=5 CYCLE_RETRACT=SAFE PITCH=1.5"),
+        new("CYCLE=TAP SURFACE=0 CLEARANCE=5 DEPTH=-20 CYCLE_RETRACT=CLEARANCE CYCLE_F=750 CYCLE_DWELL=0 PITCH=1.5",
+            null, "CYCLE=TAP SURFACE=0 CLEARANCE=5 DEPTH=-20 SAFE=5 CYCLE_RETRACT=SAFE PITCH=1.5"),
         new("HOME Z", null, "RAPID Z=0 FRAME=MACHINE"),
         new("HOME X Y", null, "RAPID X=0 Y=0 FRAME=MACHINE"),
         new("TOOL=3", null, "TOOL=3 OFFSET:LEN=3 OFFSET:RAD=3 RPM=8000"),
@@ -218,7 +220,8 @@ public sealed partial class HeidenhainReaderTests
             }
         }
 
-        Assert.True(problems.Count == 0, $"{problems.Count} problems in {files} files:\n" + string.Join('\n', problems));
+        Assert.True(problems.Count == 0,
+            $"{problems.Count} problems in {files} files:\n" + string.Join('\n', problems));
     }
 
     // A construct of the source whose word the output of the file never holds.

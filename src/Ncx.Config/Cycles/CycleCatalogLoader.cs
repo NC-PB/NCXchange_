@@ -19,7 +19,8 @@ public static partial class CycleCatalogLoader
     /// which reports it with the file name (code-guidelines 6).
     /// </summary>
     /// <param name="path">The catalog file.</param>
-    /// <param name="controller">The controller family of the catalog, the controller of the machine that names it.</param>
+    /// <param name="controller">The controller family of the catalog, the controller of the machine that names
+    /// it.</param>
     /// <param name="diagnostics">Where the mistakes of the file are reported.</param>
     /// <returns>The catalog, or null when the file has an ERROR.</returns>
     public static CycleCatalog? Load(string path, Controller controller, Diagnostics diagnostics)
@@ -33,7 +34,8 @@ public static partial class CycleCatalogLoader
     /// machine-config 6).
     /// </summary>
     /// <param name="text">The TOML text of the catalog file.</param>
-    /// <param name="controller">The controller family of the catalog, the controller of the machine that names it.</param>
+    /// <param name="controller">The controller family of the catalog, the controller of the machine that names
+    /// it.</param>
     /// <param name="diagnostics">Where the mistakes of the file are reported.</param>
     /// <returns>The catalog, or null when the file has an ERROR.</returns>
     public static CycleCatalog? LoadText(string text, Controller controller, Diagnostics diagnostics)
@@ -62,7 +64,8 @@ public static partial class CycleCatalogLoader
     /// drilling family, the catalog file, the entries of the machine file (machine-config 6).
     /// </summary>
     /// <param name="machine">The loaded machine, which keeps its [[cycle]] entries in CycleEntries.</param>
-    /// <param name="catalog">The catalog file that [cycles] catalog of the machine names, loaded for its controller.</param>
+    /// <param name="catalog">The catalog file that [cycles] catalog of the machine names, loaded for its
+    /// controller.</param>
     /// <exception cref="InvalidOperationException">The catalog belongs to another controller family.</exception>
     public static MachineConfig WithCatalog(MachineConfig machine, CycleCatalog catalog)
     {

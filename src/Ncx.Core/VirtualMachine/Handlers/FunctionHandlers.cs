@@ -31,7 +31,8 @@ internal static class FunctionHandlers
     // virtual machine 2.5, machine-config 5).
     private static void ApplyFunction(Word word, BlockContext context)
     {
-        if (!context.ResourceOf.TryGetValue(word, out string? function) || BlockContext.IdentOf(word) is not string value)
+        if (!context.ResourceOf.TryGetValue(word, out string? function)
+            || BlockContext.IdentOf(word) is not string value)
         {
             return;
         }

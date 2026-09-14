@@ -111,8 +111,8 @@ public sealed class HeidenhainCycleTests
     [Fact]
     public void CyclDef251_IsWrittenNatively()
     {
-        string text = Text("0 BEGIN PGM N MM\n1 CYCL DEF 251 RECHTECKTASCHE ~\n    Q215=0 ~\n    Q218=60 ~\n    Q219=40 ~\n"
-            + "    Q201=-10\n2 M30\n3 END PGM N MM\n");
+        string text = Text("0 BEGIN PGM N MM\n1 CYCL DEF 251 RECHTECKTASCHE ~\n    Q215=0 ~\n    Q218=60 ~\n"
+            + "    Q219=40 ~\n    Q201=-10\n2 M30\n3 END PGM N MM\n");
 
         Assert.Equal(Lines("CYCLE:HEIDENHAIN=251 Q215=0 Q218=60 Q219=40 Q201=-10"), BodyOf(text));
         AssertFormatsToItself(text);
@@ -128,9 +128,9 @@ public sealed class HeidenhainCycleTests
         Assert.Equal([DiagnosticCodes.KeptAsRaw, DiagnosticCodes.KeptAsRaw], Codes(program));
     }
 
-    // A CYCL DEF the reader keeps as RAW, CYCL DEF 12.0 PGM CALL over two blocks, replaces the active definition all the
-    // same, since the definition stays active until the next CYCL DEF: the M99 after it stays RAW and does not call the
-    // cycle before it (heidenhain 5, 7 rule 9).
+    // A CYCL DEF the reader keeps as RAW, CYCL DEF 12.0 PGM CALL over two blocks, replaces the active definition all
+    // the same, since the definition stays active until the next CYCL DEF: the M99 after it stays RAW and does not call
+    // the cycle before it (heidenhain 5, 7 rule 9).
     [Fact]
     public void CyclDef_KeptAsRawOverSeveralBlocks_ReplacesTheDefinitionAndItsCallsStayRaw()
     {
@@ -147,7 +147,8 @@ public sealed class HeidenhainCycleTests
     [Fact]
     public void CyclCall_OfAnOlderCycleOverSeveralBlocks_IsKeptAsRawWithoutAnError()
     {
-        NcxProgram program = FramedProgram("1 CYCL DEF 1.0 TIEFBOHREN\n2 CYCL DEF 1.1 ABST 2\n3 CYCL DEF 1.2 TIEFE -20\n"
+        NcxProgram program = FramedProgram(
+            "1 CYCL DEF 1.0 TIEFBOHREN\n2 CYCL DEF 1.1 ABST 2\n3 CYCL DEF 1.2 TIEFE -20\n"
             + "4 CYCL DEF 1.3 ZUSTLG 5\n5 CYCL DEF 1.4 V.ZEIT 0\n6 CYCL DEF 1.5 F100\n7 CYCL CALL");
 
         Assert.Equal(Enumerable.Repeat(DiagnosticCodes.KeptAsRaw, 7), Codes(program));

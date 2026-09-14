@@ -12,13 +12,14 @@ namespace Ncx.Readers.Tests.Fanuc;
 /// </summary>
 public sealed class FanucSubprogramTests
 {
-    // Under G81 every following block with a position calls the cycle again (controllers fanuc.md 6), also the blocks of
-    // a subprogram the caller calls while the cycle is active: they are CYCLE_CALL, and check walks them at the CALL
+    // Under G81 every following block with a position calls the cycle again (controllers fanuc.md 6), also the blocks
+    // of a subprogram the caller calls while the cycle is active: they are CYCLE_CALL, and check walks them at the CALL
     // with the caller's CYCLE (virtual machine 3.9).
     [Fact]
     public void SubprogramCalledUnderG81_PositionBlocksAreCycleCalls()
     {
-        string text = Text("%\nO0001\nG0 X0 Y0 Z10.\nG81 G99 Z-5. R2. F100\nM98 P100\nG80\nM30\nO0100\nX10.\nX20.\nM99\n%\n");
+        string text = Text("%\nO0001\nG0 X0 Y0 Z10.\nG81 G99 Z-5. R2. F100\nM98 P100\nG80\nM30\n"
+            + "O0100\nX10.\nX20.\nM99\n%\n");
 
         Assert.Contains("\nSUB=BEGIN NAME=100\nCYCLE_CALL X=10\nCYCLE_CALL X=20\nSUB=END\n", text,
             StringComparison.Ordinal);
@@ -45,7 +46,8 @@ public sealed class FanucSubprogramTests
             "%\nO0001\nG0 X0 Y0\nM98 P100\nG1 X5. F100\nM98 P100\nM30\nO0100\nX10.\nG1 Y5.\nM99\n%\n", Mill());
         string text = NcxWriter.Write(program);
 
-        Assert.Contains("\nSUB=BEGIN NAME=100\nRAW:FANUC=\"X10.\"\nLINE Y=5\nSUB=END\n", text, StringComparison.Ordinal);
+        Assert.Contains("\nSUB=BEGIN NAME=100\nRAW:FANUC=\"X10.\"\nLINE Y=5\nSUB=END\n", text,
+            StringComparison.Ordinal);
         Assert.Contains(program.Diagnostics.Items, diagnostic => diagnostic.Message.Contains("group 01",
             StringComparison.Ordinal));
     }
@@ -101,7 +103,8 @@ public sealed class FanucSubprogramTests
         string text = Text("%\nO0001\nG1 X1. F100\nM30\nO0002\nX2.\nM30\n%\n");
 
         Assert.Contains(
-            "\nPROGRAM=BEGIN NUMBER=2\nFEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF\nRAPID X=2\nPROGRAM=END\n",
+            "\nPROGRAM=BEGIN NUMBER=2\nFEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY CYCLE=OFF\n"
+            + "RAPID X=2\nPROGRAM=END\n",
             text, StringComparison.Ordinal);
     }
 }

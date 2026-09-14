@@ -48,8 +48,8 @@ public sealed class SourceStateTests
         Assert.Empty(state.Positions);
     }
 
-    // A reader starts a section from the state it knows there, the caller's in a subprogram (virtual machine 3.9): every
-    // active code is replaced, and a group it does not name is not set.
+    // A reader starts a section from the state it knows there, the caller's in a subprogram (virtual machine 3.9):
+    // every active code is replaced, and a group it does not name is not set.
     [Fact]
     public void SetModalGroups_OfASectionStart_ReplacesEveryActiveCode()
     {

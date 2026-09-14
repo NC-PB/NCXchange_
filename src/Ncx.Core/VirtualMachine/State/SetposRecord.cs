@@ -11,8 +11,8 @@ namespace Ncx.Core.VirtualMachine.State;
 /// sum.</param>
 /// <param name="UnknownShifts">The SHIFT entries of the chain at the SETPOS whose shift on the axis came from an
 /// expression (virtual machine 1). The declared value stands in a frame that holds their unknown shift; a motion in a
-/// frame that holds exactly these entries moves the machine by as much as the workpiece coordinate, and once one of them
-/// is cut or another such entry stands, a motion leaves the machine position unknown.</param>
+/// frame that holds exactly these entries moves the machine by as much as the workpiece coordinate, and once one of
+/// them is cut or another such entry stands, a motion leaves the machine position unknown.</param>
 /// <param name="Holder">The workpiece holder at the SETPOS; null when the machine names none. Only under the machine's
 /// default workpiece holder does a motion move the machine by as much as the workpiece coordinate: the frame of any
 /// other holder has +Z out of its own chuck, and the machine reaches it through its mirror or datum convention, which

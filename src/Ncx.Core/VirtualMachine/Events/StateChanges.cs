@@ -240,7 +240,8 @@ internal sealed class StateChanges
 
     private static string TiltWords(TransformEntry entry)
     {
-        return AxisWords(entry.Angles, []) + " MOVE=" + EventText.Ident(entry.Move) + " ROT=" + EventText.Ident(entry.Rot);
+        return AxisWords(entry.Angles, []) + " MOVE=" + EventText.Ident(entry.Move)
+            + " ROT=" + EventText.Ident(entry.Rot);
     }
 
     // The axis words of a chain entry; an axis whose value came from an expression is unknown (virtual machine 1).

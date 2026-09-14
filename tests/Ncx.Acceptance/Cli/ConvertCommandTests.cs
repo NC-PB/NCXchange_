@@ -7,8 +7,8 @@ using Ncx.Tests.Fixtures;
 namespace Ncx.Acceptance.Cli;
 
 /// <summary>
-/// ncx convert &lt;file&gt; --machine &lt;toml&gt; [--output &lt;file&gt;] [--strict]: the reader that the controller of
-/// the machine file chooses, the canonical writer and a STATIC check over the produced program whose diagnostics are
+/// ncx convert &lt;file&gt; --machine &lt;toml&gt; [--output &lt;file&gt;] [--strict]: the reader that the controller
+/// of the machine file chooses, the canonical writer and a STATIC check over the produced program whose diagnostics are
 /// reported together with the reader's, on the standard error in the form of D98, with the exit codes of D97
 /// (architecture 7, 10; D77; phase 3, P3-02). The runs go through ConvertCommand.Run with a working directory of their
 /// own and the repository as the tool's own folder, whose machines/ and cycles/ hold the shipped files, so that no test
@@ -113,8 +113,8 @@ public sealed partial class ConvertCommandTests : IDisposable
         Assert.StartsWith($"{file}(1): ERROR CLI002: ", _error, StringComparison.Ordinal);
     }
 
-    // D97, machine-config 1: a machine file that reads but loads with an ERROR stops the run before it starts, with exit
-    // code 1, and nothing is written.
+    // D97, machine-config 1: a machine file that reads but loads with an ERROR stops the run before it starts, with
+    // exit code 1, and nothing is written.
     [Fact]
     public void Convert_MachineFileWithAnError_ExitsOneAndWritesNothing()
     {

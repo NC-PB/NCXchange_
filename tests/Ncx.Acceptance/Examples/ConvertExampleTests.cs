@@ -54,9 +54,9 @@ public sealed partial class ConvertExampleTests : IDisposable
     }
 
     // M4, P3-02 done when: ncx convert 2.5D_FRAESEN.fanuc.nc --machine fanuc-mill-30i equals examples/2.5D_FRAESEN.ncx,
-    // compared as P3-02 compares it: comments and trivia stripped on both sides and the blocks in canonical form, except
-    // the blocks the example reads otherwise for Fanuc (FanucReaderTests, with its TODO(question)). The Fanuc source
-    // converts without a diagnostic of the reader or of the check.
+    // compared as P3-02 compares it: comments and trivia stripped on both sides and the blocks in canonical form,
+    // except the blocks the example reads otherwise for Fanuc (FanucReaderTests, with its TODO(question)). The Fanuc
+    // source converts without a diagnostic of the reader or of the check.
     [Fact]
     public void CommandLine_25DFraesenFanuc_EqualsTheBlocksOfTheExample()
     {
@@ -88,8 +88,8 @@ public sealed partial class ConvertExampleTests : IDisposable
         Assert.Contains("(M30, M2)", _cli.Error.Split('\n')[0], StringComparison.Ordinal);
     }
 
-    // P3-02 done when: BOHREN.fanuc.nc converts into the expected CYCLE= words, the frozen Expected/BOHREN.ncx, byte for
-    // byte and without a diagnostic of the reader or of the check.
+    // P3-02 done when: BOHREN.fanuc.nc converts into the expected CYCLE= words, the frozen Expected/BOHREN.ncx, byte
+    // for byte and without a diagnostic of the reader or of the check.
     [Fact]
     public void CommandLine_BohrenFanuc_EqualsTheFrozenExpectedFile()
     {
@@ -118,10 +118,10 @@ public sealed partial class ConvertExampleTests : IDisposable
         Assert.Equal(LibraryReading(file, machine), _cli.Output);
     }
 
-    // Under NCX_CORPUS every Fanuc, ISO and Heidenhain file of the corpus converts without a crash, the STATIC check over
-    // its program included (phase 3, P3-02 and P3-05; controllers sample-corpus 3: a crash is a bug). Fanuc and ISO
-    // files are read against the Fanuc mill, Heidenhain files against the iTNC 530; the batch of P3-07 reads them against
-    // the closest machine.
+    // Under NCX_CORPUS every Fanuc, ISO and Heidenhain file of the corpus converts without a crash, the STATIC check
+    // over its program included (phase 3, P3-02 and P3-05; controllers sample-corpus 3: a crash is a bug). Fanuc and
+    // ISO files are read against the Fanuc mill, Heidenhain files against the iTNC 530; the batch of P3-07 reads them
+    // against the closest machine.
     [CorpusFact]
     public void Convert_EveryFileOfTheCorpus_NeverCrashes()
     {

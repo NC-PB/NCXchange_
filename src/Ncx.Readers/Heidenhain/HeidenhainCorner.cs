@@ -2,8 +2,8 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// A chamfer CHF or a rounding RND as the line before it prepared it (D58, language 4.3): the chamfer line or the
-/// rounding arc its block writes, where the corner ends, and the way the corner went, which the incremental words of the
-/// line after it are written less; or why the corner stays RAW (D5).
+/// rounding arc its block writes, where the corner ends, and the way the corner went, which the incremental words of
+/// the line after it are written less; or why the corner stays RAW (D5).
 /// </summary>
 internal sealed record HeidenhainCorner
 {

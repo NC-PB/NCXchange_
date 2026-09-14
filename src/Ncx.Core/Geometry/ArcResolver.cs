@@ -36,8 +36,8 @@ internal static class ArcResolver
 
         // Start = end is a full circle (virtual machine 3.2), a full turn of a helix when a tool-axis word moves the
         // end; otherwise the arc turns from the start to the end in the direction of the verb.
-        // TODO(question): start = end is read as equal plane coordinates. Whether an end within the arc tolerance of the
-        // start is a full circle, and what an arc of radius 0 (a center on the start) is, the documents do not say;
+        // TODO(question): start = end is read as equal plane coordinates. Whether an end within the arc tolerance of
+        // the start is a full circle, and what an arc of radius 0 (a center on the start) is, the documents do not say;
         // such arcs resolve to what their coordinates give (a sweep near 0 or near 360, a radius near 0).
         double sweep = Angle.FullTurn;
         if (!SameInPlane(start, end))
@@ -108,7 +108,8 @@ internal static class ArcResolver
     /// The Z of the end: the start's without a tool-axis word, the helix end with one.
     /// </param>
     /// <param name="center">The center, absolute, as for the CENTER form; its Z is not used.</param>
-    /// <param name="angle">ANGLE as written, in degrees: unsigned, more than 360 for several turns (language 4.3).</param>
+    /// <param name="angle">ANGLE as written, in degrees: unsigned, more than 360 for several turns
+    /// (language 4.3).</param>
     public static ArcResult ResolveAngleForm(ArcDirection direction, Vec3 start, double toolAxisEnd, Vec3 center,
         decimal angle)
     {
@@ -176,6 +177,9 @@ internal static class ArcResolver
         double radians = Angle.ToRadians(degrees);
         double cos = Math.Cos(radians);
         double sin = Math.Sin(radians);
-        return new Vec3((planeVector.X * cos) - (planeVector.Y * sin), (planeVector.X * sin) + (planeVector.Y * cos), 0);
+        return new Vec3(
+            (planeVector.X * cos) - (planeVector.Y * sin),
+            (planeVector.X * sin) + (planeVector.Y * cos),
+            0);
     }
 }

@@ -43,7 +43,8 @@ public sealed class MotionEventTests
         MotionEvent rapid = Assert.Single(listener.Of<MotionEvent>());
         Assert.Null(rapid.Feed);
         Assert.Null(rapid.Length);
-        Assert.Equal("MOTION(3): RAPID X ? -> 50.4, Y ? -> -7.025; comp OFF, frame WORKPIECE, length ?", rapid.ToString());
+        Assert.Equal("MOTION(3): RAPID X ? -> 50.4, Y ? -> -7.025; comp OFF, frame WORKPIECE, length ?",
+            rapid.ToString());
     }
 
     // VM 3.2, 7: the R form of 2.5D_FRAESEN line 22, a quarter circle about the computed center 7/7, the arc length.

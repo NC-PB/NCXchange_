@@ -1,9 +1,9 @@
 namespace Ncx.Core.Model;
 
 // The codes of block execution, VM001-VM199 (the ranges in DiagnosticCodes.cs, D98): the resolution of roles, axes,
-// functions and coolant channels (virtual machine 3.8, D103), the tool change (3.5), SETPOS (3.4, D101), HOME (3 step 5,
-// D100), the STATIC walk of the calls (1, 3.9, D99) and the assignment of variables (2.7). P1-04 builds the full table of
-// virtual machine 5 and docs/spec/generated/diagnostics.md from these and its own.
+// functions and coolant channels (virtual machine 3.8, D103), the tool change (3.5), SETPOS (3.4, D101), HOME (3 step
+// 5, D100), the STATIC walk of the calls (1, 3.9, D99) and the assignment of variables (2.7). P1-04 builds the full
+// table of virtual machine 5 and docs/spec/generated/diagnostics.md from these and its own.
 public static partial class DiagnosticCodes
 {
     /// <summary>
@@ -19,8 +19,8 @@ public static partial class DiagnosticCodes
 
     /// <summary>
     /// VM003, a WARNING: a role, function, machine axis or coolant channel the built-in default machine lacks when no
-    /// machine file is given, "not checked: no machine file", once per name; the word runs against a resource created on
-    /// the spot (virtual machine 3.8, D103).
+    /// machine file is given, "not checked: no machine file", once per name; the word runs against a resource created
+    /// on the spot (virtual machine 3.8, D103).
     /// </summary>
     public const string NotCheckedNoMachineFile = "VM003";
 
@@ -48,7 +48,8 @@ public static partial class DiagnosticCodes
     public const string UnknownFunctionState = "VM007";
 
     /// <summary>
-    /// VM008: COOLANT with a channel that [coolant] does not name, with a machine file (language 4.6, machine-config 5).
+    /// VM008: COOLANT with a channel that [coolant] does not name, with a machine file
+    /// (language 4.6, machine-config 5).
     /// </summary>
     public const string UnknownCoolantChannel = "VM008";
 

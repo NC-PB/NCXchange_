@@ -130,7 +130,8 @@ public sealed class HeidenhainFlowTests
             Body("1 Q1 = Q2 + 3 * SIN Q3\n2 QL3 = QR2 * 2"));
     }
 
-    // FN 0 assigns, FN 1 adds, FN 2 subtracts, FN 3 multiplies, FN 4 divides, FN 5 takes the square root (heidenhain 6).
+    // FN 0 assigns, FN 1 adds, FN 2 subtracts, FN 3 multiplies, FN 4 divides, FN 5 takes the square root
+    // (heidenhain 6).
     [Fact]
     public void Fn0ToFn5_AreAssignments()
     {

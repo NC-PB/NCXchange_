@@ -10,8 +10,8 @@ namespace Ncx.Core.VirtualMachine.Events;
 /// </summary>
 internal static class MotionEvents
 {
-    // A sweep in degrees keeps three decimals, the resolution of a rotary axis on the common controls, as a length keeps
-    // those of MotionRules.PositionDecimals; no document says how many (wave-1 question #46).
+    // A sweep in degrees keeps three decimals, the resolution of a rotary axis on the common controls, as a length
+    // keeps those of MotionRules.PositionDecimals; no document says how many (wave-1 question #46).
     private const int SweepDecimals = 3;
 
     /// <summary>
@@ -28,8 +28,8 @@ internal static class MotionEvents
         var motions = new List<MotionEvent>();
         Block block = context.Block;
 
-        // With the VM option ExpandCycles a CYCLE_CALL is raised as the individual MOTION events of its sequence (virtual
-        // machine 3.3, D37).
+        // With the VM option ExpandCycles a CYCLE_CALL is raised as the individual MOTION events of its sequence
+        // (virtual machine 3.3, D37).
         if (block.Verb?.Key == "CYCLE_CALL")
         {
             AddCycleMotions(motions, context, before, after, cycleMotions);
@@ -118,7 +118,8 @@ internal static class MotionEvents
         var position = new Dictionary<string, AxisPosition>(before.Motion.Position, StringComparer.Ordinal);
         foreach (CycleMotion cycleMotion in cycleMotions)
         {
-            IReadOnlyDictionary<string, AxisPosition> from = new Dictionary<string, AxisPosition>(position).AsReadOnly();
+            IReadOnlyDictionary<string, AxisPosition> from =
+                new Dictionary<string, AxisPosition>(position).AsReadOnly();
             foreach (KeyValuePair<string, AxisPosition> target in cycleMotion.To)
             {
                 position[target.Key] = target.Value;

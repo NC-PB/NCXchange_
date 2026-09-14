@@ -23,8 +23,8 @@ internal static class FrameRules
     /// SHIFT appends an entry to the chain in program order, in the frame that is active where the word stands, and is
     /// folded into the position: newPos = oldPos - shift (language 4.2, virtual machine 2.1, 3.4, D31). Omitted axes
     /// are 0. A shift from an expression is not evaluated in STATIC mode (virtual machine 1): the entry keeps 0 for it
-    /// and names the axis (wave-1 question #100), and the workpiece coordinate of the axis is unknown. Nothing moves, so
-    /// an axis known in the MACHINE frame stays there, and one whose setpos shift was recorded against the machine
+    /// and names the axis (wave-1 question #100), and the workpiece coordinate of the axis is unknown. Nothing moves,
+    /// so an axis known in the MACHINE frame stays there, and one whose setpos shift was recorded against the machine
     /// position returns to that position (virtual machine 3.4, D35, D101).
     /// </summary>
     /// <param name="state">The channel state.</param>
@@ -55,9 +55,9 @@ internal static class FrameRules
 
     /// <summary>
     /// The RESET forms cut the chain at the last entry of their kind and everything after it; the chain is unwound
-    /// from the end only (language 4.2, virtual machine 2.1, D31). A RESET that removes shifts folds them back; one that
-    /// removes a ROTATE, MIRROR, TILT or TILT_AXIS changes the frame and marks the position unknown (3.4). Without an
-    /// entry of the kind nothing changes.
+    /// from the end only (language 4.2, virtual machine 2.1, D31). A RESET that removes shifts folds them back; one
+    /// that removes a ROTATE, MIRROR, TILT or TILT_AXIS changes the frame and marks the position unknown (3.4). Without
+    /// an entry of the kind nothing changes.
     /// </summary>
     public static void Cut(ChannelState state, TransformKind kind)
     {
@@ -166,9 +166,9 @@ internal static class FrameRules
             return;
         }
 
-        // Known in the workpiece frame through an unknown setpos shift (D101): the store holds the coordinate itself and
-        // the physical position is unknown, so newSetposShift = oldPos - declared stays unknown, and the axis reads as
-        // the declared value (virtual machine 3.4, D101).
+        // Known in the workpiece frame through an unknown setpos shift (D101): the store holds the coordinate itself
+        // and the physical position is unknown, so newSetposShift = oldPos - declared stays unknown, and the axis reads
+        // as the declared value (virtual machine 3.4, D101).
         if (position.Known && position.Frame == PositionFrame.Workpiece && state.Unknown.Contains(key))
         {
             state.Motion.Position[axis] = position with { Value = value };
@@ -179,10 +179,10 @@ internal static class FrameRules
         // machine-frame move), the shift is recorded against the machine position and the axis becomes known in the
         // workpiece frame with the declared value (D101). The store keeps the machine position; nothing moved, so it is
         // known. The record keeps the shifts of the chain on the axis, which the store never took in, so that ORIGIN
-        // and a change of the frame find the machine position again (ReturnToMachineFrame). It also keeps what the frame
-        // of the declared value holds besides known shifts, the shifts from an expression on the axis and the workpiece
-        // holder, so that a later motion tells whether it moved the machine by as much as the workpiece coordinate
-        // (FollowMotion).
+        // and a change of the frame find the machine position again (ReturnToMachineFrame). It also keeps what the
+        // frame of the declared value holds besides known shifts, the shifts from an expression on the axis and the
+        // workpiece holder, so that a later motion tells whether it moved the machine by as much as the workpiece
+        // coordinate (FollowMotion).
         if (position.Known)
         {
             state.Frame.SetposShift[axis] = position.Value - value;
@@ -391,14 +391,14 @@ internal static class FrameRules
 
     // D101: the setpos shift of the axis was recorded against its machine position, and the store kept that position.
     // Since then Fold has taken the SHIFT entries appended to the chain out of the store and given the removed ones
-    // back, the ones that stood before the SETPOS among them, and the motions that kept the machine position known moved
-    // the store by as much as the machine (FollowMotion); the record holds the sum of the shifts at the SETPOS. So the
-    // machine position is the store plus the shifts of the chain on the axis minus that sum. A shift from an expression
-    // counts as its 0 on both sides: appending or removing one returns the axis here at once, before any motion, and a
-    // motion keeps the machine position known only while the chain holds the ones of the SETPOS and no other, so its
-    // unknown shift cancels out. The axis returns to the MACHINE frame there, and the record stays with the setpos
-    // shift. False for an axis not known in the workpiece frame, for one whose machine position a motion left unknown,
-    // and for one without a record (virtual machine 1, 3.4, D35, D101).
+    // back, the ones that stood before the SETPOS among them, and the motions that kept the machine position known
+    // moved the store by as much as the machine (FollowMotion); the record holds the sum of the shifts at the SETPOS.
+    // So the machine position is the store plus the shifts of the chain on the axis minus that sum. A shift from an
+    // expression counts as its 0 on both sides: appending or removing one returns the axis here at once, before any
+    // motion, and a motion keeps the machine position known only while the chain holds the ones of the SETPOS and no
+    // other, so its unknown shift cancels out. The axis returns to the MACHINE frame there, and the record stays with
+    // the setpos shift. False for an axis not known in the workpiece frame, for one whose machine position a motion
+    // left unknown, and for one without a record (virtual machine 1, 3.4, D35, D101).
     private static bool ReturnToMachineFrame(ChannelState state, string axis)
     {
         if (!state.Motion.Position.TryGetValue(axis, out AxisPosition position)
@@ -429,11 +429,11 @@ internal static class FrameRules
     // - The holder of the SETPOS and of the motion is the machine's default workpiece holder. The frame of any other
     //   holder has +Z out of its own chuck, and the machine reaches it through its mirror or datum convention, which
     //   readers and compilers apply outside the VM (virtual machine 3.4, D57).
-    // - No ROTATE turns a plane the axis is in, no MIRROR names the axis, and no TILT or TILT_AXIS stands; those only the
-    //   kinematics module converts (virtual machine 3.4, 10). A ROTATE turns the working plane where it stood about its
-    //   tool axis, and a MIRROR mirrors the axes it names (language 4.2).
-    // - The SHIFT entries from an expression on the axis are those of the SETPOS: their unknown shift is in the frame of
-    //   the SETPOS and of the motion alike, and it cancels out. Any other is unknown (virtual machine 1).
+    // - No ROTATE turns a plane the axis is in, no MIRROR names the axis, and no TILT or TILT_AXIS stands; those only
+    //   the kinematics module converts (virtual machine 3.4, 10). A ROTATE turns the working plane where it stood about
+    //   its tool axis, and a MIRROR mirrors the axes it names (language 4.2).
+    // - The SHIFT entries from an expression on the axis are those of the SETPOS: their unknown shift is in the frame
+    //   of the SETPOS and of the motion alike, and it cancels out. Any other is unknown (virtual machine 1).
     private static bool MovesAsItsWorkpieceCoordinate(BlockContext context, string axis, SetposRecord record)
     {
         ChannelState state = context.State;
@@ -554,8 +554,8 @@ internal static class FrameRules
 
     // The chain is unwound from the end: the entry at the index and everything after it go; removed shifts are folded
     // back into the position, and a removed rotation, mirror or tilt marks the position unknown (virtual machine 3.4).
-    // A removed shift from an expression folds an unknown shift back, so its axes are unknown outside the MACHINE frame,
-    // as appending it left them (virtual machine 1, wave-1 question #100).
+    // A removed shift from an expression folds an unknown shift back, so its axes are unknown outside the MACHINE
+    // frame, as appending it left them (virtual machine 1, wave-1 question #100).
     private static void CutAt(ChannelState state, int index)
     {
         List<TransformEntry> chain = state.Frame.Chain;

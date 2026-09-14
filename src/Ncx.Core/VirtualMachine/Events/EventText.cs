@@ -86,7 +86,8 @@ internal static class EventText
     /// The axes a motion moved, each with its position before and after it: X ? -> 50.4, Y 2 -> 7; "in place" when
     /// none moved.
     /// </summary>
-    public static string Moves(IReadOnlyDictionary<string, AxisPosition> from, IReadOnlyDictionary<string, AxisPosition> to)
+    public static string Moves(IReadOnlyDictionary<string, AxisPosition> from,
+        IReadOnlyDictionary<string, AxisPosition> to)
     {
         var moves = new List<string>();
         foreach (KeyValuePair<string, AxisPosition> target in to)

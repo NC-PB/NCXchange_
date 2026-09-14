@@ -6,8 +6,8 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// The labels, calls and jumps of a Klartext block (controllers heidenhain.md 1, 6, 7 rule 3; controller-mapping 6;
-/// language 4.9): LBL n, whose SUB section or LABEL the structure pass writes; CALL LBL n as CALL=n; CALL LBL n REP k as
-/// REPEAT=n TIMES=k; CALL PGM name as CALL="name"; FN 9 to FN 12 IF ... GOTO LBL n as JUMP=n with IF.
+/// language 4.9): LBL n, whose SUB section or LABEL the structure pass writes; CALL LBL n as CALL=n; CALL LBL n REP k
+/// as REPEAT=n TIMES=k; CALL PGM name as CALL="name"; FN 9 to FN 12 IF ... GOTO LBL n as JUMP=n with IF.
 /// </summary>
 internal static partial class HeidenhainFlow
 {
@@ -127,9 +127,9 @@ internal static partial class HeidenhainFlow
         block.Draft.Main.Add("JUMP", target).Add("IF", condition);
     }
 
-    // CALL LBL n calls the subprogram LBL n ... LBL 0 once (controllers heidenhain.md 1; controller-mapping 6, CALL). The
-    // subprogram runs with the state of its caller, which the reader records, and the caller continues with what the
-    // subprogram may change unknown (virtual machine 3.9).
+    // CALL LBL n calls the subprogram LBL n ... LBL 0 once (controllers heidenhain.md 1; controller-mapping 6, CALL).
+    // The subprogram runs with the state of its caller, which the reader records, and the caller continues with what
+    // the subprogram may change unknown (virtual machine 3.9).
     private static void ReadLabelCall(HeidenhainBlock block)
     {
         block.MarkAllRead();

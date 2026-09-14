@@ -9,8 +9,8 @@ namespace Ncx.Core.Tests.Expressions;
 /// </summary>
 public sealed class EvaluatorFunctionTests
 {
-    // Angles in degrees (language 4.12): SIN, COS and TAN take degrees, and on the axes and at 30, 45 and 60 degrees the
-    // value is the exact one, whatever the number of turns.
+    // Angles in degrees (language 4.12): SIN, COS and TAN take degrees, and on the axes and at 30, 45 and 60 degrees
+    // the value is the exact one, whatever the number of turns.
     [Theory]
     [InlineData("SIN(0)", "0")]
     [InlineData("SIN(30)", "0.5")]
@@ -44,8 +44,8 @@ public sealed class EvaluatorFunctionTests
         Assert.Equal(DiagnosticCodes.ResultUndefined, new EvaluationChannel().ErrorOf(expression).Code);
     }
 
-    // Angles in degrees (language 4.12): ASIN, ACOS, ATAN and ATAN2 give degrees, ATAN2(y, x) the angle of the point x, y
-    // from -180 to 180 (the reading of the open question in Evaluator.ArcTangent2).
+    // Angles in degrees (language 4.12): ASIN, ACOS, ATAN and ATAN2 give degrees, ATAN2(y, x) the angle of the point x,
+    // y from -180 to 180 (the reading of the open question in Evaluator.ArcTangent2).
     [Theory]
     [InlineData("ASIN(0.5)", "30")]
     [InlineData("ASIN(1)", "90")]

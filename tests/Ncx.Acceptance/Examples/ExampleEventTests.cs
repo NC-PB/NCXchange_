@@ -22,7 +22,8 @@ public sealed class ExampleEventTests
     {
         string actual = Events("2.5D_FRAESEN.ncx");
 
-        // The expected file is a file of the repository, read from the root found from the test assembly (tests/README).
+        // The expected file is a file of the repository, read from the root found from the test assembly
+        // (tests/README).
         string expectedFile = Path.Combine(
             Fixture.RepositoryRoot(), "tests", "Ncx.Acceptance", "Expected", "2.5D_FRAESEN.events.txt");
         string expected = File.ReadAllText(expectedFile).ReplaceLineEndings("\n");

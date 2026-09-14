@@ -248,7 +248,8 @@ public sealed class ToolChangeTests
     [Fact]
     public void OffsetForms_SetTheLengthRadiusAndCombinedRegisters()
     {
-        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("TOOL=1", "OFFSET:LEN=11 OFFSET:RAD=12", "OFFSET=13");
+        VmHarness vm = new VmHarness(VmMachines.Default())
+            .Execute("TOOL=1", "OFFSET:LEN=11 OFFSET:RAD=12", "OFFSET=13");
 
         Assert.Equal(11, Holder(vm).OffsetLen);
         Assert.Equal(12, Holder(vm).OffsetRad);

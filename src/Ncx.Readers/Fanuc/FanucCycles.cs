@@ -59,7 +59,8 @@ internal static class FanucCycles
                 if (FanucAxes.Unread(block).Count > 0)
                 {
                     block.Draft.KeepAsRaw(FanucUnknowns.Reason(
-                        "the active cycle, which every following block with a position calls (controllers fanuc.md 6)"));
+                        "the active cycle, which every following block with a position calls "
+                        + "(controllers fanuc.md 6)"));
                 }
 
                 return;
@@ -120,7 +121,8 @@ internal static class FanucCycles
     /// </summary>
     /// <param name="block">A source block.</param>
     /// <param name="machine">The machine with its G-code system and its cycle catalog.</param>
-    /// <param name="problem">Why a G70 to G76 block names no contour the reader reads; null for any other block.</param>
+    /// <param name="problem">Why a G70 to G76 block names no contour the reader reads; null for any other
+    /// block.</param>
     public static SourceContour? ContourOf(SourceBlock block, MachineConfig machine, out string? problem)
     {
         problem = null;
@@ -157,7 +159,8 @@ internal static class FanucCycles
         }
 
         // TODO(question): the other words of G70 to G76, depth of cut, allowances, retract and thread data, have no
-        // NCX word (wave-1 question #18); a block with a word its catalog entry does not map stays RAW with its contour.
+        // NCX word (wave-1 question #18); a block with a word its catalog entry does not map stays RAW with its
+        // contour.
         foreach (SourceWord word in block.Words)
         {
             bool mapped = entry.Params.Values.Contains(word.Address) && word.Number is not null
@@ -170,14 +173,15 @@ internal static class FanucCycles
             }
         }
 
-        return new SourceContour(from.ToString(CultureInfo.InvariantCulture), to.ToString(CultureInfo.InvariantCulture));
+        return new SourceContour(from.ToString(CultureInfo.InvariantCulture),
+            to.ToString(CultureInfo.InvariantCulture));
     }
 
     // G70 to G76 of a lathe are one-shot blocks whose P and Q name the contour that follows them (controllers fanuc.md
     // 6; language 4.7.1): the structure pass turns the contour into a SUB section of the file, and the cycle block is
     // the catalog cycle with CONTOUR=name (language 4.7, CONTOUR; machine-config 6, modal and contour; D65). A cycle
-    // whose contour the structure pass made no section of stays RAW with the blocks of its contour, as the control reads
-    // them (FanucReader.MarkContour; D5).
+    // whose contour the structure pass made no section of stays RAW with the blocks of its contour, as the control
+    // reads them (FanucReader.MarkContour; D5).
     // TODO(question): the catalog gives G75 (GROOVE) and G76 (COMPOUND_THREAD) a contour as the documents say, which
     // wave-1 questions #19 and #29 doubt; the reader follows the entry of the catalog.
     private static bool ReadRepetitiveCycle(FanucBlock block)
@@ -234,9 +238,9 @@ internal static class FanucCycles
     // since the one-shot CYCLE replaced it in NCX (language 4.7); where the tool stands afterwards the reader does not
     // follow.
     // TODO(question): a one-shot entry runs once where it stands (machine-config 6), while the virtual machine keeps a
-    // CYCLE until CYCLE=OFF, the next CYCLE, TOOL (with a WARNING) or PROGRAM=END (virtual machine 2.6, 4); the documents
-    // do not say whether a reader closes a one-shot cycle with CYCLE=OFF, so it writes none, as the direct Siemens call
-    // of controller-mapping 5 reads.
+    // CYCLE until CYCLE=OFF, the next CYCLE, TOOL (with a WARNING) or PROGRAM=END (virtual machine 2.6, 4); the
+    // documents do not say whether a reader closes a one-shot cycle with CYCLE=OFF, so it writes none, as the direct
+    // Siemens call of controller-mapping 5 reads.
     private static void ReadContourCycle(FanucBlock block, CycleEntry entry, string contour)
     {
         block.Take(entry.Contour[0]);
@@ -415,14 +419,16 @@ internal static class FanucCycles
         }
 
         // A new drilling cycle takes the return level of G98 or G99 and, on a mill, its drilling axis from the plane;
-        // where that is the unknown state of a caller (FanucCallerState), the cycle is not known and the block stays RAW.
+        // where that is the unknown state of a caller (FanucCallerState), the cycle is not known and the block stays
+        // RAW.
         FanucUnknowns unknown = block.Fanuc.Unknowns;
         if (unknown.Groups.Contains(FanucModalGroups.ReturnLevel)
             || (!block.IsLathe && unknown.Groups.Contains(FanucModalGroups.Plane)))
         {
             block.Fanuc.Cycle = null;
             unknown.Cycle = true;
-            block.Draft.KeepAsRaw(FanucUnknowns.Reason("G98 or G99, or the plane of G17 to G19, which a new cycle takes"));
+            block.Draft.KeepAsRaw(FanucUnknowns.Reason(
+                "G98 or G99, or the plane of G17 to G19, which a new cycle takes"));
             return;
         }
 
@@ -698,13 +704,14 @@ internal static class FanucCycles
             return;
         }
 
-        // The feed mode and the speed are the caller's in a subprogram and those its subprogram left in a caller (virtual
-        // machine 3.9); where the reader does not know them, the pitch is not known (FanucCallerState).
+        // The feed mode and the speed are the caller's in a subprogram and those its subprogram left in a caller
+        // (virtual machine 3.9); where the reader does not know them, the pitch is not known (FanucCallerState).
         FanucUnknowns unknown = block.Fanuc.Unknowns;
         string? mode = block.State.ActiveCode(FanucModalGroups.FeedMode);
         if (unknown.Groups.Contains(FanucModalGroups.FeedMode))
         {
-            block.Draft.KeepAsRaw(FanucUnknowns.Reason("the feed mode, which makes F the pitch or the feed per minute"));
+            block.Draft.KeepAsRaw(FanucUnknowns.Reason(
+                "the feed mode, which makes F the pitch or the feed per minute"));
         }
         else if (mode == (block.System == GcodeSystem.A ? "G99" : "G95"))
         {

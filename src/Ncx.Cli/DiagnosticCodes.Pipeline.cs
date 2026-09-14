@@ -12,8 +12,8 @@ public static partial class DiagnosticCodes
 
     /// <summary>
     /// CLI101: the vars file of an INTERPRETED run, the one --vars names or &lt;file&gt;.vars.toml next to the file,
-    /// cannot be found or read as UTF-8 text; decided before the run starts, exit code 2 (D97; virtual machine 2.7, 3.6;
-    /// machine-config 8).
+    /// cannot be found or read as UTF-8 text; decided before the run starts, exit code 2 (D97; virtual machine 2.7,
+    /// 3.6; machine-config 8).
     /// </summary>
     public const string VarsFileUnreadable = "CLI101";
 }

@@ -199,7 +199,9 @@ internal static class FrameHandlers
     // ROTARY_PATH=SHORTEST or FULL, state only (language 4.2, D86).
     private static void ApplyRotaryPath(Word word, BlockContext context)
     {
-        context.State.Frame.RotaryPath = BlockContext.IdentOf(word) == "SHORTEST" ? RotaryPath.Shortest : RotaryPath.Full;
+        context.State.Frame.RotaryPath = BlockContext.IdentOf(word) == "SHORTEST"
+            ? RotaryPath.Shortest
+            : RotaryPath.Full;
     }
 
     // ROTARY_FEED=MM_MIN or DEG_MIN, state only (language 4.2, D86).
@@ -216,7 +218,9 @@ internal static class FrameHandlers
         if (word.Addr is not null)
         {
             string rotaryKey = BlockContext.StateKey("TOLERANCE", word.Addr);
-            decimal? rotary = context.TryNumber(word, rotaryKey, out decimal degrees) ? degrees : frame.Tolerance.Rotary;
+            decimal? rotary = context.TryNumber(word, rotaryKey, out decimal degrees)
+                ? degrees
+                : frame.Tolerance.Rotary;
             frame.Tolerance = frame.Tolerance with { Rotary = rotary };
             return;
         }
@@ -229,7 +233,9 @@ internal static class FrameHandlers
             return;
         }
 
-        decimal? tolerance = context.TryNumber(word, "TOLERANCE", out decimal value) ? value : frame.Tolerance.Value ?? 0m;
+        decimal? tolerance = context.TryNumber(word, "TOLERANCE", out decimal value)
+            ? value
+            : frame.Tolerance.Value ?? 0m;
         frame.Tolerance = frame.Tolerance with { Value = tolerance };
     }
 

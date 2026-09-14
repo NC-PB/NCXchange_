@@ -17,9 +17,9 @@ internal sealed class FanucState
     // the changes after it. A word whose value is written already is not written again.
     private readonly Dictionary<string, string> _written = new(StringComparer.Ordinal);
 
-    // While the structure of the file is laid out, for the section being laid out: the labels its blocks carried so far,
-    // those whose first block holds only the end of the program, and the jumps to a label no block has carried yet, with
-    // the label lists of their blocks.
+    // While the structure of the file is laid out, for the section being laid out: the labels its blocks carried so
+    // far, those whose first block holds only the end of the program, and the jumps to a label no block has carried
+    // yet, with the label lists of their blocks.
     private readonly HashSet<string> _sectionLabels = new(StringComparer.Ordinal);
     private readonly HashSet<string> _endLabels = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<(int Line, List<string> Labels)>> _pendingJumps =

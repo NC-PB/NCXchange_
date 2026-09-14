@@ -167,8 +167,8 @@ public sealed class RunMachineTests : IDisposable
             _project.Error, StringComparison.Ordinal);
     }
 
-    // Machine-config 6, 10: the catalog is a file of a cycle folder and never a file of the working directory itself, so
-    // a machine file that carries the name of its catalog is not loaded as its own catalog.
+    // Machine-config 6, 10: the catalog is a file of a cycle folder and never a file of the working directory itself,
+    // so a machine file that carries the name of its catalog is not loaded as its own catalog.
     [Fact]
     public void CycleCatalog_FileOfItsNameInTheWorkingDirectory_DoesNotShadowTheCycleFolder()
     {
@@ -197,7 +197,8 @@ public sealed class RunMachineTests : IDisposable
         int exitCode = _project.Check(program, "mill");
 
         Assert.True(exitCode == 0, _project.Error);
-        Assert.StartsWith(Path.Combine("cycles", "shop", "drill.toml") + "(4): WARNING CFG002: Unknown key found_in_work",
+        Assert.StartsWith(
+            Path.Combine("cycles", "shop", "drill.toml") + "(4): WARNING CFG002: Unknown key found_in_work",
             _project.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("found_from_work", _project.Error, StringComparison.Ordinal);
     }

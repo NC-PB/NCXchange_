@@ -94,14 +94,14 @@ internal sealed class GeneratedText
     }
 
     /// <summary>
-    /// A block marked as generated: IsGenerated, the line of its origin as the OriginLine every diagnostic on it carries
-    /// (D98), its origin, and the SKIP of its origin.
+    /// A block marked as generated: IsGenerated, the line of its origin as the OriginLine every diagnostic on it
+    /// carries (D98), its origin, and the SKIP of its origin.
     /// </summary>
     public static Block Mark(Block block, GeneratedBlock generated)
     {
-        // TODO(question): language 4.15 and virtual machine 3.10 do not say whether a generated block is skipped with the
-        // SKIP block it was generated for (D53); it carries the SKIP word of its origin, so that skip_blocks skips the
-        // stop, the retract or the mode code together with the block that needs them, until that is answered.
+        // TODO(question): language 4.15 and virtual machine 3.10 do not say whether a generated block is skipped with
+        // the SKIP block it was generated for (D53); it carries the SKIP word of its origin, so that skip_blocks skips
+        // the stop, the retract or the mode code together with the block that needs them, until that is answered.
         IReadOnlyList<Word> words = block.Words;
         if (generated.Origin.Find("SKIP") is Word skip && !block.Has("SKIP"))
         {
@@ -128,7 +128,11 @@ internal sealed class GeneratedText
     {
         if (block.Generated is GeneratedBlock generated)
         {
-            return generated with { Source = generated.Source + ", " + source, Reason = generated.Reason + "; " + reason };
+            return generated with
+            {
+                Source = generated.Source + ", " + source,
+                Reason = generated.Reason + "; " + reason,
+            };
         }
 
         return new GeneratedBlock

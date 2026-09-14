@@ -29,9 +29,9 @@ internal static class ProgramRewriters
         }
     }
 
-    // Replace: a rewriter changes the words of the block, and the virtual machine executes the changed block (architecture
-    // 9). The new block stands in place of the block of the file and names it as its origin, so that ncx format still
-    // writes the block as read (language 4.15).
+    // Replace: a rewriter changes the words of the block, and the virtual machine executes the changed block
+    // (architecture 9). The new block stands in place of the block of the file and names it as its origin, so that ncx
+    // format still writes the block as read (language 4.15).
     private static void Replace(RewriteResult result, string name, BlockExpansion expansion, GeneratedText generated)
     {
         GeneratedBlock origin = GeneratedText.Rewritten(expansion.Block, expansion.Origin, name, result.Reason);
@@ -51,7 +51,8 @@ internal static class ProgramRewriters
     // Surround: generated blocks before and after the block, which stays (architecture 9).
     private static void Surround(RewriteResult result, string name, BlockExpansion expansion, GeneratedText generated)
     {
-        List<Block> before = Blocks(result.Before, name, result.Reason, GeneratedPlacement.Before, expansion, generated);
+        List<Block> before = Blocks(result.Before, name, result.Reason, GeneratedPlacement.Before, expansion,
+            generated);
         List<Block> after = Blocks(result.After, name, result.Reason, GeneratedPlacement.After, expansion, generated);
         if (!expansion.Surround(before, after))
         {

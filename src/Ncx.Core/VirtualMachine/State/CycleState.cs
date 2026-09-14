@@ -53,7 +53,8 @@ internal sealed class CycleState
             Workplane.XY => Plane.XY.ToolAxis,
             Workplane.ZX => Plane.ZX.ToolAxis,
             Workplane.YZ => Plane.YZ.ToolAxis,
-            _ => throw new ArgumentOutOfRangeException(nameof(workplane), workplane, "Not a workplane of language 4.2."),
+            _ => throw new ArgumentOutOfRangeException(nameof(workplane), workplane,
+                "Not a workplane of language 4.2."),
         };
     }
 

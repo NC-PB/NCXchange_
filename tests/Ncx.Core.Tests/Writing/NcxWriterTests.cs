@@ -7,8 +7,8 @@ namespace Ncx.Core.Tests.Writing;
 
 /// <summary>
 /// The canonical writer: the words of a block in the order of the rank table, numbers as read, strings escaped, the
-/// comment in column 57, comment-only and blank lines as read, the line ending of the file (language 2 rule 7, 5 rules 6
-/// and 7; D90, D92, D93; phase 0, P0-06).
+/// comment in column 57, comment-only and blank lines as read, the line ending of the file (language 2 rule 7, 5 rules
+/// 6 and 7; D90, D92, D93; phase 0, P0-06).
 /// </summary>
 public sealed class NcxWriterTests
 {
@@ -306,7 +306,10 @@ public sealed class NcxWriterTests
         blocks.Insert(2, new Block
         {
             Line = 3,
-            Words = [new Word { Key = "SPINDLE", Value = new IdentValue("OFF"), Definition = WordCatalog.Lookup("SPINDLE") }],
+            Words =
+            [
+                new Word { Key = "SPINDLE", Value = new IdentValue("OFF"), Definition = WordCatalog.Lookup("SPINDLE") },
+            ],
             IsGenerated = true,
             OriginLine = 3,
         });

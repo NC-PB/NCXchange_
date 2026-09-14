@@ -73,7 +73,8 @@ public sealed class ProgramRewriterTests
         Assert.Same(ExpanderHarness.Find(original, "SPINDLE:MAIN=CW RPM:MAIN=1500"), replaced.Generated?.Origin);
         Assert.Equal(4, replaced.OriginLine);
         Assert.Equal(original.Blocks.Count, expanded.Blocks.Count);
-        Assert.Equal(1200m, ExpanderHarness.StateBeforeProgramEnd(expanded, ExpanderMachines.Mill()).Spindles["S1"].Rpm);
+        Assert.Equal(1200m,
+            ExpanderHarness.StateBeforeProgramEnd(expanded, ExpanderMachines.Mill()).Spindles["S1"].Rpm);
         Assert.Equal(NcxWriter.Write(original), NcxWriter.Write(expanded));
     }
 
@@ -136,6 +137,7 @@ public sealed class ProgramRewriterTests
         Assert.True(ExpanderHarness.Find(expanded, "@SAVE=SPINDLE:MAIN").IsGenerated);
         Assert.Equal(
             SpindleDirection.Off,
-            ExpanderHarness.StateAfter(expanded, ExpanderMachines.Mill(), "COOLANT:THROUGH=ON").Spindles["S1"].Direction);
+            ExpanderHarness.StateAfter(expanded, ExpanderMachines.Mill(), "COOLANT:THROUGH=ON")
+                .Spindles["S1"].Direction);
     }
 }

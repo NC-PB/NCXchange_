@@ -87,9 +87,9 @@ internal static class FormatCommand
             return ExitCodes.NotStarted;
         }
 
-        // TODO(question): language 3 says UTF-8 and does not say whether a byte order mark belongs to an NCX file. It is
-        // no part of the text the parser reads and goes back in front of the canonical text as it came, so that format
-        // changes nothing it is not asked to, until that is answered.
+        // TODO(question): language 3 says UTF-8 and does not say whether a byte order mark belongs to an NCX file. It
+        // is no part of the text the parser reads and goes back in front of the canonical text as it came, so that
+        // format changes nothing it is not asked to, until that is answered.
         string byteOrderMark = text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
             ? InputFile.ByteOrderMark
             : "";
@@ -135,9 +135,9 @@ internal static class FormatCommand
         }
 
         diagnostics.Info(FirstDifferingLine(input, canonical), DiagnosticCodes.NotCanonical,
-            "The file differs from its canonical form from this line on: ncx format writes the words in canonical order "
-            + "one space apart, the comment in column 57 and every line with the line ending of the file (language 2 "
-            + "rule 7, 5 rules 6 and 7).");
+            "The file differs from its canonical form from this line on: ncx format writes the words in canonical "
+            + "order one space apart, the comment in column 57 and every line with the line ending of the file "
+            + "(language 2 rule 7, 5 rules 6 and 7).");
         return true;
     }
 

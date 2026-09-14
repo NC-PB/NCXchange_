@@ -295,9 +295,9 @@ public sealed class SetposMotionTests
     }
 
     // Third review of P1-03, finding 1 (VM 1, 3.4, D101; language 4.2): SETPOS declares the position in the active
-    // workpiece frame, which holds a SHIFT from an expression. Once that shift is reset, a motion moves the machine to a
-    // position off by the unknown shift, so ORIGIN and a change of the frame leave X unknown instead of returning it to
-    // a wrong machine position.
+    // workpiece frame, which holds a SHIFT from an expression. Once that shift is reset, a motion moves the machine to
+    // a position off by the unknown shift, so ORIGIN and a change of the frame leave X unknown instead of returning it
+    // to a wrong machine position.
     [Theory]
     [InlineData("ORIGIN=1")]
     [InlineData("TILT B=45")]
@@ -310,8 +310,8 @@ public sealed class SetposMotionTests
         Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
     }
 
-    // VM 3.4, D101: nothing moves between the SETPOS and the reset of the SHIFT from an expression that stood before it,
-    // so X returns to its machine position, and the next SETPOS records against it without the ERROR VM050.
+    // VM 3.4, D101: nothing moves between the SETPOS and the reset of the SHIFT from an expression that stood before
+    // it, so X returns to its machine position, and the next SETPOS records against it without the ERROR VM050.
     [Fact]
     public void Setpos_UnderAShiftFromAnExpressionResetWithoutAMotion_ReturnsTheAxisToItsMachinePosition()
     {
@@ -366,9 +366,9 @@ public sealed class SetposMotionTests
     }
 
     // Third review of P1-03, finding 3 (language 4.2, VM 3.4): ROTATE turns the working plane about the tool axis. A
-    // motion of a rotary axis or along the tool axis moves neither axis of the plane, so the machine position of X stays
-    // known through the record, the reset returns X to it, and the next SETPOS records against it without the ERROR
-    // VM050.
+    // motion of a rotary axis or along the tool axis moves neither axis of the plane, so the machine position of X
+    // stays known through the record, the reset returns X to it, and the next SETPOS records against it without the
+    // ERROR VM050.
     [Theory]
     [InlineData("RAPID C=10")]
     [InlineData("LINE Z=-5")]
@@ -385,8 +385,8 @@ public sealed class SetposMotionTests
         Assert.Equal(300m, vm.State.Frame.SetposShift["X"]);
     }
 
-    // Third review of P1-03, finding 3 (language 4.2, VM 3.4): MIRROR=Y mirrors Y alone. A motion of X under it moves the
-    // machine by as much as the workpiece coordinate, so MIRROR=OFF returns X to the machine position the motion
+    // Third review of P1-03, finding 3 (language 4.2, VM 3.4): MIRROR=Y mirrors Y alone. A motion of X under it moves
+    // the machine by as much as the workpiece coordinate, so MIRROR=OFF returns X to the machine position the motion
     // reached, and the next SETPOS records against it.
     [Fact]
     public void Mirror_OfAnotherAxis_AMotionOfTheAxisKeepsItsMachinePosition()
@@ -401,8 +401,8 @@ public sealed class SetposMotionTests
         Assert.Equal(250m, vm.State.Frame.SetposShift["X"]);
     }
 
-    // Language 4.2, VM 3.4, 10: TILT turns the frame in space, so a motion of one linear axis under it moves every linear
-    // axis in the machine frame by an amount only the kinematics module knows; the reset leaves X unknown.
+    // Language 4.2, VM 3.4, 10: TILT turns the frame in space, so a motion of one linear axis under it moves every
+    // linear axis in the machine frame by an amount only the kinematics module knows; the reset leaves X unknown.
     [Fact]
     public void Tilt_AMotionOfAnotherLinearAxis_LeavesTheMachinePositionUnknown()
     {

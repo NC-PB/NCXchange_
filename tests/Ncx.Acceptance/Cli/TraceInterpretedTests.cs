@@ -64,8 +64,8 @@ public sealed class TraceInterpretedTests : IDisposable
             RowsOf(",VAR:Q3,"));
     }
 
-    // Implementation 14 P4-01: INCREMENTAL_SUB calls the subprogram four times and ends at the expected position, X = 0,
-    // Y = 60, Z = 50 before the parking section's HOME; the trace of the INTERPRETED run as an expected file.
+    // Implementation 14 P4-01: INCREMENTAL_SUB calls the subprogram four times and ends at the expected position,
+    // X = 0, Y = 60, Z = 50 before the parking section's HOME; the trace of the INTERPRETED run as an expected file.
     [Fact]
     public void TraceInterpreted_IncrementalSub_EqualsTheExpectedFile()
     {
@@ -158,8 +158,8 @@ public sealed class TraceInterpretedTests : IDisposable
         Assert.Equal("", _cli.Output);
     }
 
-    // D97, machine-config 8: a vars file with an ERROR stops the run before it starts, exit code 1, the diagnostic on the
-    // vars file.
+    // D97, machine-config 8: a vars file with an ERROR stops the run before it starts, exit code 1, the diagnostic on
+    // the vars file.
     [Fact]
     public void TraceInterpreted_VarsFileWithAnError_ExitsOneWithTheDiagnosticOfTheVarsFile()
     {
@@ -173,8 +173,8 @@ public sealed class TraceInterpretedTests : IDisposable
         Assert.Equal("", _cli.Output);
     }
 
-    // Machine-config 7, VM 3.6, 5: the block cap of the machine file stops an endless loop, LABEL=1 and JUMP=1, with the
-    // ERROR "possible endless loop"; exit code 1 (D97).
+    // Machine-config 7, VM 3.6, 5: the block cap of the machine file stops an endless loop, LABEL=1 and JUMP=1, with
+    // the ERROR "possible endless loop"; exit code 1 (D97).
     [Fact]
     public void TraceInterpreted_BlockCapOfTheMachineFile_StopsAnEndlessLoop()
     {

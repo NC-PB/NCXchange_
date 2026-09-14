@@ -33,8 +33,8 @@ internal static class HeidenhainToolCall
     // (controllers heidenhain.md 4). The offsets come from the tool table with the call, so the reader emits both
     // offset words with the number of the tool (heidenhain 7 rule 2; language 2 rule 4).
     // TODO(question): heidenhain 4 names the F of TOOL CALL without saying what it does (the modal feed, or the feed
-    // that F AUTO takes), and OFFSET:LEN and OFFSET:RAD take a register number (language 4.4) that a tool called by name
-    // has not; a TOOL CALL with F, or by name, is kept RAW.
+    // that F AUTO takes), and OFFSET:LEN and OFFSET:RAD take a register number (language 4.4) that a tool called by
+    // name has not; a TOOL CALL with F, or by name, is kept RAW.
     private static void ReadCall(HeidenhainBlock block)
     {
         SourceWord? number = NumberWord(block);
@@ -115,8 +115,8 @@ internal static class HeidenhainToolCall
         block.State.Workplane = plane;
     }
 
-    // TOOL DEF 5 prepares the next tool, PRELOAD=5; TOOL DEF 0 clears the preload (controllers heidenhain.md 4; language
-    // 4.4); TOOL DEF "NAME" prepares a tool by name.
+    // TOOL DEF 5 prepares the next tool, PRELOAD=5; TOOL DEF 0 clears the preload (controllers heidenhain.md 4;
+    // language 4.4); TOOL DEF "NAME" prepares a tool by name.
     private static void ReadPreload(HeidenhainBlock block)
     {
         SourceWord? number = NumberWord(block);

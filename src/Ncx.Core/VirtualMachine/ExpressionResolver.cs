@@ -26,7 +26,8 @@ internal static class ExpressionResolver
     /// <param name="vars">The variables of the channel as the block finds them.</param>
     /// <param name="unassigned">[variables] unassigned of the run, VmOptions.Unassigned (D38).</param>
     /// <param name="diagnostics">Where an ERROR of the evaluation goes.</param>
-    /// <returns>True for a block without IF or with a condition that is not 0; false for 0; null after an ERROR.</returns>
+    /// <returns>True for a block without IF or with a condition that is not 0; false for 0; null after an
+    /// ERROR.</returns>
     public static bool? ConditionHolds(Block block, VariableStore vars, UnassignedVariable unassigned,
         Diagnostics diagnostics)
     {
@@ -63,7 +64,8 @@ internal static class ExpressionResolver
     /// <param name="vars">The variables of the channel as the block finds them.</param>
     /// <param name="unassigned">[variables] unassigned of the run, VmOptions.Unassigned (D38).</param>
     /// <param name="diagnostics">Where an ERROR of the evaluation goes.</param>
-    /// <returns>The block as it executes; the block itself when it has no other expression; null after an ERROR.</returns>
+    /// <returns>The block as it executes; the block itself when it has no other expression; null after an
+    /// ERROR.</returns>
     public static Block? Resolve(Block block, VariableStore vars, UnassignedVariable unassigned,
         Diagnostics diagnostics)
     {
@@ -102,7 +104,9 @@ internal static class ExpressionResolver
     /// <param name="number">The number the expression gave.</param>
     public static Value NumberValueOf(decimal number)
     {
-        string text = number == 0m ? "0" : number.ToString("0.############################", CultureInfo.InvariantCulture);
+        string text = number == 0m
+            ? "0"
+            : number.ToString("0.############################", CultureInfo.InvariantCulture);
         if (IsWhole(number))
         {
             return new IntegerValue(decimal.ToInt64(number), text);

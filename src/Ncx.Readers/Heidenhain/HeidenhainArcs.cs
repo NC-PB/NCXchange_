@@ -53,8 +53,8 @@ internal static class HeidenhainArcs
     }
 
     /// <summary>
-    /// Reads C X+70 Y+50 DR+, the arc about the pole to the end point: ARC=CCW X=70 Y=50 CENTER:X=50 CENTER:Y=50 (heidenhain
-    /// 7 rule 5); a tool-axis word makes a helix.
+    /// Reads C X+70 Y+50 DR+, the arc about the pole to the end point: ARC=CCW X=70 Y=50 CENTER:X=50 CENTER:Y=50
+    /// (heidenhain 7 rule 5); a tool-axis word makes a helix.
     /// </summary>
     /// <param name="block">The block being read, whose first word is C.</param>
     public static void ReadCenterArc(HeidenhainBlock block)
@@ -79,7 +79,8 @@ internal static class HeidenhainArcs
             return;
         }
 
-        main.Add("CENTER", first, HeidenhainNumbers.Of(pole.First)).Add("CENTER", second, HeidenhainNumbers.Of(pole.Second));
+        main.Add("CENTER", first, HeidenhainNumbers.Of(pole.First))
+            .Add("CENTER", second, HeidenhainNumbers.Of(pole.Second));
         EndArc(block, pole, direction == "CCW");
     }
 
@@ -183,14 +184,15 @@ internal static class HeidenhainArcs
         bool ccw = scale > 0;
         HeidenhainDraftBlock arc = block.Draft.Main.WithVerb("ARC", new IdentValue(ccw ? "CCW" : "CW"));
         arc.Words.AddRange(main.Words);
-        arc.Add("CENTER", first, HeidenhainNumbers.Of(center.First)).Add("CENTER", second, HeidenhainNumbers.Of(center.Second));
+        arc.Add("CENTER", first, HeidenhainNumbers.Of(center.First))
+            .Add("CENTER", second, HeidenhainNumbers.Of(center.Second));
         EndArc(block, center, ccw);
     }
 
     /// <summary>
-    /// Reads CP PA+90 DR+ and CP IPA+737.956 IZ-5.4 DR+, the arc about the pole with the radius of the current position:
-    /// converted to Cartesian, and beyond 360 degrees of IPA the ARC with ANGLE, the helix of TopSolid (controllers
-    /// heidenhain.md 2, 7 rule 5; language 4.3, ANGLE; D84).
+    /// Reads CP PA+90 DR+ and CP IPA+737.956 IZ-5.4 DR+, the arc about the pole with the radius of the current
+    /// position: converted to Cartesian, and beyond 360 degrees of IPA the ARC with ANGLE, the helix of TopSolid
+    /// (controllers heidenhain.md 2, 7 rule 5; language 4.3, ANGLE; D84).
     /// </summary>
     /// <param name="block">The block being read, whose first word is CP.</param>
     public static void ReadPolarArc(HeidenhainBlock block)
@@ -228,7 +230,8 @@ internal static class HeidenhainArcs
             main.Add("ANGLE", HeidenhainNumbers.Of(Math.Abs(sweep)));
         }
 
-        if (!PolarPoint(block, null, angle, out decimal x, out decimal y) || !HeidenhainMotion.AddAxes(block, main, axes))
+        if (!PolarPoint(block, null, angle, out decimal x, out decimal y)
+            || !HeidenhainMotion.AddAxes(block, main, axes))
         {
             return;
         }
@@ -238,15 +241,16 @@ internal static class HeidenhainArcs
             main.Add(first, HeidenhainNumbers.Of(x)).Add(second, HeidenhainNumbers.Of(y));
         }
 
-        main.Add("CENTER", first, HeidenhainNumbers.Of(pole.First)).Add("CENTER", second, HeidenhainNumbers.Of(pole.Second));
+        main.Add("CENTER", first, HeidenhainNumbers.Of(pole.First))
+            .Add("CENTER", second, HeidenhainNumbers.Of(pole.Second));
         block.State.SetPosition(first, x);
         block.State.SetPosition(second, y);
         EndArc(block, pole, ccw);
     }
 
     /// <summary>
-    /// The Cartesian point of a polar coordinate about the pole: PR or IPR the radius, PA or IPA the angle from the first
-    /// axis of the plane, a missing one and the incremental forms taken from the current position (controllers
+    /// The Cartesian point of a polar coordinate about the pole: PR or IPR the radius, PA or IPA the angle from the
+    /// first axis of the plane, a missing one and the incremental forms taken from the current position (controllers
     /// heidenhain.md 2, 7 rule 5); false, with the block kept RAW, when the reader cannot compute it.
     /// </summary>
     /// <param name="block">The block being read.</param>

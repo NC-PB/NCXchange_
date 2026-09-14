@@ -5,10 +5,10 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// The cycles that act where they stand (controllers heidenhain.md 2, 3, 5, 7 rule 6; controller-mapping 1; language
-/// 4.1, 4.2; D31, D82, D85): cycle 247 selects the preset, ORIGIN; cycle 7 shifts the datum, replacing the earlier cycle
-/// 7 with SHIFT=RESET before the new SHIFT; cycle 8 mirrors, cycle 10 rotates, cycle 19 tilts the plane by axis angles,
-/// TILT_AXIS; cycle 32 sets the tolerance and cycle 9 dwells. Cycles 7, 8, 9, 10, 19 and 32 are written over several
-/// blocks, CYCL DEF 7.0, 7.1, 7.2 ..., which the reader reads as one definition at its first block.
+/// 4.1, 4.2; D31, D82, D85): cycle 247 selects the preset, ORIGIN; cycle 7 shifts the datum, replacing the earlier
+/// cycle 7 with SHIFT=RESET before the new SHIFT; cycle 8 mirrors, cycle 10 rotates, cycle 19 tilts the plane by axis
+/// angles, TILT_AXIS; cycle 32 sets the tolerance and cycle 9 dwells. Cycles 7, 8, 9, 10, 19 and 32 are written over
+/// several blocks, CYCL DEF 7.0, 7.1, 7.2 ..., which the reader reads as one definition at its first block.
 /// </summary>
 internal static class HeidenhainFrameCycles
 {
@@ -108,9 +108,9 @@ internal static class HeidenhainFrameCycles
         block.Heidenhain.ForgetFrame();
     }
 
-    // CYCL DEF 7.1 X+60, 7.2 Y+40, 7.3 Z-5: the datum shift, axes in any order, an omitted axis unchanged; a new cycle 7
-    // replaces the previous one (controllers heidenhain.md 3, 7 rule 6): SHIFT=RESET before the new SHIFT, and the reset
-    // alone where every axis is 0. CYCL DEF 7.1 #5 takes a line of the datum table, which NCX has no word for.
+    // CYCL DEF 7.1 X+60, 7.2 Y+40, 7.3 Z-5: the datum shift, axes in any order, an omitted axis unchanged; a new cycle
+    // 7 replaces the previous one (controllers heidenhain.md 3, 7 rule 6): SHIFT=RESET before the new SHIFT, and the
+    // reset alone where every axis is 0. CYCL DEF 7.1 #5 takes a line of the datum table, which NCX has no word for.
     private static string? ReadShift(HeidenhainBlock block, List<SourceBlock> members)
     {
         HeidenhainState state = block.Heidenhain;
@@ -240,7 +240,8 @@ internal static class HeidenhainFrameCycles
             }
         }
 
-        if (tolerance is null || (HeidenhainNumbers.NumberOf(tolerance) == 0m && (rotary is not null || mode is not null)))
+        if (tolerance is null
+            || (HeidenhainNumbers.NumberOf(tolerance) == 0m && (rotary is not null || mode is not null)))
         {
             return "cycle 32 names no tolerance T, or switches it off with further values";
         }
@@ -273,8 +274,8 @@ internal static class HeidenhainFrameCycles
         if (!state.Chain.TryReplace(kind, entry, blocks))
         {
             state.Chain.Forget();
-            return $"the new {kind} of the cycle would replace an entry of the chain of transforms that is not the last "
-                + "one, or one the reader does not know (language 4.2, D31)";
+            return $"the new {kind} of the cycle would replace an entry of the chain of transforms that is not the "
+                + "last one, or one the reader does not know (language 4.2, D31)";
         }
 
         if (blocks.Count == 0)

@@ -8,9 +8,9 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// The machining cycles of a Klartext program (controllers heidenhain.md 5, 7 rules 7 and 9; controller-mapping 5;
-/// language 4.7, 4.7.1; machine-config 6): a CYCL DEF becomes a CYCLE block with the coordinates along the tool axis made
-/// absolute from Q203, CYCL CALL, M99 and CYCL CALL PAT become CYCLE_CALL blocks, a PATTERN DEF expands into one call
-/// per point. The definition stays active until the next CYCL DEF; there is no cancel word, so the reader writes
+/// language 4.7, 4.7.1; machine-config 6): a CYCL DEF becomes a CYCLE block with the coordinates along the tool axis
+/// made absolute from Q203, CYCL CALL, M99 and CYCL CALL PAT become CYCLE_CALL blocks, a PATTERN DEF expands into one
+/// call per point. The definition stays active until the next CYCL DEF; there is no cancel word, so the reader writes
 /// CYCLE=OFF before the next non-cycle motion (HeidenhainReader) and the definition again before a later call.
 /// </summary>
 internal static partial class HeidenhainCycles
@@ -72,7 +72,8 @@ internal static partial class HeidenhainCycles
         }
 
         // The reader turns the cycle into the entry of the catalog that maps it; of two entries of one cycle, DRILL and
-        // DRILL_DWELL on cycle 200, PECK and CHIP_BREAK on cycle 203, the first (controller-mapping 5; machine-config 6).
+        // DRILL_DWELL on cycle 200, PECK and CHIP_BREAK on cycle 203, the first
+        // (controller-mapping 5; machine-config 6).
         // TODO(question): which Q211 makes a cycle 200 a DRILL and which Q256 or Q213 makes a cycle 203 a CHIP_BREAK
         // is open (wave-1 questions #20 and #72); the first entry is taken.
         CycleEntry? entry = block.Machine.CycleCatalog.FindNative(native);
@@ -160,8 +161,8 @@ internal static partial class HeidenhainCycles
 
     /// <summary>
     /// Reads PATTERN DEF with its points POS1 (X+25 Y+33.5 Z+0) ... for the CYCL CALL PAT after it (controllers
-    /// heidenhain.md 5): the block writes nothing, its points are the calls. The other forms, and a pattern no CYCL CALL
-    /// PAT calls, stay RAW (heidenhain 7 rule 9).
+    /// heidenhain.md 5): the block writes nothing, its points are the calls. The other forms, and a pattern no CYCL
+    /// CALL PAT calls, stay RAW (heidenhain 7 rule 9).
     /// </summary>
     /// <param name="block">The block being read, whose first words are PATTERN DEF.</param>
     public static void ReadPattern(HeidenhainBlock block)
@@ -171,8 +172,8 @@ internal static partial class HeidenhainCycles
         state.Pattern = null;
         if (!CalledLater(block) || !state.PlaneAxes(out string first, out string second, out string tool))
         {
-            block.Draft.KeepAsRaw("no CYCL CALL PAT calls this PATTERN DEF in a known working plane; PATTERN DEF beyond "
-                + "the expanded calls is RAW (controllers heidenhain.md 7 rule 9)");
+            block.Draft.KeepAsRaw("no CYCL CALL PAT calls this PATTERN DEF in a known working plane; PATTERN DEF "
+                + "beyond the expanded calls is RAW (controllers heidenhain.md 7 rule 9)");
             return;
         }
 
@@ -191,7 +192,8 @@ internal static partial class HeidenhainCycles
 
         if (points.Count == 0 || PatternPoint().Replace(body, "").Trim().Length > 0)
         {
-            block.Draft.KeepAsRaw("a PATTERN DEF of other forms than POS points is RAW (controllers heidenhain.md 7 rule 9)");
+            block.Draft.KeepAsRaw(
+                "a PATTERN DEF of other forms than POS points is RAW (controllers heidenhain.md 7 rule 9)");
             return;
         }
 
@@ -288,15 +290,16 @@ internal static partial class HeidenhainCycles
         HeidenhainState state = block.Heidenhain;
         if (block.Find("F") is not null)
         {
-            block.Draft.KeepAsRaw("the feed between the points of CYCL CALL PAT has no NCX word; CYCLE_CALL positions at "
-                + "rapid (virtual machine 3.3)");
+            block.Draft.KeepAsRaw("the feed between the points of CYCL CALL PAT has no NCX word; CYCLE_CALL positions "
+                + "at rapid (virtual machine 3.3)");
             return;
         }
 
-        if (state.Pattern is not List<HeidenhainPoint> points || !state.PlaneAxes(out string first, out string second, out _))
+        if (state.Pattern is not List<HeidenhainPoint> points
+            || !state.PlaneAxes(out string first, out string second, out _))
         {
-            block.Draft.KeepAsRaw("CYCL CALL PAT needs the points of a PATTERN DEF that the reader expands (controllers "
-                + "heidenhain.md 7 rules 7 and 9)");
+            block.Draft.KeepAsRaw("CYCL CALL PAT needs the points of a PATTERN DEF that the reader expands "
+                + "(controllers heidenhain.md 7 rules 7 and 9)");
             return;
         }
 
@@ -382,12 +385,12 @@ internal static partial class HeidenhainCycles
         return new HeidenhainDefinition { Native = native, Words = words };
     }
 
-    // CYCLE_RETRACT is the cycle with or without Q204 (controller-mapping 5): with Q204 the tool returns to SAFE = Q203 +
-    // Q204, the second set-up clearance, the retract height after the cycle (heidenhain 5), without it to CLEARANCE.
-    // TODO(question): controller-mapping 5 does not say whether a definition whose Q204 puts SAFE on CLEARANCE, BOHREN.h
-    // with Q200=5 and Q204=5 against G99 and R5. of the Fanuc source, or whose Q204 is 0, reads as CYCLE_RETRACT=
-    // CLEARANCE; the reader writes SAFE and CYCLE_RETRACT=SAFE for every definition with Q204, which keeps Q204, and
-    // Expected/BOHREN.ncx keeps the Fanuc reading until the question is answered (phase 3, P3-05).
+    // CYCLE_RETRACT is the cycle with or without Q204 (controller-mapping 5): with Q204 the tool returns to SAFE = Q203
+    // + Q204, the second set-up clearance, the retract height after the cycle (heidenhain 5), without it to CLEARANCE.
+    // TODO(question): controller-mapping 5 does not say whether a definition whose Q204 puts SAFE on CLEARANCE,
+    // BOHREN.h with Q200=5 and Q204=5 against G99 and R5. of the Fanuc source, or whose Q204 is 0, reads as
+    // CYCLE_RETRACT=CLEARANCE; the reader writes SAFE and CYCLE_RETRACT=SAFE for every definition with Q204, which
+    // keeps Q204, and Expected/BOHREN.ncx keeps the Fanuc reading until the question is answered (phase 3, P3-05).
     private static void AddRetract(CycleEntry entry, List<SourceWord> parameters, List<Word> words, bool family)
     {
         string? safe = entry.NativeOf("SAFE");
@@ -402,8 +405,9 @@ internal static partial class HeidenhainCycles
 
     // TODO(question): a Q parameter of a drilling definition that no word of its catalog entry carries (Q202 and Q210
     // of cycle 200, Q208 of cycle 201, Q212, Q213, Q205, Q208 and Q256 of cycle 203) has no NCX word; the documents say
-    // which value the compiler writes for it (wave-1 question #21) but not what the reader does with it. The reader does
-    // not write it and reports it with a WARNING, so that the definition reads into the words of controller-mapping 5.
+    // which value the compiler writes for it (wave-1 question #21) but not what the reader does with it. The reader
+    // does not write it and reports it with a WARNING, so that the definition reads into the words of
+    // controller-mapping 5.
     private static void WarnUnmapped(HeidenhainBlock block, CycleEntry entry, string native, List<string> unmapped)
     {
         if (unmapped.Count == 0)

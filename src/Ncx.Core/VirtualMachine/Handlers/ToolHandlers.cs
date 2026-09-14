@@ -66,7 +66,8 @@ internal static class ToolHandlers
     // machine 2.3, 3.8 rule 2); 0 cancels.
     private static void ApplyOffset(Word word, BlockContext context)
     {
-        if (!context.ResourceOf.TryGetValue(word, out string? holderId) || BlockContext.IntegerOf(word) is not int register)
+        if (!context.ResourceOf.TryGetValue(word, out string? holderId)
+            || BlockContext.IntegerOf(word) is not int register)
         {
             return;
         }
@@ -86,7 +87,8 @@ internal static class ToolHandlers
         }
     }
 
-    // COMP=LEFT, RIGHT or OFF: cutter radius compensation from the motion of the same block on (language 4.4, 5 rule 3).
+    // COMP=LEFT, RIGHT or OFF: cutter radius compensation from the motion of the same block on
+    // (language 4.4, 5 rule 3).
     private static void ApplyComp(Word word, BlockContext context)
     {
         context.State.Motion.Comp = BlockContext.IdentOf(word) switch

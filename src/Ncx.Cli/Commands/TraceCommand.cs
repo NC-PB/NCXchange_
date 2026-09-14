@@ -41,7 +41,8 @@ internal static class TraceCommand
         // from the vars file (virtual machine 1, 2.7, 3.6; machine-config 8).
         var interpretedOption = new Option<bool>("--interpreted")
         {
-            Description = "Run the virtual machine INTERPRETED: variables evaluated, jumps, repeats and calls followed.",
+            Description =
+                "Run the virtual machine INTERPRETED: variables evaluated, jumps, repeats and calls followed.",
         };
         var varsOption = new Option<string>("--vars")
         {

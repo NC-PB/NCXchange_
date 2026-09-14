@@ -133,7 +133,8 @@ public sealed partial class FanucReader : ReaderBase
     }
 
     // A GOTO or a branch command names a label; the block of the label is a jump target, and a jump to the block that
-    // holds only the end of the program is JUMP=END without a label (FanucState.AddJump; controller-mapping 1, JUMP=END).
+    // holds only the end of the program is JUMP=END without a label (FanucState.AddJump; controller-mapping 1,
+    // JUMP=END).
     private static void Jump(FanucState fanuc, SourceBlock block, string label, List<string> labelsUsed)
     {
         fanuc.AddJump(block.Line, label, labelsUsed);
@@ -141,8 +142,8 @@ public sealed partial class FanucReader : ReaderBase
     }
 
     // On a machine of the builder nakamura, I{n} of a G411 x1. I{n}, the jump on the part status that stays RAW, names
-    // the block Nn, which keeps its LABEL so that the RAW jump finds it after a compile (controller-mapping 6 and 8; D5,
-    // language 2 rule 8); I{n} of an NT NURSE branch command names it as a GOTO does (controller-mapping 6).
+    // the block Nn, which keeps its LABEL so that the RAW jump finds it after a compile (controller-mapping 6 and 8;
+    // D5, language 2 rule 8); I{n} of an NT NURSE branch command names it as a GOTO does (controller-mapping 6).
     private void AddBuilderJump(FanucState fanuc, SourceBlock block, List<string> labelsUsed)
     {
         if (!FanucMacro.IsBuilderNakamura(Machine) || block.Find("I") is not SourceWord target
@@ -199,9 +200,9 @@ public sealed partial class FanucReader : ReaderBase
     // Nakamura names the files of one job by path, O1000 for path 1 and O1000.P-2 for path 2 (controllers fanuc.md 1;
     // controller-mapping 7, CHANNEL): the path is the channel the programs of the file run on (language 4.14).
     // TODO(question): controller-mapping 7 takes the path "from the file name or a TOML rule", machine-config names no
-    // such rule, and the documents give the file names of the builder nakamura only, whose path 1 carries no suffix; the
-    // reader writes CHANNEL=n for a file named .P-n on a machine of the builder nakamura and no CHANNEL otherwise, where
-    // the job names the channel (language 4.14).
+    // such rule, and the documents give the file names of the builder nakamura only, whose path 1 carries no suffix;
+    // the reader writes CHANNEL=n for a file named .P-n on a machine of the builder nakamura and no CHANNEL otherwise,
+    // where the job names the channel (language 4.14).
     private long? ChannelOfFile()
     {
         if (!FanucMacro.IsBuilderNakamura(Machine))

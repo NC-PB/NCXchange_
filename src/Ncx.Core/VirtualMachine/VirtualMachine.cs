@@ -57,9 +57,11 @@ public sealed partial class VirtualMachine
     /// </summary>
     /// <param name="machine">The machine file, or the built-in default machine of D103 when no file is given.</param>
     /// <param name="options">The options of the run (architecture 5).</param>
-    /// <param name="diagnostics">Where the diagnostics of the run go, for the file the program comes from (D98).</param>
+    /// <param name="diagnostics">Where the diagnostics of the run go, for the file the program comes from
+    /// (D98).</param>
     /// <param name="mode">STATIC, the default, or INTERPRETED (virtual machine 1).</param>
-    /// <param name="startValues">The start values of &lt;file&gt;.vars.toml; null without one (virtual machine 2.7).</param>
+    /// <param name="startValues">The start values of &lt;file&gt;.vars.toml; null without one
+    /// (virtual machine 2.7).</param>
     public VirtualMachine(MachineConfig machine, VmOptions options, Diagnostics diagnostics,
         ExecutionMode mode = ExecutionMode.Static, IReadOnlyDictionary<string, Value>? startValues = null)
     {
@@ -617,8 +619,8 @@ public sealed partial class VirtualMachine
         }
     }
 
-    // Step 7: the block's events (virtual machine 7), each with the Before and After snapshots of the channel around the
-    // block; the Before is the After of the events raised before them, so that a listener misses no change
+    // Step 7: the block's events (virtual machine 7), each with the Before and After snapshots of the channel around
+    // the block; the Before is the After of the events raised before them, so that a listener misses no change
     // (architecture 5.3). BlockEvents raises them in their order, TOOL_BEGIN and TOOL_END from the holders of Before
     // and After among them (3.5), and counts the block under its tool and its program. With nobody listening nothing is
     // raised and no snapshot is taken.

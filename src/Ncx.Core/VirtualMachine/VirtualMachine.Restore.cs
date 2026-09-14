@@ -13,10 +13,10 @@ public sealed partial class VirtualMachine
     private const string RestoreKey = "@RESTORE";
 
     /// <summary>
-    /// The pseudo-words of a block, between step 1 and step 2 of virtual machine 3 (3.10): @SAVE pushes the value of its
-    /// variable, @RESTORE pops it. Returns the block that steps 2 to 7 execute: without its pseudo-words, and with the
-    /// words of every @RESTORE after its own, so that the words stand where the block said @RESTORE=SPINDLE:MAIN, as
-    /// SPINDLE:MAIN=CW RPM:MAIN=1500.
+    /// The pseudo-words of a block, between step 1 and step 2 of virtual machine 3 (3.10): @SAVE pushes the value of
+    /// its variable, @RESTORE pops it. Returns the block that steps 2 to 7 execute: without its pseudo-words, and with
+    /// the words of every @RESTORE after its own, so that the words stand where the block said @RESTORE=SPINDLE:MAIN,
+    /// as SPINDLE:MAIN=CW RPM:MAIN=1500.
     /// </summary>
     /// <param name="block">A block after step 1.</param>
     internal Block ExecutePseudoWords(Block block)
@@ -41,8 +41,8 @@ public sealed partial class VirtualMachine
         }
 
         // A key starting with @ is a pseudo-word, accepted only in a block the expander generated; in a block of the
-        // file it is the ERROR "pseudo-word in a user file" (virtual machine 3 step 1, D95). The parser reports it for a
-        // user file; this is the same rule for a block of the file that reaches the virtual machine another way, and
+        // file it is the ERROR "pseudo-word in a user file" (virtual machine 3 step 1, D95). The parser reports it for
+        // a user file; this is the same rule for a block of the file that reaches the virtual machine another way, and
         // the pseudo-word does nothing.
         if (!block.IsGenerated)
         {

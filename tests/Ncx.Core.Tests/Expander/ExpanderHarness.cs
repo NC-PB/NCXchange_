@@ -20,7 +20,8 @@ internal static class ExpanderHarness
     /// </summary>
     public static string File(params string[] lines)
     {
-        return "FILE=BEGIN NCX=1\nPROGRAM=BEGIN NAME=\"TEST\"\n" + string.Join("\n", lines) + "\nPROGRAM=END\nFILE=END\n";
+        return "FILE=BEGIN NCX=1\nPROGRAM=BEGIN NAME=\"TEST\"\n" + string.Join("\n", lines)
+            + "\nPROGRAM=END\nFILE=END\n";
     }
 
     public static NcxProgram Parse(string text)

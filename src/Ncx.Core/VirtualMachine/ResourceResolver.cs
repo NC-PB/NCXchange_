@@ -179,8 +179,8 @@ internal sealed class ResourceResolver
     /// </summary>
     public bool ResolveFunction(string name, Block block, ChannelState state, Diagnostics diagnostics)
     {
-        // A named machine function is defined in the machine configuration (language 4.6); one the default machine lacks
-        // is the WARNING of D103 and the word runs against a function created on the spot.
+        // A named machine function is defined in the machine configuration (language 4.6); one the default machine
+        // lacks is the WARNING of D103 and the word runs against a function created on the spot.
         if (_machine.Functions.ContainsKey(name) || _createdFunctions.Contains(name))
         {
             state.Functions.TryAdd(name, null);
@@ -224,7 +224,8 @@ internal sealed class ResourceResolver
     /// </summary>
     public bool ResolveCoolantChannel(string channel, Block block, ChannelState state, Diagnostics diagnostics)
     {
-        if (channel == DefaultCoolantChannel || _machine.Coolant.ContainsKey(channel) || _createdCoolant.Contains(channel))
+        if (channel == DefaultCoolantChannel || _machine.Coolant.ContainsKey(channel)
+            || _createdCoolant.Contains(channel))
         {
             state.Coolant.TryAdd(channel, false);
             return true;
@@ -356,8 +357,8 @@ internal sealed class ResourceResolver
         CheckSpindleAxisWords(context);
     }
 
-    // In SPINDLE mode, C= on the axis of a work spindle is an ERROR; in AXIS mode it is allowed (rule 4). The words that
-    // command or declare the position of an axis are those of the motion verbs and of SETPOS.
+    // In SPINDLE mode, C= on the axis of a work spindle is an ERROR; in AXIS mode it is allowed (rule 4). The words
+    // that command or declare the position of an axis are those of the motion verbs and of SETPOS.
     // TODO(question): rule 4 names C= without naming the verbs; a C word under SHIFT or TILT_AXIS is a shift or an
     // angle, not a position of the spindle, and is not checked until that is answered.
     private void CheckSpindleAxisWords(BlockContext context)
@@ -384,8 +385,8 @@ internal sealed class ResourceResolver
     }
 
     // A role address resolves through [roles] to a resource; no role address targets the default resource of the kind.
-    // Unknown role or wrong resource type: ERROR; without a machine file an unknown role is the WARNING "not checked: no
-    // machine file" and the word runs against a resource created on the spot (rules 1 and 2, D103).
+    // Unknown role or wrong resource type: ERROR; without a machine file an unknown role is the WARNING "not checked:
+    // no machine file" and the word runs against a resource created on the spot (rules 1 and 2, D103).
     private string? Resolve(string? role, ResourceDef? defaultResource, Func<ResourceDef, bool> fits, string kind,
         ResourceType createAs, Block block, ChannelState state, Diagnostics diagnostics)
     {

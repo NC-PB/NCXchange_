@@ -16,16 +16,16 @@ public sealed partial class VirtualMachine
     private readonly Dictionary<string, NcxProgram> _externalFiles = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Loads the external program of CALL="name" in INTERPRETED mode, searched in the working directory (virtual machine
-    /// 3.6): the program parsed and expanded, with what reading it found in its diagnostics under its own file name;
-    /// null when the working directory holds none. The composition root sets it, because Ncx.Core reads no file
+    /// Loads the external program of CALL="name" in INTERPRETED mode, searched in the working directory (virtual
+    /// machine 3.6): the program parsed and expanded, with what reading it found in its diagnostics under its own file
+    /// name; null when the working directory holds none. The composition root sets it, because Ncx.Core reads no file
     /// (code-guidelines 4, dependency inversion); without it every external program is missing.
     /// </summary>
     public Func<string, NcxProgram?>? ExternalPrograms { get; init; }
 
-    // CALL enters the SUB section of the file by its NAME or loads the external program, TIMES=n times in sequence, each
-    // pass from the state the pass before left (language 4.9, virtual machine 3.6). A CALL that names a program: ERROR;
-    // programs are entered from the job only (language 4.13).
+    // CALL enters the SUB section of the file by its NAME or loads the external program, TIMES=n times in sequence,
+    // each pass from the state the pass before left (language 4.9, virtual machine 3.6). A CALL that names a program:
+    // ERROR; programs are entered from the job only (language 4.13).
     private SectionExit FollowInterpretedCall(Block block, Word call, int callPc)
     {
         NcxProgram file = _program ?? throw new InvalidOperationException("A call runs in the file of a run.");
@@ -89,9 +89,9 @@ public sealed partial class VirtualMachine
     // WORKPLANE: ERROR. The first program of its file runs with the caller's state, in its own file: its diagnostics
     // carry its file name (virtual machine 2.9), and its labels and subprograms are its own (language 4.13).
     // TODO(question): virtual machine 3.6 gives the external program its own PROGRAM frame without saying what its
-    // PROGRAM=BEGIN and PROGRAM=END do in a call; they frame it as SUB=BEGIN and SUB=END frame a subprogram: the program
-    // runs from the block after its PROGRAM=BEGIN, and its PROGRAM=END returns to the caller, without ending the channel
-    // and without the resets of virtual machine 4, until that is answered.
+    // PROGRAM=BEGIN and PROGRAM=END do in a call; they frame it as SUB=BEGIN and SUB=END frame a subprogram: the
+    // program runs from the block after its PROGRAM=BEGIN, and its PROGRAM=END returns to the caller, without ending
+    // the channel and without the resets of virtual machine 4, until that is answered.
     private SectionExit CallExternalProgram(string name, Block callBlock, int callPc)
     {
         bool firstCall = !_externalFiles.TryGetValue(name, out NcxProgram? external);
@@ -181,8 +181,9 @@ public sealed partial class VirtualMachine
                 && calledPlane != caller.Workplane)
             {
                 programDiagnostics.Error(block, DiagnosticCodes.ExternalProgramContradictsCaller,
-                    $"{workplane.ToCanonical()} contradicts WORKPLANE={caller.Workplane} of the program that calls it; an "
-                    + "external program must not contradict the caller's UNITS and WORKPLANE (virtual machine 3.6).");
+                    $"{workplane.ToCanonical()} contradicts WORKPLANE={caller.Workplane} of the program that calls "
+                    + "it; an external program must not contradict the caller's UNITS and WORKPLANE (virtual machine "
+                    + "3.6).");
             }
         }
 

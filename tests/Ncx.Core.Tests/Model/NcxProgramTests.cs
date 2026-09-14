@@ -11,7 +11,14 @@ public sealed class NcxProgramTests
     [Fact]
     public void Sections_TwoProgramsAndOneSub_AreListedByKindInFileOrder()
     {
-        var shaft = new Section { Kind = SectionKind.Program, Name = "SHAFT", Number = 1, FirstBlock = 1, LastBlock = 3 };
+        var shaft = new Section
+        {
+            Kind = SectionKind.Program,
+            Name = "SHAFT",
+            Number = 1,
+            FirstBlock = 1,
+            LastBlock = 3,
+        };
         var sub = new Section { Kind = SectionKind.Sub, Name = "100", FirstBlock = 4, LastBlock = 6 };
         var secondOperation = new Section
         {
@@ -83,7 +90,13 @@ public sealed class NcxProgramTests
             Blocks = [fileBegin, fileEnd],
             FileBegin = fileBegin,
             FileEnd = fileEnd,
-            Trivia = [new Trivia(1, "; NCX example"), new Trivia(2, ""), new Trivia(4, "   "), new Trivia(6, "; Notes")],
+            Trivia =
+            [
+                new Trivia(1, "; NCX example"),
+                new Trivia(2, ""),
+                new Trivia(4, "   "),
+                new Trivia(6, "; Notes"),
+            ],
             Diagnostics = new Diagnostics("PATTERN_LOOP.ncx"),
         };
 

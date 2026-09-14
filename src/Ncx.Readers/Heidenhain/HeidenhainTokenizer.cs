@@ -5,8 +5,8 @@ namespace Ncx.Readers.Heidenhain;
 /// <summary>
 /// Cuts a Klartext program into source blocks (controllers heidenhain.md 1, 7 rule 8): the block number the editor
 /// writes in front of every block, the ~ that continues a block on the next line, the ; that starts a comment, the
-/// structuring block * - title, the / of the optional skip, the comma or the dot as the decimal separator. The words of a
-/// block are its tokens: an address with its value (X+10, IX-5, Q200=5, DR-, FMAX), a number (200 of CYCL DEF 200), a
+/// structuring block * - title, the / of the optional skip, the comma or the dot as the decimal separator. The words of
+/// a block are its tokens: an address with its value (X+10, IX-5, Q200=5, DR-, FMAX), a number (200 of CYCL DEF 200), a
 /// quoted name, a group in parentheses; the assignment of a formula or of FN 0 to FN 5 is one word, the parameter with
 /// its right side.
 /// </summary>

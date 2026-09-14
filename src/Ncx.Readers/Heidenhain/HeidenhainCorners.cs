@@ -5,11 +5,11 @@ namespace Ncx.Readers.Heidenhain;
 /// <summary>
 /// The chamfer CHF and the rounding RND between two motion blocks (controllers heidenhain.md 2) have no NCX word: the
 /// reader expands them into the explicit LINE and ARC blocks they stand for (D58, language 4.3), between two straight
-/// lines, as the Fanuc reader expands ,C and ,R (FanucCorners). The line before the corner ends where the chamfer or the
-/// rounding begins, the CHF or RND block writes the chamfer line or the rounding arc to where the line after it begins,
-/// and that line is read from the end of the corner, its incremental words less the way the corner went, so that it ends
-/// where the source's does. A corner the reader does not expand stays RAW, the lines about it as the source writes them
-/// (D5).
+/// lines, as the Fanuc reader expands ,C and ,R (FanucCorners). The line before the corner ends where the chamfer or
+/// the rounding begins, the CHF or RND block writes the chamfer line or the rounding arc to where the line after it
+/// begins, and that line is read from the end of the corner, its incremental words less the way the corner went, so
+/// that it ends where the source's does. A corner the reader does not expand stays RAW, the lines about it as the
+/// source writes them (D5).
 /// </summary>
 internal static class HeidenhainCorners
 {
@@ -34,7 +34,8 @@ internal static class HeidenhainCorners
     /// where the corner begins, and the corner waits for its block; or the reason the corner stays RAW waits for it.
     /// </summary>
     /// <param name="block">The block read last.</param>
-    /// <param name="start">The position in the working plane before the block moved; null where it is not known.</param>
+    /// <param name="start">The position in the working plane before the block moved; null where it is not
+    /// known.</param>
     public static void Prepare(HeidenhainBlock block, HeidenhainPoint? start)
     {
         HeidenhainState state = block.Heidenhain;
@@ -98,9 +99,9 @@ internal static class HeidenhainCorners
     /// <param name="value">Its value as read.</param>
     public static Value FromCornerEnd(HeidenhainBlock block, SourceWord word, Value value)
     {
-        // TODO(question): heidenhain 2 gives IX+30 as incremental without saying where the IX of the line after a CHF or
-        // RND counts from, the corner point the line before programs or the end of the corner the tool stands at; the
-        // reader counts it from the corner point, as the Fanuc reader counts the G91 line after ,C and ,R.
+        // TODO(question): heidenhain 2 gives IX+30 as incremental without saying where the IX of the line after a CHF
+        // or RND counts from, the corner point the line before programs or the end of the corner the tool stands at;
+        // the reader counts it from the corner point, as the Fanuc reader counts the G91 line after ,C and ,R.
         HeidenhainCorner? corner = block.Heidenhain.Corner;
         if (corner is null || corner.NextLine != block.Line || !word.Address.StartsWith('I')
             || !corner.Shift.TryGetValue(HeidenhainMotion.AxisOf(word), out decimal shift) || shift == 0
@@ -123,14 +124,14 @@ internal static class HeidenhainCorners
             return "the block before the chamfer or the rounding is kept RAW";
         }
 
-        // Klartext writes a chamfer or a rounding between two contour elements (controllers heidenhain.md 2); the reader
-        // expands it between two straight lines at the feed in the working plane, as the Fanuc reader does, and keeps it
-        // RAW next to a rapid move, an arc, a cycle call, a retract or a move in the machine frame.
+        // Klartext writes a chamfer or a rounding between two contour elements (controllers heidenhain.md 2); the
+        // reader expands it between two straight lines at the feed in the working plane, as the Fanuc reader does, and
+        // keeps it RAW next to a rapid move, an arc, a cycle call, a retract or a move in the machine frame.
         if (block.Keyword(0) is not ("L" or "LP") || main.Verb != "LINE" || main.PositionsCall
             || main.Has("FRAME", null) || WritesOtherMotion(block.Draft))
         {
-            return "the reader expands a chamfer or a rounding after a line L or LP at the feed, and the block before it "
-                + "is none";
+            return "the reader expands a chamfer or a rounding after a line L or LP at the feed, and the block before "
+                + "it is none";
         }
 
         string? sizeProblem = Size(corner, out decimal size, out int sizeDecimals);
@@ -204,9 +205,9 @@ internal static class HeidenhainCorners
         }
 
         // A chamfer reaches its length along both lines; a rounding reaches R tan(a / 2) for a turn by the angle a.
-        // TODO(question): heidenhain 2 names CHF 2 a chamfer without saying what its length measures, the way along each
-        // line from the corner point or the chamfer line itself; the reader takes the way along each line, as the Fanuc
-        // reader takes ,C.
+        // TODO(question): heidenhain 2 names CHF 2 a chamfer without saying what its length measures, the way along
+        // each line from the corner point or the chamfer line itself; the reader takes the way along each line, as the
+        // Fanuc reader takes ,C.
         double reach = isChamfer ? (double)size : (double)size * Math.Tan(turn / 2);
         if (reach > inLength || reach > outLength)
         {
@@ -293,8 +294,8 @@ internal static class HeidenhainCorners
             SourceWord word = corner.Words[index];
 
             // TODO(question): heidenhain 2 gives the F of an L as the feed that stays and does not say what an F in a
-            // CHF or RND block feeds, the corner alone or the lines after it as well; the reader keeps such a block RAW,
-            // the lines about it as the source writes them.
+            // CHF or RND block feeds, the corner alone or the lines after it as well; the reader keeps such a block
+            // RAW, the lines about it as the source writes them.
             if (word.Address == "F")
             {
                 return "a CHF or RND block with a feed F of its own is not expanded";

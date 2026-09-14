@@ -277,8 +277,8 @@ internal static class FanucFrames
             if (entry.Owner != "G52")
             {
                 block.Draft.KeepAsRaw(
-                    $"fanuc 4 does not say where the local coordinate system of G52 stands against the active {entry.Owner}"
-                    + " in the chain of transforms (language 4.2)");
+                    "fanuc 4 does not say where the local coordinate system of G52 stands against the active "
+                    + $"{entry.Owner} in the chain of transforms (language 4.2)");
                 return;
             }
         }
@@ -339,8 +339,8 @@ internal static class FanucFrames
     }
 
     // G69 cancels G68 and the tilted plane of G68.2, its origin with it (controllers fanuc.md 4): the chain keeps the
-    // entries of the other functions, and of a SHIFT that holds a G52 shift and the origin of the G68.2 together the G52
-    // shift (FanucTilt).
+    // entries of the other functions, and of a SHIFT that holds a G52 shift and the origin of the G68.2 together the
+    // G52 shift (FanucTilt).
     private static void ReadCancel(FanucBlock block)
     {
         FanucChain chain = block.Fanuc.Chain;
@@ -419,8 +419,8 @@ internal static class FanucFrames
         }
     }
 
-    // The chain becomes the one the control holds after the code (FanucChain.TryChange); where no cut of the chain means
-    // the same under both readings of SHIFT=RESET, the block stays RAW (wave-1 question #95; D5).
+    // The chain becomes the one the control holds after the code (FanucChain.TryChange); where no cut of the chain
+    // means the same under both readings of SHIFT=RESET, the block stays RAW (wave-1 question #95; D5).
     private static void Change(FanucBlock block, List<FanucChainEntry> desired, string code)
     {
         var blocks = new List<DraftBlock>();

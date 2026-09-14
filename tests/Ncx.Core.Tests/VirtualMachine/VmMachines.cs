@@ -49,8 +49,8 @@ internal static class VmMachines
     /// <summary>
     /// A machine file of a mill-turn in the shape of millturn1.toml (D104) with reference points in machine
     /// coordinates (D100): the main spindle S1 with C (home 90), the sub spindle S2 with C2 (home 0) on the slide Z2
-    /// (home 0), the tool spindle S3 in the turret H1 and a second turret H2; X (home 300, home2 150), Y without home, Z
-    /// (home 450), a tilting B (home 0); the coolant channels STANDARD and THROUGH; the functions SUB_CHUCK and
+    /// (home 0), the tool spindle S3 in the turret H1 and a second turret H2; X (home 300, home2 150), Y without home,
+    /// Z (home 450), a tilting B (home 0); the coolant channels STANDARD and THROUGH; the functions SUB_CHUCK and
     /// MAIN_CHUCK.
     /// </summary>
     public static MachineConfig MillTurn()

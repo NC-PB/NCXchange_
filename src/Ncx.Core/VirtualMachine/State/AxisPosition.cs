@@ -7,7 +7,8 @@ namespace Ncx.Core.VirtualMachine.State;
 /// <param name="Value">The coordinate in <paramref name="Frame"/>; meaningless while <paramref name="Known"/> is
 /// false.</param>
 /// <param name="Frame">The frame the coordinate is known in; UNKNOWN for an axis unknown in every frame.</param>
-/// <param name="Known">True when <paramref name="Value"/> is the position of the axis in <paramref name="Frame"/>.</param>
+/// <param name="Known">True when <paramref name="Value"/> is the position of the axis in
+/// <paramref name="Frame"/>.</param>
 public readonly record struct AxisPosition(decimal Value, PositionFrame Frame, bool Known)
 {
     /// <summary>

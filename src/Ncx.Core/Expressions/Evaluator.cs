@@ -168,8 +168,8 @@ internal sealed partial class Evaluator
         // file as the way out (implementation 14, phase 4 risks).
         // TODO(question): virtual machine 2.7 reads a register the virtual machine does not hold from the vars file,
         // and 3.6 names only the ERROR, for a name the configuration does not map as for an unknown state (wave-1
-        // question #89); the vars file counts for both, so that a run without a machine file, whose default machine maps
-        // no SYS_ name, can read a register, until that is answered.
+        // question #89); the vars file counts for both, so that a run without a machine file, whose default machine
+        // maps no SYS_ name, can read a register, until that is answered.
         if (_vars.GetSystemStartValue(variable.Name, register) is VariableValue start)
         {
             return ResultOf(start);

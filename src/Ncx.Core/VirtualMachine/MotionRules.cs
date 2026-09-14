@@ -120,7 +120,8 @@ internal static class MotionRules
             return;
         }
 
-        // POLAR=ON before CYLINDER=n, as the plane of ARC and the frame of a word take them (ArcRules.PlaneOf, FrameOf).
+        // POLAR=ON before CYLINDER=n, as the plane of ARC and the frame of a word take them
+        // (ArcRules.PlaneOf, FrameOf).
         Plane plane = ArcRules.PlaneOf(state.Frame);
         PositionFrame frame = state.Frame.Polar ? PositionFrame.Polar : PositionFrame.Cylinder;
         string[] names = [plane.FirstAxis, plane.SecondAxis];

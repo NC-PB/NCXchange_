@@ -83,7 +83,11 @@ public sealed class FrameStateTests
     public void TransformChain_AppendedAfterASnapshot_SnapshotKeepsTheEntriesItHad()
     {
         var state = new ChannelState(StateMachines.MillTurn());
-        TransformEntry shift = new() { Kind = TransformKind.Shift, Shift = new Dictionary<string, decimal> { ["Z"] = -5m } };
+        TransformEntry shift = new()
+        {
+            Kind = TransformKind.Shift,
+            Shift = new Dictionary<string, decimal> { ["Z"] = -5m },
+        };
         state.Frame.Chain.Add(shift);
 
         ChannelSnapshot snapshot = state.Snapshot();

@@ -31,9 +31,9 @@ internal static class CycleHandlers
     }
 
     // CYCLE=name defines the active cycle with the parameter words of its block and AXIS, by default the tool axis of
-    // the workplane; a new CYCLE replaces all parameters, nothing is inherited (virtual machine 2.6). CYCLE:controller=n
-    // sets the cycle and stores the native parameters of the block unresolved, in source order (virtual machine 3 step
-    // 3, D94).
+    // the workplane; a new CYCLE replaces all parameters, nothing is inherited (virtual machine 2.6).
+    // CYCLE:controller=n sets the cycle and stores the native parameters of the block unresolved, in source order
+    // (virtual machine 3 step 3, D94).
     private static void ApplyCycle(Word word, BlockContext context)
     {
         if (word.Addr is null && BlockContext.IdentOf(word) == "OFF")

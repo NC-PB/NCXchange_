@@ -64,7 +64,9 @@ internal sealed class HeidenhainLabels
                 continue;
             }
 
-            string text = word.Text.Length > 0 || index + 1 >= block.Words.Count ? word.Text : block.Words[index + 1].Text;
+            string text = word.Text.Length > 0 || index + 1 >= block.Words.Count
+                ? word.Text
+                : block.Words[index + 1].Text;
             text = text.Trim('"').Trim();
             if (text.Length == 0)
             {
@@ -208,10 +210,10 @@ internal sealed class HeidenhainLabels
     // Subprograms are LBL n ... LBL 0 sections after the M30 inside the program (controllers heidenhain.md 1); an LBL n
     // is one when a CALL LBL n without REP calls it, no REP or FN jump uses it as a label, and an LBL 0 closes it
     // (heidenhain 7 rule 3). A section inside another subprogram is none.
-    // TODO(question): heidenhain 7 rule 3 does not say what an LBL section is that CALL LBL calls and that stands before
-    // the M30 of its program, or in a program without M30 (the main flow runs through it as well), nor what an LBL is
-    // that is called and also used by REP or an FN jump; such an LBL is no subprogram, and the CALL LBL of it is kept
-    // RAW.
+    // TODO(question): heidenhain 7 rule 3 does not say what an LBL section is that CALL LBL calls and that stands
+    // before the M30 of its program, or in a program without M30 (the main flow runs through it as well), nor what an
+    // LBL is that is called and also used by REP or an FN jump; such an LBL is no subprogram, and the CALL LBL of it is
+    // kept RAW.
     private void DecideSubs(IReadOnlyList<SourceBlock> blocks, HashSet<string> called, int mainEnd)
     {
         int insideUntil = -1;

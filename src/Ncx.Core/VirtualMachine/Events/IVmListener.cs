@@ -4,9 +4,9 @@ namespace Ncx.Core.VirtualMachine.Events;
 
 /// <summary>
 /// A listener of the virtual machine: analytics, trace, the kinematics module and plugins subscribe one with
-/// VirtualMachine.Subscribe and read every event it raises (virtual machine 7, architecture 5.3, 9). The interface lives
-/// in Ncx.Core with the virtual machine that calls it (D106). A listener observes: the Before and After of an event are
-/// read-only snapshots, and nothing it does reaches the state of the virtual machine (D61).
+/// VirtualMachine.Subscribe and read every event it raises (virtual machine 7, architecture 5.3, 9). The interface
+/// lives in Ncx.Core with the virtual machine that calls it (D106). A listener observes: the Before and After of an
+/// event are read-only snapshots, and nothing it does reaches the state of the virtual machine (D61).
 /// </summary>
 public interface IVmListener
 {

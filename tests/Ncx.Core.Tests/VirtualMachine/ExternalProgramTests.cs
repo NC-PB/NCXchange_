@@ -164,8 +164,8 @@ public sealed class ExternalProgramTests
         Assert.Equal("O9010.ncx", vm.Single(DiagnosticCodes.UnreachableBlock).File);
     }
 
-    // VM 3.6, 5: an external program is read, and the rules about its blocks as they are written reported, once per run,
-    // however often a CALL enters it.
+    // VM 3.6, 5: an external program is read, and the rules about its blocks as they are written reported, once per
+    // run, however often a CALL enters it.
     [Fact]
     public void CallExternal_EnteredTwice_ReportsItsPrePassOnce()
     {
@@ -181,6 +181,7 @@ public sealed class ExternalProgramTests
     // An external program O9010 with these lines between its PROGRAM=BEGIN, on line 2, and its PROGRAM=END.
     private static string External(params string[] lines)
     {
-        return "FILE=BEGIN NCX=1\nPROGRAM=BEGIN NAME=\"O9010\"\n" + string.Join("\n", lines) + "\nPROGRAM=END\nFILE=END\n";
+        return "FILE=BEGIN NCX=1\nPROGRAM=BEGIN NAME=\"O9010\"\n" + string.Join("\n", lines)
+            + "\nPROGRAM=END\nFILE=END\n";
     }
 }

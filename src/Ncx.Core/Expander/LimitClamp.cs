@@ -36,8 +36,8 @@ internal static class LimitClamp
     }
 
     // The block with every word beyond a limit rewritten to the limit and one WARNING per word, reported on the
-    // rewritten block and so on the line of its origin (D98); the block as it is when no word is beyond a limit. A block
-    // of the file becomes a block in its place, which ncx format writes as read (language 4.15).
+    // rewritten block and so on the line of its origin (D98); the block as it is when no word is beyond a limit. A
+    // block of the file becomes a block in its place, which ncx format writes as read (language 4.15).
     private static Block Clamp(Block block, Block origin, MachineConfig machine, Diagnostics diagnostics)
     {
         var words = new List<Word>(block.Words);

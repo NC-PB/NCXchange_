@@ -14,7 +14,8 @@ internal static class OutputFile
     private const int FileLine = 1;
 
     // UTF-8 that writes no byte order mark of its own (language 3, Encoding).
-    private static readonly UTF8Encoding s_utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private static readonly UTF8Encoding s_utf8 =
+        new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>
     /// Writes the canonical text into the file of --output.

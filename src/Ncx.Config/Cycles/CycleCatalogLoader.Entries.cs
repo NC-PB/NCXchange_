@@ -20,7 +20,8 @@ public static partial class CycleCatalogLoader
     /// with the keys it wrote (machine-config 6). A name written twice is an ERROR on the second entry.
     /// </summary>
     /// <param name="tables">The [[cycle]] tables of the file.</param>
-    /// <param name="controller">The controller family the entries belong to; null when the machine file names none.</param>
+    /// <param name="controller">The controller family the entries belong to; null when the machine file names
+    /// none.</param>
     internal static IReadOnlyList<CycleEntry> ReadEntries(IReadOnlyList<ConfigTable> tables, Controller? controller)
     {
         var entries = new List<CycleEntry>();

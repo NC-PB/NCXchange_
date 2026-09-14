@@ -6,8 +6,8 @@ namespace Ncx.Core.VirtualMachine.Events;
 
 /// <summary>
 /// MOTION (virtual machine 7 as amended by F18): every RAPID, LINE, ARC and RETRACT, and each motion of an expanded
-/// CYCLE_CALL (3.3, D37), with its verb, where it starts and ends, the arc's center, direction and sweep, the tool vector
-/// and surface normal, feed, compensation, frame and length.
+/// CYCLE_CALL (3.3, D37), with its verb, where it starts and ends, the arc's center, direction and sweep, the tool
+/// vector and surface normal, feed, compensation, frame and length.
 /// </summary>
 public sealed record MotionEvent : VmEvent
 {

@@ -4,8 +4,8 @@ using static Ncx.Readers.Tests.Heidenhain.HeidenhainRead;
 namespace Ncx.Readers.Tests.Heidenhain;
 
 /// <summary>
-/// The program and the frame of a Klartext file (controllers heidenhain.md 1, 7 rules 4, 8 and 9; controller-mapping 1):
-/// BEGIN PGM, END PGM, M30, the header of D34, SECTION, the comments, the skip, STOP, the comma, what stays RAW.
+/// The program and the frame of a Klartext file (controllers heidenhain.md 1, 7 rules 4, 8 and 9; controller-mapping
+/// 1): BEGIN PGM, END PGM, M30, the header of D34, SECTION, the comments, the skip, STOP, the comma, what stays RAW.
 /// </summary>
 public sealed class HeidenhainProgramTests
 {
@@ -32,7 +32,8 @@ public sealed class HeidenhainProgramTests
     {
         string text = Text("0 BEGIN PGM PART INCH\n1 M30\n2 END PGM PART INCH\n");
 
-        Assert.Contains("FEED_MODE=PER_MIN COMP=OFF UNITS=INCH WORKPLANE=XY CYCLE=OFF\n", text, StringComparison.Ordinal);
+        Assert.Contains("FEED_MODE=PER_MIN COMP=OFF UNITS=INCH WORKPLANE=XY CYCLE=OFF\n", text,
+            StringComparison.Ordinal);
     }
 
     // A missing M30 before END PGM is a WARNING, and the program ends with PROGRAM=END after its last block

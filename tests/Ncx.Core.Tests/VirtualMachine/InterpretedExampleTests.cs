@@ -13,8 +13,8 @@ namespace Ncx.Core.Tests.VirtualMachine;
 /// </summary>
 public sealed class InterpretedExampleTests
 {
-    // PATTERN_LOOP note 1, implementation 14 P4-01: INTERPRETED mode runs the loop five times, and the cycle is called at
-    // X = 10, 30, 50, 70, 90, all at Y = 10; every expression is evaluated, so nothing is left unresolved (VM 5).
+    // PATTERN_LOOP note 1, implementation 14 P4-01: INTERPRETED mode runs the loop five times, and the cycle is called
+    // at X = 10, 30, 50, 70, 90, all at Y = 10; every expression is evaluated, so nothing is left unresolved (VM 5).
     [Fact]
     public void PatternLoop_Interpreted_CallsTheCycleFiveTimesAtX10To90()
     {
@@ -66,7 +66,8 @@ public sealed class InterpretedExampleTests
         vm.AssertNoErrors();
         MotionEvent retract = Assert.Single(vm.Events.Of<MotionEvent>(), motion => motion.Block.Line == 15);
         IReadOnlyDictionary<string, AxisPosition> position = retract.After.Motion.Position;
-        Assert.Equal(["0", "60", "50"], [Coordinate(position["X"]), Coordinate(position["Y"]), Coordinate(position["Z"])]);
+        Assert.Equal(["0", "60", "50"],
+            [Coordinate(position["X"]), Coordinate(position["Y"]), Coordinate(position["Z"])]);
         Assert.Equal(
             ["JUMP(18): target 300, depth 0", "JUMP(26): target 22, depth 0", "JUMP(20): target END, depth 0"],
             vm.Events.LinesOf("JUMP"));

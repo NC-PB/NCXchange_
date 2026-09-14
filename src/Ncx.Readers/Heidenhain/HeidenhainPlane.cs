@@ -4,9 +4,9 @@ namespace Ncx.Readers.Heidenhain;
 
 /// <summary>
 /// The PLANE functions (controllers heidenhain.md 3, 7 rule 6; controller-mapping 1, TILT, TILT_AXIS, MOVE and ROT;
-/// language 4.2; D82, D83): PLANE SPATIAL SPA SPB SPC is TILT A B C, PLANE AXIAL A B C is TILT_AXIS, both with MOVE from
-/// TURN, MOVE or STAY and ROT from TABLE ROT or COORD ROT; PLANE RESET STAY is the RESET of the active tilt; the other
-/// forms, EULER, PROJECTED, VECTOR, POINTS, RELATIV, stay RAW. A new PLANE replaces the earlier one.
+/// language 4.2; D82, D83): PLANE SPATIAL SPA SPB SPC is TILT A B C, PLANE AXIAL A B C is TILT_AXIS, both with MOVE
+/// from TURN, MOVE or STAY and ROT from TABLE ROT or COORD ROT; PLANE RESET STAY is the RESET of the active tilt; the
+/// other forms, EULER, PROJECTED, VECTOR, POINTS, RELATIV, stay RAW. A new PLANE replaces the earlier one.
 /// </summary>
 internal static class HeidenhainPlane
 {
@@ -94,8 +94,8 @@ internal static class HeidenhainPlane
     // and ROT=COORD; FMAX, the rapid of the positioning, is the form language 6 reads as MOVE=TURN (controllers
     // heidenhain.md 3; language 4.2, 6; D82). MB MAX and MB n retract along the tool axis before the rotary axes turn,
     // written as RETRACT in front of the tilt, as the reader of Siemens writes the _FR retract of CYCLE800
-    // (controller-mapping 1, TILT; D83). SEQ, ABST, F, SYM and the other options have no NCX word and keep the block RAW
-    // (controller-mapping 1, MOVE and ROT; D5).
+    // (controller-mapping 1, TILT; D83). SEQ, ABST, F, SYM and the other options have no NCX word and keep the block
+    // RAW (controller-mapping 1, MOVE and ROT; D5).
     // TODO(question): MOVE=TURN positions the rotary axes "tool retracted first" (language 4.2), and MB says by how
     // much; whether the MB of a PLANE is the RETRACT in front of the TILT, or a part of MOVE=TURN that the compiler's
     // move template writes, is not said; the reader writes the RETRACT, and a PLANE RESET that positions the axes back
@@ -136,8 +136,8 @@ internal static class HeidenhainPlane
             }
             else
             {
-                block.Draft.KeepAsRaw($"{word.Address}{word.Text} of a PLANE has no NCX word (controller-mapping 1, MOVE "
-                    + "and ROT)");
+                block.Draft.KeepAsRaw($"{word.Address}{word.Text} of a PLANE has no NCX word "
+                    + "(controller-mapping 1, MOVE and ROT)");
                 return false;
             }
         }

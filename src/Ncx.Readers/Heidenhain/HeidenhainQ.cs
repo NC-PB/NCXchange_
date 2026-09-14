@@ -73,7 +73,9 @@ internal static class HeidenhainQ
         }
 
         string[] parts = assignment.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        string? text = function == 5 ? SquareRoot(parts, out string? problem) : Arithmetic(function, parts, out problem);
+        string? text = function == 5
+            ? SquareRoot(parts, out string? problem)
+            : Arithmetic(function, parts, out problem);
         Value? value = text is null
             ? null
             : HeidenhainExpression.Parse(text, block.Line, block.Diagnostics.File, out problem);

@@ -68,9 +68,9 @@ internal sealed class ProjectFolders
         // A file at the path given is that file, a relative path counted from the working directory, and a value with
         // a folder in it is always a path, which P1-07 read as the only form of --machine (architecture 10). Any other
         // value is a name, looked up in the machine folders (implementation 12, P2-04).
-        // TODO(question): the phase file resolves --machine "in machines/ ... or by path" without saying which wins when
-        // there is a file at the path given and a machine of that name as well; the file at the path wins, which keeps
-        // every --machine that P1-07 read as a path.
+        // TODO(question): the phase file resolves --machine "in machines/ ... or by path" without saying which wins
+        // when there is a file at the path given and a machine of that name as well; the file at the path wins, which
+        // keeps every --machine that P1-07 read as a path.
         string atPath = Path.Combine(WorkingDirectory, value);
         if (File.Exists(atPath) || IsPath(value))
         {

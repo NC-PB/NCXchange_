@@ -67,8 +67,8 @@ internal static class HeidenhainMotion
 
     /// <summary>
     /// Reads LN X Y Z NX NY NZ TX TY TZ F, the 5-axis line with the surface normal and the tool vector under M128
-    /// (controllers heidenhain.md 2; controller-mapping 2, tool vectors; language 4.3; D81): LINE with TX TY TZ and NX NY
-    /// NZ, only under TCPM=ON and with the tool vector.
+    /// (controllers heidenhain.md 2; controller-mapping 2, tool vectors; language 4.3; D81): LINE with TX TY TZ and NX
+    /// NY NZ, only under TCPM=ON and with the tool vector.
     /// </summary>
     /// <param name="block">The block being read, whose first word is LN.</param>
     public static void ReadVectorLine(HeidenhainBlock block)
@@ -87,8 +87,8 @@ internal static class HeidenhainMotion
         List<SourceWord> normal = Vector(block, "NX", "NY", "NZ");
         if (tool.Count != 3 || normal.Count is not (0 or 3))
         {
-            block.Draft.KeepAsRaw("LN without the tool vector TX TY TZ is 3D radius compensation, which NCX has no word "
-                + "for; the surface normal NX NY NZ stands only with it (D81)");
+            block.Draft.KeepAsRaw("LN without the tool vector TX TY TZ is 3D radius compensation, which NCX has no "
+                + "word for; the surface normal NX NY NZ stands only with it (D81)");
             return;
         }
 
@@ -273,8 +273,8 @@ internal static class HeidenhainMotion
     }
 
     /// <summary>
-    /// The NCX value of a word: the number as written, or the expression of a Q parameter, X+Q1 as {$Q1}; null, with the
-    /// block kept RAW, when NCX cannot express it.
+    /// The NCX value of a word: the number as written, or the expression of a Q parameter, X+Q1 as {$Q1}; null, with
+    /// the block kept RAW, when NCX cannot express it.
     /// </summary>
     /// <param name="block">The block being read.</param>
     /// <param name="word">The word.</param>

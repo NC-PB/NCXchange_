@@ -21,7 +21,8 @@ internal sealed class EvaluationChannel
     /// <summary>
     /// A channel at the start of a run, without variables.
     /// </summary>
-    /// <param name="unassigned">[variables] unassigned, the evaluator's setting for an unassigned variable (D38).</param>
+    /// <param name="unassigned">[variables] unassigned, the evaluator's setting for an unassigned variable
+    /// (D38).</param>
     public EvaluationChannel(UnassignedVariable unassigned = UnassignedVariable.Error)
     {
         Unassigned = unassigned;

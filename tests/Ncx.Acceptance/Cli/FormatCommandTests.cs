@@ -146,7 +146,8 @@ public sealed class FormatCommandTests : IDisposable
     [Fact]
     public void Format_MixedLineEndings_WarnsAndWritesTheFirstLineEnding()
     {
-        string file = WriteFile("mixed.ncx", "FILE=BEGIN NCX=1\r\nPROGRAM=BEGIN NAME=\"M\"\nPROGRAM=END\r\nFILE=END\r\n");
+        string file = WriteFile("mixed.ncx",
+            "FILE=BEGIN NCX=1\r\nPROGRAM=BEGIN NAME=\"M\"\nPROGRAM=END\r\nFILE=END\r\n");
 
         int exitCode = Run("format", file);
 
@@ -159,7 +160,8 @@ public sealed class FormatCommandTests : IDisposable
     [Fact]
     public void FormatCheck_MixedLineEndings_ExitsOne()
     {
-        string file = WriteFile("mixed.ncx", "FILE=BEGIN NCX=1\r\nPROGRAM=BEGIN NAME=\"M\"\nPROGRAM=END\r\nFILE=END\r\n");
+        string file = WriteFile("mixed.ncx",
+            "FILE=BEGIN NCX=1\r\nPROGRAM=BEGIN NAME=\"M\"\nPROGRAM=END\r\nFILE=END\r\n");
 
         int exitCode = Run("format", file, "--check");
 

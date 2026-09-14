@@ -3,9 +3,9 @@ using Ncx.Core.Machine;
 namespace Ncx.Core.Expander;
 
 /// <summary>
-/// The state keys the expander writes for requires and restore (machine-config 5a, virtual machine 3.10). A key the rule
-/// writes without an address names the variable of the resource that its word without a role address targets, and the
-/// expander writes the role of that resource: requires = { SPINDLE = "OFF" } becomes SPINDLE:MAIN=OFF and restore =
+/// The state keys the expander writes for requires and restore (machine-config 5a, virtual machine 3.10). A key the
+/// rule writes without an address names the variable of the resource that its word without a role address targets, and
+/// the expander writes the role of that resource: requires = { SPINDLE = "OFF" } becomes SPINDLE:MAIN=OFF and restore =
 /// ["SPINDLE"] becomes @SAVE=SPINDLE:MAIN (architecture 5.5; virtual machine 3.8 rule 2).
 /// </summary>
 internal static class StateKeys

@@ -20,8 +20,10 @@ internal sealed class ChannelState
     /// </summary>
     /// <param name="machine">The machine configuration the state starts from.</param>
     /// <param name="channelId">1, or the CHANNEL of the program the channel runs (virtual machine 2.8).</param>
-    /// <param name="startValues">The start values of the variables from &lt;file&gt;.vars.toml; null without one.</param>
-    public ChannelState(MachineConfig machine, int channelId = 1, IReadOnlyDictionary<string, Value>? startValues = null)
+    /// <param name="startValues">The start values of the variables from &lt;file&gt;.vars.toml; null without
+    /// one.</param>
+    public ChannelState(MachineConfig machine, int channelId = 1,
+        IReadOnlyDictionary<string, Value>? startValues = null)
     {
         // channel.id is 1 or CHANNEL; waitingAt starts none and finished false (virtual machine 2.8).
         ChannelId = channelId;

@@ -69,8 +69,8 @@ public sealed class ReadingTheCodeTests
     }
 
     // The rule by which the tour names a path: a word in backticks, or a word of a command line in a block marked sh,
-    // that holds a slash or ends like a file of the repository. A call, a word of NCX, the output of a command and a file
-    // the reader writes himself, in a block marked text, name no path.
+    // that holds a slash or ends like a file of the repository. A call, a word of NCX, the output of a command and a
+    // file the reader writes himself, in a block marked text, name no path.
     [Fact]
     public void NamedPaths_CodeSpansCommandLinesAndOutput_GiveThePathsOnly()
     {

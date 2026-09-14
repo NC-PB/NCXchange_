@@ -25,8 +25,9 @@ public sealed record ToolEvent : VmEvent
     public required string Holder { get; init; }
 
     /// <summary>
-    /// The rpm of the spindle of the holder, the default spindle for a holder without one (virtual machine 2.4, 5): after
-    /// the block at TOOL_BEGIN, before it at TOOL_END; null when it is unknown or the machine has no such spindle.
+    /// The rpm of the spindle of the holder, the default spindle for a holder without one (virtual machine 2.4, 5):
+    /// after the block at TOOL_BEGIN, before it at TOOL_END; null when it is unknown or the machine has no such
+    /// spindle.
     /// </summary>
     public decimal? Rpm { get; init; }
 
@@ -54,6 +55,7 @@ public sealed record ToolEvent : VmEvent
             return tool;
         }
 
-        return tool + $", distance {EventText.Number(Distance)}, blocks {Blocks.ToString(CultureInfo.InvariantCulture)}";
+        return tool
+            + $", distance {EventText.Number(Distance)}, blocks {Blocks.ToString(CultureInfo.InvariantCulture)}";
     }
 }

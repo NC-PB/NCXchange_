@@ -12,13 +12,14 @@ namespace Ncx.Core.VirtualMachine;
 // VirtualMachine.Calls.cs, the resolution of the expressions of a block in ExpressionResolver.cs.
 public sealed partial class VirtualMachine
 {
-    // JUMP=END continues at the PROGRAM=END of the current program; END is no label (language 4.9, virtual machine 2.7).
+    // JUMP=END continues at the PROGRAM=END of the current program; END is no label
+    // (language 4.9, virtual machine 2.7).
     private const string EndTarget = "END";
 
     /// <summary>
     /// Runs a parsed program in INTERPRETED mode: the program the command line or the job names, the first of the file
-    /// without one, from its PROGRAM=BEGIN to its PROGRAM=END with its flow followed; the other programs of the file are
-    /// not executed, and a subprogram only when a CALL enters it (virtual machine 1, 3.6, 3.9). Afterwards the
+    /// without one, from its PROGRAM=BEGIN to its PROGRAM=END with its flow followed; the other programs of the file
+    /// are not executed, and a subprogram only when a CALL enters it (virtual machine 1, 3.6, 3.9). Afterwards the
     /// diagnostics hold what the run found.
     /// </summary>
     /// <param name="program">The parsed program, with the diagnostics the parser reported.</param>
@@ -30,7 +31,8 @@ public sealed partial class VirtualMachine
         if (Mode != ExecutionMode.Interpreted)
         {
             throw new InvalidOperationException(
-                "RunInterpreted needs a virtual machine built in INTERPRETED mode; Run walks STATIC (virtual machine 1).");
+                "RunInterpreted needs a virtual machine built in INTERPRETED mode; Run walks STATIC "
+                + "(virtual machine 1).");
         }
 
         // An ERROR stops the run: one the parser reported stops it before the first block (virtual machine 2.9).
@@ -44,9 +46,9 @@ public sealed partial class VirtualMachine
         _homeWarnings.Clear();
         _externalFiles.Clear();
 
-        // The pre-pass over the file: duplicates, missing targets, a LABEL=END, a SUB inside a PROGRAM or a block outside
-        // every section are ERRORs before execution (virtual machine 3.6); the rules about a block as it is written are
-        // reported once per block, however often the flow passes it.
+        // The pre-pass over the file: duplicates, missing targets, a LABEL=END, a SUB inside a PROGRAM or a block
+        // outside every section are ERRORs before execution (virtual machine 3.6); the rules about a block as it is
+        // written are reported once per block, however often the flow passes it.
         _validation = new RunValidation(Machine, Diagnostics, Mode);
         _validation.CheckFile(program);
         CheckCallTargets(program);
@@ -227,8 +229,8 @@ public sealed partial class VirtualMachine
     // One block in INTERPRETED mode (virtual machine 3.6): a SKIP block is executed unless the run option skip_blocks
     // skips it (D53); a block whose IF is 0 does not execute (language 4.9); every other block counts against the block
     // cap and executes in the seven steps of virtual machine 3 with its expressions resolved, so that its state words
-    // apply exactly as in STATIC mode (implementation 14, P4-01). Returns the block as it executed; null when it did not
-    // execute or an ERROR stopped the run.
+    // apply exactly as in STATIC mode (implementation 14, P4-01). Returns the block as it executed; null when it did
+    // not execute or an ERROR stopped the run.
     private Block? ExecuteInterpreted(Block block)
     {
         if (Options.SkipBlocks.Skips(block)
@@ -258,11 +260,11 @@ public sealed partial class VirtualMachine
         return resolved;
     }
 
-    // REPEAT=label repeats the blocks from the label to this block TIMES more times (language 4.9, virtual machine 3.6):
-    // the first time the flow reaches the block, a repeat with its passes goes on the repeat stack and pc goes back to
-    // the label; every later time one pass is used, until none is left and the flow goes on after the block. ARG with
-    // REPEAT, which the parser accepts (wave-1 question #57), gives nothing a value: a REPEAT has no callee. Returns the
-    // pc to continue at; null when an ERROR stopped the run.
+    // REPEAT=label repeats the blocks from the label to this block TIMES more times (language 4.9, virtual machine
+    // 3.6): the first time the flow reaches the block, a repeat with its passes goes on the repeat stack and pc goes
+    // back to the label; every later time one pass is used, until none is left and the flow goes on after the block.
+    // ARG with REPEAT, which the parser accepts (wave-1 question #57), gives nothing a value: a REPEAT has no callee.
+    // Returns the pc to continue at; null when an ERROR stopped the run.
     // TODO(question): language 4.9 repeats the blocks "TIMES more times" and virtual machine 3.6 speaks of "REPEAT with
     // TIMES"; neither says what a REPEAT without TIMES does. It repeats them once, as a Heidenhain CALL LBL without REP
     // and a Siemens REPEAT without P do, until that is answered.
@@ -349,8 +351,8 @@ public sealed partial class VirtualMachine
         }
 
         throw new InvalidOperationException(
-            $"LABEL={label} is not in the pre-pass of its section, which reports a missing jump target (virtual machine "
-            + "3.6).");
+            $"LABEL={label} is not in the pre-pass of its section, which reports a missing jump target "
+            + "(virtual machine 3.6).");
     }
 
     // TIMES=n of a CALL or a REPEAT, a whole number once its expression is resolved (language 4.9); a count below 0

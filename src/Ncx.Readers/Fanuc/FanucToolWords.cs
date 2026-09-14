@@ -182,9 +182,9 @@ internal static class FanucToolWords
 
     // M6 alone changes to the preloaded tool, TOOL=n with n from the source-side state; M6 without any preload is an
     // ERROR in the source (language 4.4; controller-mapping 3), and the bare TOOL is written as the source has it. A
-    // subprogram changes to the tool its caller preloaded, a caller to the one its subprogram preloaded (virtual machine
-    // 3.9): where the reader does not know it (FanucCallerState), the bare TOOL changes to the tool the virtual machine
-    // holds preloaded there (virtual machine 3.5).
+    // subprogram changes to the tool its caller preloaded, a caller to the one its subprogram preloaded (virtual
+    // machine 3.9): where the reader does not know it (FanucCallerState), the bare TOOL changes to the tool the virtual
+    // machine holds preloaded there (virtual machine 3.5).
     private static void ChangeToPreload(FanucBlock block)
     {
         if (block.Fanuc.Unknowns.Preload)

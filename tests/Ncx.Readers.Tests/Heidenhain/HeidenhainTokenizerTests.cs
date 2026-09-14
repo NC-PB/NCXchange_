@@ -24,7 +24,8 @@ public sealed class HeidenhainTokenizerTests
     [Fact]
     public void Tilde_AtTheEndOfALine_ContinuesTheBlockOnTheNextLine()
     {
-        List<SourceBlock> blocks = Tokenize("1 CYCL DEF 247 INIT. REF.PKT ~\r\n    Q339=1 ;REF.PUNKTNUMMER\r\n2 M3\r\n");
+        List<SourceBlock> blocks =
+            Tokenize("1 CYCL DEF 247 INIT. REF.PKT ~\r\n    Q339=1 ;REF.PUNKTNUMMER\r\n2 M3\r\n");
 
         Assert.Equal(2, blocks.Count);
         Assert.Equal(["    Q339=1 ;REF.PUNKTNUMMER"], blocks[0].Continuation);

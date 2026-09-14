@@ -101,8 +101,8 @@ public sealed partial class VirtualMachine
         }
     }
 
-    // The start of the run, and a walk on another channel state (D99), start the chain of Before and After anew from the
-    // state as it is now. Every change inside a walk is a block's, and comes with the After of that block (virtual
+    // The start of the run, and a walk on another channel state (D99), start the chain of Before and After anew from
+    // the state as it is now. Every change inside a walk is a block's, and comes with the After of that block (virtual
     // machine 7).
     private void RestartEvents(ChannelState state)
     {

@@ -40,9 +40,9 @@ internal static class ProgramEndRules
             state.Unknown.Remove(BlockContext.StateKey("PHASE", spindle.Key));
         }
 
-        // Cylinder, polar, tcpm, rotary path and feed, tolerance: PROGRAM=END sets OFF and the defaults (virtual machine
-        // 4); POLAR and CYLINDER going OFF leave their axes unknown in the workpiece frame (3.4), TCPM going OFF the tool
-        // vector and the surface normal (D81).
+        // Cylinder, polar, tcpm, rotary path and feed, tolerance: PROGRAM=END sets OFF and the defaults (virtual
+        // machine 4); POLAR and CYLINDER going OFF leave their axes unknown in the workpiece frame (3.4), TCPM going
+        // OFF the tool vector and the surface normal (D81).
         state.Frame.Cylinder = null;
         state.Frame.Polar = false;
         state.Frame.Tcpm = false;
@@ -66,8 +66,8 @@ internal static class ProgramEndRules
         // Cycle: reset by PROGRAM=END (virtual machine 4).
         CycleHandlers.EndCycle(state);
 
-        // Kept at PROGRAM=END: units, workplane, origin, the chain and diameter (explicit word only), the setpos shifts,
-        // the tool in the spindle, the preload and the offsets, the named functions, the variables and the workpiece
-        // holder (virtual machine 4).
+        // Kept at PROGRAM=END: units, workplane, origin, the chain and diameter (explicit word only), the setpos
+        // shifts, the tool in the spindle, the preload and the offsets, the named functions, the variables and the
+        // workpiece holder (virtual machine 4).
     }
 }

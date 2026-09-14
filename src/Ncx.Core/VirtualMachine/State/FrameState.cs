@@ -59,9 +59,9 @@ internal sealed class FrameState
 
     /// <summary>
     /// The setpos shifts that SETPOS recorded against the machine position, on an axis known in the MACHINE frame only,
-    /// by axis: each with the sum of the SHIFT entries of the chain on that axis at the SETPOS, the SHIFT entries from an
-    /// expression on it and the workpiece holder of the SETPOS (virtual machine 1, 3.4, D35, D57, D101). While the axis
-    /// is known in the workpiece frame with its
+    /// by axis: each with the sum of the SHIFT entries of the chain on that axis at the SETPOS, the SHIFT entries from
+    /// an expression on it and the workpiece holder of the SETPOS (virtual machine 1, 3.4, D35, D57, D101). While the
+    /// axis is known in the workpiece frame with its
     /// machine position known through the record, the machine position is the stored value plus the shifts of the
     /// chain on the axis minus that sum, and ORIGIN and a change of the frame return the axis to it. A record stands as
     /// long as its setpos shift does. ORIGIN takes it out, and so do the call of an external program and every SETPOS

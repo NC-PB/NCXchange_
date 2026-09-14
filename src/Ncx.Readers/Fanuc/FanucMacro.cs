@@ -193,7 +193,8 @@ internal static class FanucMacro
 
         string digits = Digits(program);
         return older && digits.Length > 4
-            && long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out long whole) && whole / 10000 > 1;
+            && long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out long whole)
+            && whole / 10000 > 1;
     }
 
     // M98 P L calls a subprogram L times, M198 P an external program, G65 P L a macro with letter arguments
@@ -349,8 +350,8 @@ internal static class FanucMacro
     }
 
     // JUMP=n to the block Nn, and JUMP=END where Nn holds only the M30 or M2 that ends the program: JUMP=END continues
-    // at PROGRAM=END (controller-mapping 1, JUMP=END; language 4.9). FanucReader.StructureOf decides which while it lays
-    // out the labels, and writes no LABEL for such a jump.
+    // at PROGRAM=END (controller-mapping 1, JUMP=END; language 4.9). FanucReader.StructureOf decides which while it
+    // lays out the labels, and writes no LABEL for such a jump.
     private static Value JumpTo(FanucBlock block, long label)
     {
         return block.Fanuc.JumpsToTheEnd.Contains(block.Line)
@@ -359,8 +360,8 @@ internal static class FanucMacro
     }
 
     // The NT NURSE branch commands of the builder nakamura are JUMP with IF, not RAW (controller-mapping 6, JUMP + IF;
-    // controller-mapping 9): G480 I{n} jumps to the block Nn, G471 to G476 D Q I{n} jump when D compares with Q, G481 to
-    // G486 Q R I{n} when the variable #q compares with the variable #r, the six codes in the order equal, not equal,
+    // controller-mapping 9): G480 I{n} jumps to the block Nn, G471 to G476 D Q I{n} jump when D compares with Q, G481
+    // to G486 Q R I{n} when the variable #q compares with the variable #r, the six codes in the order equal, not equal,
     // >=, <=, >, <. Every other word of the block would be an argument of the macro that NCX does not know, and keeps
     // the block as RAW (D5).
     private static bool ReadBranchCommand(FanucBlock block)

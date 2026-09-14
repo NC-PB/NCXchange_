@@ -172,8 +172,8 @@ internal static class FanucBuilder
             return;
         }
 
-        // An M code that matches no entry becomes MFUNC=n with a WARNING (machine-config 5, language 4.6), reported when
-        // the block is written and not kept as RAW for another word (FanucDraft.Warnings).
+        // An M code that matches no entry becomes MFUNC=n with a WARNING (machine-config 5, language 4.6), reported
+        // when the block is written and not kept as RAW for another word (FanucDraft.Warnings).
         long mfunc = decimal.ToInt64(number);
         string text = mfunc.ToString(CultureInfo.InvariantCulture);
         block.Draft.Warnings.Add((DiagnosticCodes.FanucMCodeNotNamed,

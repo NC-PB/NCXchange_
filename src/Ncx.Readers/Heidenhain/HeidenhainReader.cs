@@ -12,10 +12,10 @@ namespace Ncx.Readers.Heidenhain;
 /// Reads Heidenhain Klartext programs of the iTNC 530 and the TNC 640 into canonical NCX (controllers heidenhain.md 7;
 /// controller-mapping, the Heidenhain column of every section). The structure pass lays out the file from BEGIN PGM,
 /// END PGM, M30 and the labels (HeidenhainLabels); the header of D34 follows PROGRAM=BEGIN, and a subprogram runs with
-/// the state of its callers (HeidenhainCalls). Every block carries its verb, and each is read in the file of its concern:
-/// the motion (HeidenhainMotion, HeidenhainArcs), the tool call (HeidenhainToolCall), the machining cycles
-/// (HeidenhainCycles), the cycles that act where they stand (HeidenhainFrameCycles), the tilted plane (HeidenhainPlane),
-/// the labels, calls and jumps (HeidenhainFlow), the Q parameters (HeidenhainQ) and the M functions
+/// the state of its callers (HeidenhainCalls). Every block carries its verb, and each is read in the file of its
+/// concern: the motion (HeidenhainMotion, HeidenhainArcs), the tool call (HeidenhainToolCall), the machining cycles
+/// (HeidenhainCycles), the cycles that act where they stand (HeidenhainFrameCycles), the tilted plane
+/// (HeidenhainPlane), the labels, calls and jumps (HeidenhainFlow), the Q parameters (HeidenhainQ) and the M functions
 /// (HeidenhainFunctions). What NCX cannot express stays RAW with a WARNING (D5).
 /// </summary>
 public sealed partial class HeidenhainReader : ReaderBase
@@ -36,8 +36,8 @@ public sealed partial class HeidenhainReader : ReaderBase
 
     /// <summary>
     /// The structure of a Klartext block: BEGIN PGM begins the one program of the file, END PGM closes the file, M30
-    /// and M2 end the program, LBL n ... LBL 0 called without REP is a subprogram, an LBL that REP or FN 9 to FN 12 uses a
-    /// label (controllers heidenhain.md 1, 7 rules 3 and 4; controller-mapping 1, 6; language 4.13).
+    /// and M2 end the program, LBL n ... LBL 0 called without REP is a subprogram, an LBL that REP or FN 9 to FN 12
+    /// uses a label (controllers heidenhain.md 1, 7 rules 3 and 4; controller-mapping 1, 6; language 4.13).
     /// </summary>
     /// <param name="block">A source block with words.</param>
     protected override SourceStructure StructureOf(SourceBlock block)
@@ -300,8 +300,8 @@ public sealed partial class HeidenhainReader : ReaderBase
         reading.MarkAllRead();
         reading.Draft.KeepAsRaw(first switch
         {
-            "BLK" => "BLK FORM describes the blank for the graphic, header information NCX has no word for (controllers "
-                + "heidenhain.md 1, 7 rule 9)",
+            "BLK" => "BLK FORM describes the blank for the graphic, header information NCX has no word for "
+                + "(controllers heidenhain.md 1, 7 rule 9)",
             "APPR" or "DEP" => "APPR and DEP, the approach and departure blocks, are kept RAW in 1.0 (controllers "
                 + "heidenhain.md 2, 7 rule 9)",
             "TCH" => "TCH PROBE, the probing cycles, are kept RAW (controllers heidenhain.md 5, 7 rule 9)",
@@ -382,8 +382,8 @@ public sealed partial class HeidenhainReader : ReaderBase
     // before the next non-cycle motion (controllers heidenhain.md 5; controller-mapping 5, CYCLE=OFF).
     // TODO(question): heidenhain 5 has CYCLE=OFF written "before the next non-cycle motion", which for a definition
     // followed by its positioning blocks and then M99 would switch the cycle off before its first call; the reader
-    // writes it before the first non-cycle motion after a call of the cycle, and the definition again where the cycle is
-    // called while NCX has it off.
+    // writes it before the first non-cycle motion after a call of the cycle, and the definition again where the cycle
+    // is called while NCX has it off.
     private void Write(HeidenhainBlock reading)
     {
         HeidenhainState state = reading.Heidenhain;
@@ -478,7 +478,10 @@ public sealed partial class HeidenhainReader : ReaderBase
             return new SourceStructure { Role = StructureRole.Return };
         }
 
-        return new SourceStructure { Label = writable && label != "0" && labels.Targets.Contains(label!) ? label : null };
+        return new SourceStructure
+        {
+            Label = writable && label != "0" && labels.Targets.Contains(label!) ? label : null,
+        };
     }
 
     // BEGIN PGM 2.5D FRAESEN MM: the name of the program and its units (controllers heidenhain.md 1).

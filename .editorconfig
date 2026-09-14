@@ -143,7 +143,7 @@ dotnet_diagnostic.CA2208.severity = error
 [*.cs]
 # NCXchange: 120 characters per line (code-guidelines 3.3).
 # TODO(question): code-guidelines 3.3 lets the formatter enforce the length, but dotnet format has no line-length
-# rule; the setting guides the editors only.
+# rule; the setting guides the editors, and tests/Ncx.Acceptance/Repository/LineLengthTests.cs holds the limit.
 max_line_length = 120
 
 # New line preferences

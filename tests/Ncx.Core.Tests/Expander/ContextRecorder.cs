@@ -16,7 +16,8 @@ internal sealed class ContextRecorder : IProgramRewriter
     public RewriteResult Rewrite(Block block, RewriteContext context)
     {
         Calls.Add(string.Create(CultureInfo.InvariantCulture,
-            $"{context.MachineName} {context.Channel} {context.Line} {NcxWriter.WriteBlock(block)} {context.Settings.Count}"));
+            $"{context.MachineName} {context.Channel} {context.Line} {NcxWriter.WriteBlock(block)} "
+            + $"{context.Settings.Count}"));
         return RewriteResult.Unchanged;
     }
 }

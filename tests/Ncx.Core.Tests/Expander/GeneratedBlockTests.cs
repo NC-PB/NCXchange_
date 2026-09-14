@@ -166,7 +166,8 @@ public sealed class GeneratedBlockTests
     {
         var rewriter = new SurroundingRewriter("PROGRAM", ["COOLANT=ON"], []);
 
-        NcxProgram expanded = ExpanderHarness.Expand(ExpanderHarness.File("UNITS=MM"), ExpanderMachines.Mill(), rewriter);
+        NcxProgram expanded =
+            ExpanderHarness.Expand(ExpanderHarness.File("UNITS=MM"), ExpanderMachines.Mill(), rewriter);
 
         Diagnostic error = RuleAssert.Only(expanded.Diagnostics, DiagnosticCodes.GeneratedBlockOutsideSection);
         Assert.Equal(2, error.OriginLine);

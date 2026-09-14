@@ -15,7 +15,8 @@ public sealed record CycleCallEvent : VmEvent
     public required string Cycle { get; init; }
 
     /// <summary>
-    /// The controller of a native cycle, HEIDENHAIN of CYCLE:HEIDENHAIN=251; null for a built-in or catalog cycle (D94).
+    /// The controller of a native cycle, HEIDENHAIN of CYCLE:HEIDENHAIN=251; null for a built-in or catalog cycle
+    /// (D94).
     /// </summary>
     public string? Controller { get; init; }
 
