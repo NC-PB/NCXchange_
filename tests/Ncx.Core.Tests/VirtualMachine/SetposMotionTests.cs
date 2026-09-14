@@ -199,8 +199,9 @@ public sealed class SetposMotionTests
         Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
     }
 
-    // VM 3.4, 10: in a rotated plane a motion of Y moves X in the machine frame as well, by an amount only the
-    // kinematics module knows.
+    // The workaround of the TODO(question) above FrameRules.Couples (D101): the documents do not say whether a motion
+    // of Y in a rotated plane moves X in the machine frame, so the machine position that the record gives for X is
+    // taken as unknown, and the reset leaves X unknown. Its stored position stays as it was (VM 3.4).
     [Fact]
     public void Reset_AfterAMotionOfAnotherAxisInATurnedFrame_LeavesTheAxisUnknown()
     {
@@ -401,8 +402,9 @@ public sealed class SetposMotionTests
         Assert.Equal(250m, vm.State.Frame.SetposShift["X"]);
     }
 
-    // Language 4.2, VM 3.4, 10: TILT turns the frame in space, so a motion of one linear axis under it moves every
-    // linear axis in the machine frame by an amount only the kinematics module knows; the reset leaves X unknown.
+    // The workaround of the TODO(question) above FrameRules.Couples (D101): a TILT couples X, Y and Z, so after a
+    // motion of Z under it the machine position that the record gives for X is taken as unknown, and the reset leaves
+    // X unknown.
     [Fact]
     public void Tilt_AMotionOfAnotherLinearAxis_LeavesTheMachinePositionUnknown()
     {
@@ -443,7 +445,8 @@ public sealed class SetposMotionTests
     }
 
     // Language 4.2, D31: a later WORKPLANE does not turn the rotation into another plane; ROTATE=30 under XY still
-    // turns X and Y, so after WORKPLANE=ZX a motion of Y leaves the machine position of X unknown.
+    // turns X and Y, so after WORKPLANE=ZX a motion of Y couples X, and the workaround of the TODO(question) above
+    // FrameRules.Couples leaves the machine position of X unknown.
     [Fact]
     public void Rotate_AfterAChangeOfTheWorkplane_StillTurnsThePlaneWhereItStood()
     {
@@ -452,6 +455,55 @@ public sealed class SetposMotionTests
 
         vm.AssertNoDiagnostics();
         Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
+    }
+
+    // Residual review of P1-03 (language 4.2, VM 3.4, 10, D101): SETPOS under a ROTATE, MIRROR, TILT or TILT_AXIS
+    // declares the value in a frame that turns or mirrors X against the machine frame. Nothing moves, so the reset
+    // returns X to its machine position; the declared value relates to the machine position only through a conversion
+    // the kinematics module makes, so a motion of X after the reset leaves the machine position unknown, and ORIGIN
+    // leaves X unknown instead of at a wrong machine position.
+    [Theory]
+    [InlineData("ROTATE=30", "ROTATE=RESET")]
+    [InlineData("MIRROR=X", "MIRROR=OFF")]
+    [InlineData("TILT B=45", "TILT=RESET")]
+    [InlineData("TILT_AXIS B=45", "TILT_AXIS=RESET")]
+    public void Setpos_InAFrameThatTurnsTheAxis_AMotionAfterTheResetLeavesTheMachinePositionUnknown(string change,
+        string reset)
+    {
+        VmHarness vm = MillTurn().Execute("HOME X", change, "SETPOS X=100", reset);
+
+        Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
+
+        vm.Execute("LINE X=50", "ORIGIN=1");
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
+    }
+
+    // Language 4.2, VM 3.4, D101: a ROTATE of the YZ plane turns Y and Z about X, and a MIRROR of Y mirrors Y alone, so
+    // SETPOS X under them declares X through shifts alone; a motion of X keeps its machine position, and the reset
+    // returns X to where the motion left it.
+    [Theory]
+    [InlineData("WORKPLANE=YZ ROTATE=30", "ROTATE=RESET")]
+    [InlineData("MIRROR=Y", "MIRROR=OFF")]
+    public void Setpos_InAFrameThatDoesNotTurnTheAxis_AMotionKeepsTheMachinePosition(string change, string reset)
+    {
+        VmHarness vm = MillTurn().Execute("HOME X", change, "SETPOS X=100", "LINE X=50", reset);
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal(new AxisPosition(250m, PositionFrame.Machine, Known: true), vm.Position("X"));
+    }
+
+    // Language 4.2, VM 3.4: TILT tilts the frame about its axes X, Y and Z; the sub spindle slide Z2 is none of them,
+    // so the workaround of the TODO(question) above FrameRules.Couples does not couple it with X, and the reset
+    // returns Z2 to the machine position of its setpos shift.
+    [Fact]
+    public void Tilt_AMotionOfXUnderIt_KeepsTheMachinePositionOfAnAxisOutsideXYZ()
+    {
+        VmHarness vm = MillTurn().Execute("HOME Z2", "TILT B=45", "SETPOS Z2=10", "LINE X=50", "TILT=RESET");
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal(new AxisPosition(0m, PositionFrame.Machine, Known: true), vm.Position("Z2"));
     }
 
     // The mill-turn machine file with reference points (X home 300, C home 90), the units and a feed set.

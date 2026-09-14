@@ -86,7 +86,7 @@ public sealed class FrameStateTests
         TransformEntry shift = new()
         {
             Kind = TransformKind.Shift,
-            Shift = new Dictionary<string, decimal> { ["Z"] = -5m },
+            Shift = new Dictionary<string, decimal?> { ["Z"] = -5m },
         };
         state.Frame.Chain.Add(shift);
 
@@ -94,7 +94,7 @@ public sealed class FrameStateTests
         state.Frame.Chain.Add(new TransformEntry
         {
             Kind = TransformKind.Tilt,
-            Angles = new Dictionary<string, decimal> { ["A"] = 0m, ["B"] = 45m, ["C"] = 0m },
+            Angles = new Dictionary<string, decimal?> { ["A"] = 0m, ["B"] = 45m, ["C"] = 0m },
         });
 
         Assert.Equal(shift, Assert.Single(snapshot.Frame.Chain));

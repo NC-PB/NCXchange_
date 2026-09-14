@@ -232,6 +232,23 @@ public sealed class SetposTests
         Assert.DoesNotContain("X", vm.State.Frame.SetposAgainstMachine);
     }
 
+    // VM 1, 3.4, answer of wave-1 question #100: a RESET or ORIGIN that removes a shift from an expression makes its
+    // axis unknown outside the MACHINE frame instead of folding back 0, so HOME X, SHIFT X={$Q1}, SETPOS X=100,
+    // SHIFT=RESET no longer leaves X known in the workpiece frame at 100. Nothing moved, so X is known in the MACHINE
+    // frame at its machine position (D101).
+    [Theory]
+    [InlineData("SHIFT=RESET")]
+    [InlineData("ORIGIN=1")]
+    public void Reset_OfAShiftFromAnExpressionBeforeTheSetpos_LeavesTheAxisUnknownOutsideTheMachineFrame(string reset)
+    {
+        VmHarness vm = new VmHarness(VmMachines.MillTurn())
+            .Execute("UNITS=MM", "HOME X", "SHIFT X={$Q1}", "SETPOS X=100", reset);
+
+        vm.AssertNoDiagnostics();
+        Assert.Null(FrameRules.WorkpieceCoordinate(vm.State, "X"));
+        Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
+    }
+
     // VM 3.4, D35, D101: TILT, TILT_AXIS, ROTATE and MIRROR, and their RESET forms, mark the position unknown in the
     // new frame; the machine frame does not move with it, so an axis whose setpos shift was recorded against the
     // machine position is back at that position in the MACHINE frame, and the next SETPOS records against it again.

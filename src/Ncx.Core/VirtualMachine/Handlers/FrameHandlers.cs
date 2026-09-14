@@ -119,9 +119,9 @@ internal static class FrameHandlers
             return;
         }
 
-        // TODO(question): a chain entry has no UNKNOWN form for an angle from an expression in STATIC mode (virtual
-        // machine 1); the entry keeps 0 for it, and the position is unknown after the rotation anyway (3.4).
-        decimal angle = NumberOf(word) ?? 0m;
+        // An angle from an expression is not evaluated in STATIC mode: the entry holds it as UNKNOWN (virtual machine
+        // 1, the answer of wave-1 question #100), and the position is unknown after the rotation anyway (3.4).
+        decimal? angle = NumberOf(word);
 
         // The rotation turns the working plane where it stands (language 4.2, D31): the state words of a block do not
         // depend on each other (virtual machine 3 step 3), so a WORKPLANE of the same block counts in either order.

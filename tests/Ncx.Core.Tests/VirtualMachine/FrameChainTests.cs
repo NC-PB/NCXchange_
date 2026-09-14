@@ -24,17 +24,64 @@ public sealed class FrameChainTests
         Assert.Equal(45m, shiftFirst.Chain[1].Angles["B"]);
     }
 
-    // VM 1, 3.4, wave-1 question #100: the chain entry of a SHIFT from an expression names the axes whose shift is
-    // unknown; removing it folds an unknown shift back, so an axis known in the workpiece frame is unknown afterwards,
-    // as appending it left it.
+    // VM 1, answer of wave-1 question #100: STATIC mode does not evaluate an expression, and the chain is a state
+    // variable (VM 2.1), so the entry of a SHIFT from an expression holds that axis as UNKNOWN; the other axes keep
+    // their shift.
+    [Fact]
+    public void Shift_FromAnExpression_TheEntryHoldsTheAxisAsUnknown()
+    {
+        TransformEntry entry = Assert.Single(new VmHarness(VmMachines.Default())
+            .Execute("SHIFT X={$Q1} Y=5").State.Frame.Chain);
+
+        Assert.Null(entry.Shift["X"]);
+        Assert.Equal(5m, entry.Shift["Y"]);
+    }
+
+    // VM 1, answer of wave-1 question #100: the same for the angle of a ROTATE.
+    [Fact]
+    public void Rotate_FromAnExpression_TheEntryHoldsTheAngleAsUnknown()
+    {
+        TransformEntry entry = Assert.Single(new VmHarness(VmMachines.Default())
+            .Execute("ROTATE={$Q1}").State.Frame.Chain);
+
+        Assert.Equal(TransformKind.Rotate, entry.Kind);
+        Assert.Null(entry.Angle);
+    }
+
+    // VM 1, answer of wave-1 question #100: the same for an angle of a TILT or TILT_AXIS.
+    [Theory]
+    [InlineData("TILT A=0 B={$Q1}")]
+    [InlineData("TILT_AXIS A=0 B={$Q1}")]
+    public void Tilt_FromAnExpression_TheEntryHoldsTheAngleAsUnknown(string tilt)
+    {
+        TransformEntry entry = Assert.Single(new VmHarness(VmMachines.Default()).Execute(tilt).State.Frame.Chain);
+
+        Assert.Equal(0m, entry.Angles["A"]);
+        Assert.Null(entry.Angles["B"]);
+    }
+
+    // VM 1, 3.4, answer of wave-1 question #100: a RESET that removes a shift from an expression cannot fold it back,
+    // so an axis known in the workpiece frame is unknown outside the MACHINE frame afterwards, as appending it left it;
+    // a known shift of the same entry is folded back.
     [Fact]
     public void ShiftReset_OfAShiftFromAnExpression_LeavesTheShiftedAxisUnknown()
     {
         VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "SHIFT X={$Q1} Y=5", "RAPID X=50 Y=7");
 
-        Assert.Equal(["X"], vm.State.Frame.Chain[0].UnknownShift);
-
         vm.Execute("SHIFT=RESET");
+
+        Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
+        Assert.Equal(new AxisPosition(12m, PositionFrame.Workpiece, Known: true), vm.Position("Y"));
+    }
+
+    // VM 1, 3.4, answer of wave-1 question #100: ORIGIN empties the chain, and removing a shift from an expression
+    // leaves its axis unknown outside the MACHINE frame instead of folding back 0.
+    [Fact]
+    public void Origin_RemovingAShiftFromAnExpression_LeavesTheShiftedAxisUnknown()
+    {
+        VmHarness vm = new VmHarness(VmMachines.Default()).Execute("UNITS=MM", "SHIFT X={$Q1} Y=5", "RAPID X=50 Y=7");
+
+        vm.Execute("ORIGIN=1");
 
         Assert.Equal(AxisPosition.Unknown, vm.Position("X"));
         Assert.Equal(new AxisPosition(12m, PositionFrame.Workpiece, Known: true), vm.Position("Y"));

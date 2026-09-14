@@ -5,7 +5,9 @@ namespace Ncx.Core.VirtualMachine.State;
 /// <summary>
 /// One entry of the transform chain: a SHIFT, ROTATE, MIRROR, TILT or TILT_AXIS in the order the program wrote it,
 /// applied to the frame that was active where it stands (language 4.2, virtual machine 2.1, D31, D82). Immutable: the
-/// chain grows at its end and is cut from its end, and an entry never changes.
+/// chain grows at its end and is cut from its end, and an entry never changes. The chain is a state variable, so a
+/// value the program writes as an expression, which STATIC mode does not evaluate, is held as UNKNOWN, null (virtual
+/// machine 1, 2.1; the answer of wave-1 question #100).
 /// </summary>
 public sealed record TransformEntry
 {
@@ -15,20 +17,16 @@ public sealed record TransformEntry
     public required TransformKind Kind { get; init; }
 
     /// <summary>
-    /// SHIFT: the shift of each axis by its NCX name; an omitted axis is 0 (language 4.2). Empty for the other kinds.
+    /// SHIFT: the shift of each axis by its NCX name; an omitted axis is 0 (language 4.2), a shift from an expression
+    /// is null, UNKNOWN (virtual machine 1). Empty for the other kinds.
     /// </summary>
-    public IReadOnlyDictionary<string, decimal> Shift { get; init; } = ReadOnlyDictionary<string, decimal>.Empty;
+    public IReadOnlyDictionary<string, decimal?> Shift { get; init; } = ReadOnlyDictionary<string, decimal?>.Empty;
 
     /// <summary>
-    /// SHIFT: the axes whose shift came from an expression, which STATIC mode does not evaluate (virtual machine 1);
-    /// their entry in <see cref="Shift"/> is 0 (wave-1 question #100). Empty for the other kinds.
+    /// ROTATE: the rotation of the working plane about the tool axis in degrees (language 4.2); null for an angle from
+    /// an expression, UNKNOWN (virtual machine 1). 0 for the other kinds.
     /// </summary>
-    public IReadOnlyList<string> UnknownShift { get; init; } = [];
-
-    /// <summary>
-    /// ROTATE: the rotation of the working plane about the tool axis in degrees (language 4.2); 0 for the other kinds.
-    /// </summary>
-    public decimal Angle { get; init; }
+    public decimal? Angle { get; init; } = 0m;
 
     /// <summary>
     /// ROTATE: the working plane where the word stands, whose two axes the rotation turns about its tool axis; every
@@ -44,9 +42,9 @@ public sealed record TransformEntry
 
     /// <summary>
     /// TILT: the spatial angles A, B, C; TILT_AXIS: the rotary axis angles A, B, C; in degrees by their names (language
-    /// 4.2, D82). Empty for the other kinds.
+    /// 4.2, D82); an angle from an expression is null, UNKNOWN (virtual machine 1). Empty for the other kinds.
     /// </summary>
-    public IReadOnlyDictionary<string, decimal> Angles { get; init; } = ReadOnlyDictionary<string, decimal>.Empty;
+    public IReadOnlyDictionary<string, decimal?> Angles { get; init; } = ReadOnlyDictionary<string, decimal?>.Empty;
 
     /// <summary>
     /// MOVE of a TILT or TILT_AXIS: how the machine reaches the plane; STAY when the block has no MOVE (language 4.2,

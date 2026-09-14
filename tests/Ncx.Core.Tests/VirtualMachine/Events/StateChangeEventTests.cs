@@ -89,6 +89,23 @@ public sealed class StateChangeEventTests
             listener.LinesOf("STATE_CHANGE"));
     }
 
+    // VM 1, 2.1, answer of wave-1 question #100: a value of the chain from an expression is UNKNOWN in STATIC mode, and
+    // the chain shows it as ?, for a shift, a rotation and a tilt alike.
+    [Fact]
+    public void StateChange_ChainValuesFromExpressions_AreShownUnknown()
+    {
+        FakeListener listener = EventRuns.Execute("SHIFT X={$Q1} Y=5", "ROTATE={$Q2}", "TILT B={$Q3}");
+
+        Assert.Equal(
+            [
+                "STATE_CHANGE(1): CHAIN ? -> SHIFT X=? Y=5",
+                "STATE_CHANGE(2): CHAIN SHIFT X=? Y=5 -> SHIFT X=? Y=5 | ROTATE=?",
+                "STATE_CHANGE(3): CHAIN SHIFT X=? Y=5 | ROTATE=? -> SHIFT X=? Y=5 | ROTATE=? | TILT B=? MOVE=STAY "
+                    + "ROT=TABLE",
+            ],
+            listener.LinesOf("STATE_CHANGE"));
+    }
+
     // VM 1, 3.9, 7: a CALL of an external program leaves the position unknown; the change belongs to the CALL block, so
     // its After carries the unknown position and its STATE_CHANGE events report every axis that was known.
     [Fact]

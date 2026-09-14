@@ -156,8 +156,8 @@ Claude (agent), 2026-09-13, fixes of the third review of part two (three blockin
   - The doc comments of `SetposRecord.Holder` and `FollowMotion` no longer cite D57 for a relation it does not give. This needs no question: D101's formula (newSetposShift = machinePos minus declared) relates the default holder's frame to the machine frame, and VM 3.4 leaves every other holder's frame to the convention outside the VM.
 - Finding 3, the axes a motion can move. VM 3.4: "A motion that names some axes leaves the others as they were".
   - `FollowMotion` now gets the position store as it was before the block; `ExecuteMotion` copies it while a record stands. It looks only at an axis whose stored position the block changed, and at one the frame couples with such an axis.
-  - Coupled: under a ROTATE, the other axis of the plane where the ROTATE stood, when one of its axes moves; under a TILT or TILT_AXIS, every linear axis, when a linear axis moves. A MIRROR and a SHIFT couple nothing, and a rotary axis moves no linear axis.
-  - For an axis the block changed, the machine position stays known when no ROTATE turns a plane it is in, no MIRROR names it and no TILT or TILT_AXIS stands. For a coupled axis it is unknown.
+  - Coupled: under a ROTATE, the other axis of the plane where the ROTATE stood, when one of its axes moves; under a TILT or TILT_AXIS, every linear axis, when a linear axis moves. A MIRROR and a SHIFT couple nothing, and a rotary axis moves no linear axis. (The residual review below narrows the tilt to X, Y and Z, and applies the coupling to an axis known in the MACHINE frame as well.)
+  - For an axis the block changed, the machine position stays known when no ROTATE turns a plane it is in, no MIRROR names it and no TILT or TILT_AXIS stands. For a coupled axis it is unknown. (The residual review below adds the same condition for the frame of the SETPOS.)
   - The stored position is compared, not the words of the block: RETRACT names no axis and moves the tool axis, a cycle moves its drilling axis, and an axis the block leaves where it stood has not moved in the machine frame either.
   - The ROTATE entry now keeps the working plane where it stood (`TransformEntry.Workplane`). Every chain entry applies to the frame active where it stands (language 4.2, D31), and a WORKPLANE in the same block counts in either order (VM 3 step 3).
   - TCPM stays state only (VM 2.1, D54): `FollowMotion` treats it as no coupling, as the path of an axis known in the MACHINE frame does.
@@ -182,3 +182,73 @@ Gate:
   - Not requiring the unknown shifts of the SETPOS to stand fails both probes of finding 1.
   - No coupling fails 3 tests: a motion of Y under ROTATE, the same after a change of the WORKPLANE, and a motion of Z under TILT.
   - A ROTATE always in XY fails both ZX probes.
+
+Claude (agent), 2026-09-14, residual review of motion and frames (RR-P1-03, branch `rr-p1-03`). Nobody reviewed the fixes of the third review round above. This round checks each finding of the second and third reviews against main and fixes what still held. It also applies the answered follow-up of wave-1 question #100 and turns the markers of the answered rows in `FrameRules.cs` into comments. Decisions implemented: D35, D57, D101, and the answer of wave-1 question #100 (virtual machine 1); D100 and D102 checked. The specification is unchanged.
+
+- Checked against main, still fixed:
+  - Second review, finding 1 (the first motion under POLAR=ON or CYLINDER=n): `MotionRules.EnterTransformation` leaves an axis of the transformation that the block does not name unknown. After POLAR=OFF or CYLINDER=OFF an incremental word on it is VM202 (`PolarCylinderTests`).
+  - Second review, finding 2 (the return to the MACHINE frame dropped the record): `ReturnToMachineFrame` keeps the record, and the detour probes of `SetposMotionTests` pass.
+  - Third review, finding 1 (a SHIFT from an expression before the SETPOS): the record keeps the unknown shifts of the SETPOS. A motion keeps the machine position known only while exactly those stand.
+- Third review, finding 2 (the frame of the SETPOS): the sub spindle case is fixed, but the rest of the frame of the SETPOS was not checked.
+  - `MovesAsItsWorkpieceCoordinate` looked at the ROTATE, MIRROR, TILT and TILT_AXIS of the frame of the motion only. `HOME X`, `ROTATE=30`, `SETPOS X=100`, `ROTATE=RESET`, `LINE X=50`, `ORIGIN=1` left X known in the MACHINE frame at 250, and so did the same program with `MIRROR=X`, a TILT or a TILT_AXIS. The declared value relates to the machine position only through the rotation, which the kinematics module converts (VM 3.4, 10, D101). This is the failure class of the finding: a machine position the VM cannot know, reported as known.
+  - Fixed: `SetposRecord.Turned` records whether the frame of the SETPOS turned or mirrored the axis (`FrameRules.Turns`: a ROTATE of a plane the axis is in, a MIRROR of the axis, a TILT or TILT_AXIS). A motion of such an axis leaves its machine position unknown. While nothing moves, the reset still returns the axis to its machine position. A ROTATE of another plane, or a MIRROR of another axis, at the SETPOS does not turn it.
+- Third review, finding 3 (the axes a motion can move): fixed for the motions the review named (a rotary axis, the tool axis of a ROTATE, another axis under a MIRROR). Its last point, that the record path disagrees with an axis known in the MACHINE frame, still held for the coupled axes.
+  - Under a ROTATE, a motion of Y left X known in the MACHINE frame at its old value, while the same X known through a record became unknown.
+  - A motion along a tilted axis left X, Y and Z known in the MACHINE frame, where a RETRACT under the same tilt makes them unknown (VM 3.1a).
+  - The documents do not settle which is right (open question below). The least committal workaround now applies to both paths: `FollowMotion` also makes an axis known in the MACHINE frame unknown when the frame couples it with a moved axis, and `ExecuteMotion` takes the store before the block whenever the chain holds a ROTATE, TILT or TILT_AXIS (`FrameRules.FollowsMotion`). (Reversed by the review fixes below: VM 3.4 governs the stored position, and an axis known in the MACHINE frame keeps it.)
+  - Under a TILT or TILT_AXIS the coupled axes are now X, Y and Z, the axes whose combination the tilted tool axis is (VM 3.1a, as `RetractRules` reads it), no longer every linear axis: a motion of X does not move the sub spindle slide Z2. (The review fixes below drop the citation of VM 3.1a, a sentence about RETRACT only.)
+  - An axis the block names and leaves unknown (a target from an expression) counts as moved, also when it was unknown before.
+- Wave-1 question #100, answered by VM 1 (a state variable set from an expression becomes UNKNOWN, and the chain is a state variable, VM 2.1):
+  - `TransformEntry` holds a value from an expression as UNKNOWN, as null: `Shift` and `Angles` map to `decimal?`, and `Angle` is `decimal?`. `UnknownShift` is gone. `ApplyShift`, `ApplyTilt` and `ApplyRotate` store null where they stored 0.
+  - A RESET or ORIGIN that removes a shift from an expression makes its axes unknown outside the MACHINE frame instead of folding back 0 (`CutAt`, `Fold`); the P1-03 review rounds had already done this with the 0 and a list of axes. The reproducer `HOME X`, `SHIFT X={$Q1}`, `SETPOS X=100`, `SHIFT=RESET` leaves X unknown in the workpiece frame. Nothing moved and the record stands, so X is known in the MACHINE frame at 300 (D101). The same holds for ORIGIN.
+  - The chain in STATE_CHANGE, trace and annotate shows an unknown value as `?`: `ROTATE={$Q2}` reads `ROTATE=?`, no longer `ROTATE=0`, and `TILT B={$Q3}` reads `TILT B=?`. No expected file changes, because no example has a chain value from an expression.
+  - The TransformEntry box of the architecture 5 class diagram shows the values nullable.
+- Markers:
+  - The TODO(question) of `FrameRules.Cut` (wave-1 question #95, answered by VM 2.1, the chain paragraph of language 4.2 and D31) is now a comment citing them.
+  - The marker of `SelectOrigin` names D123. The tilt marker, now in `FrameRules.Turns`, names wave-2 question #12, widened to a linear axis other than X, Y and Z.
+  - The three chain markers of #100 in `VirtualMachine.cs` and `Handlers/FrameHandlers.cs` are now comments citing the answer. The markers of `ApplyShift` and of the TILT_AXIS frame name D125 and D126.
+  - `TransformEntry.cs` had no marker; its summary cites the answer.
+- Decided without a question, because no output depends on the representation: null for UNKNOWN in the entry, not a key in `ChannelState.Unknown`, because a chain can hold several entries of one kind and an entry is immutable and shared by the snapshots. `FrameRules.Setpos` takes the `BlockContext`, which `Turns` needs to resolve the axis names.
+- Shared files changed: `Events/StateChanges.cs` (the chain text), the doc comments of `State/FrameState.cs` and `State/FrameSnapshot.cs`, `docs/architecture/architecture.md` (the TransformEntry box), and the README of `tests/Ncx.Core.Tests/VirtualMachine/` (`TurnedFrameMotionTests`).
+- Open question, marked `TODO(question)` above `FrameRules.Couples`: does a motion in a frame that a ROTATE, TILT or TILT_AXIS turns leave an axis it does not name at its machine position (VM 3.4: "A motion that names some axes leaves the others as they were")? Or is that position unknown afterwards, as VM 3.1a makes the axes of a RETRACT under a tilt? Until it is answered, such an axis is unknown afterwards, whether it was known in the MACHINE frame or through the record of its setpos shift. (Narrowed by the review fixes below to the machine position a record derives.)
+
+Done when: unchanged; all four criteria hold, as recorded for part two.
+
+Gate:
+- `dotnet build -warnaserror`: 0 warnings.
+- `dotnet test`: 3396 tests passing (3 skipped), 1882 of them in `Ncx.Core.Tests`, 25 of those new.
+- `dotnet format --verify-no-changes`: clean.
+- Mutation checks, one at a time, with `FrameRules.cs` restored afterwards:
+  - Without `SetposRecord.Turned`, the 4 cases of the SETPOS in a turned frame fail.
+  - Without the coupling of an axis known in the MACHINE frame, 4 tests of `TurnedFrameMotionTests` fail.
+  - A tilt that couples every axis fails 5 tests: the rotary motion under a TILT on both paths, the two tilt cases and Z2.
+  - An axis the block names and leaves unknown not counted as moved: the ROTATE probe with a target from an expression fails.
+
+Claude (agent), 2026-09-14, review fixes of the residual review of motion and frames (RR-P1-03, branch `rr-p1-03`, rebased onto main). The review of the entry above found one blocking finding. Decisions implemented: VM 3.4 ("A motion that names some axes leaves the others as they were"), D35, D100 and D101. The specification is unchanged.
+
+- Verified: the finding held. `FrameRules.FollowsMotion` took the store before the block whenever the chain held a ROTATE, TILT or TILT_AXIS, and the first loop of `FollowMotion` then set an axis known in the MACHINE frame (from the `home` of D100, HOME or FRAME=MACHINE) to unknown after a motion under the turned frame that did not name it. All three of the reviewer's probes reproduced on the branch and not on main:
+  - `ROTATE=30`, `LINE Y=5`, `ROTATE=RESET`, `SETPOS X=0` raised VM050.
+  - `TILT B=45`, `LINE X=10`, `RAPID IZ=5 FRAME=MACHINE` raised VM202.
+  - Under `WORKPLANE=ZX ROTATE=30`, the first motion under POLAR=ON made Z unknown.
+  - VM 3.1a, which the entry above cited, is a sentence about RETRACT only, and no document states the coupling.
+- Fixed in the direction of VM 3.4: a motion never changes the stored position of an axis it does not name.
+  - The first loop of `FollowMotion` and `FrameRules.FollowsMotion` are gone. `ExecuteMotion` takes the store before the block only while a setpos shift recorded against the machine position stands, as on main.
+  - An axis known in the MACHINE frame keeps its position through every motion that does not move it, in a turned frame too. `TurnedFrameMotionTests` pins this: X stays MACHINE 300 after `ROTATE=30`, `LINE Y=5`, and X, Z, Z2 and B stay after `TILT B=45` or `TILT_AXIS B=45`, `LINE Y=5`. The three probes are regression tests there.
+  - The record path keeps the coupling of main, under the `TODO(question)` above `FrameRules.Couples`. After a motion that the frame couples with the axis, only the machine position that the record derives (`SetposRecord.MachinePositionKnown`, D101) is taken as unknown; the workpiece coordinate stays. The two paths therefore differ after such a motion, and the marker says so. Under a TILT or TILT_AXIS the coupled axes stay X, Y and Z.
+  - The comments no longer present the coupling as a rule of language 4.2 or VM 3.1a, 3.4 or 10. This covers the summaries of `FrameRules`, `FollowMotion` and `Couples`, the comment in `ExecuteMotion`, `TurnedFrameMotionTests`, four comments in `SetposMotionTests` and the VM tests README.
+- Wave-1 question #100 and the markers: checked on the rebased branch, nothing to change.
+  - `TransformEntry` holds a value from an expression as null (UNKNOWN).
+  - The reproducer `HOME X`, `SHIFT X={$Q1}`, `SETPOS X=100`, `SHIFT=RESET`, and the same with `ORIGIN=1`, leaves X unknown in the workpiece frame and known in the MACHINE frame at 300 (`SetposTests`).
+  - The markers left in `FrameRules.cs` belong to rows that are still open. `SelectOrigin` names D123 (wave-1 #96 and #111), `Turns` names wave-2 question #12, and `Couples` is the new question below. `TransformEntry.cs` has no marker.
+- Open question, reported for a new D entry because none of D121 to D127 covers it; marked `TODO(question)` above `FrameRules.Couples`. Does a motion in a frame that a ROTATE, TILT or TILT_AXIS turns change the machine position of an axis the block does not name? VM 3.4 keeps the stored position, while on a controller the turned frame moves that axis as well, by an amount only the kinematics module knows (VM 10). Until it is answered, an axis known in the MACHINE frame keeps its position, and only the machine position that a record derives for a coupled axis is taken as unknown.
+- Shared files: none beyond those of the entry above. The line for `TurnedFrameMotionTests` in the VM tests README changed.
+
+Done when: unchanged; all four criteria hold, as recorded for part two.
+
+Gate:
+- `dotnet build -warnaserror`: 0 warnings.
+- `dotnet test`: 3407 tests passing (3 skipped), 1885 of them in `Ncx.Core.Tests`. 3 of those are new (the probes), and 4 cases of `TurnedFrameMotionTests` now expect the axis known in the MACHINE frame.
+- `dotnet format --verify-no-changes`: clean.
+- Mutation checks, one at a time, with `FrameRules.cs` restored afterwards:
+  - The branch before this fix, with the MACHINE-frame coupling, fails 7 tests of `TurnedFrameMotionTests`.
+  - No coupling on the record path fails 3 tests of `SetposMotionTests`: a motion of Y under ROTATE, the same after a change of the WORKPLANE, and a motion of Z under TILT.

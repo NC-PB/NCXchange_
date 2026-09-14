@@ -397,8 +397,7 @@ public sealed partial class VirtualMachine
     // is answered.
     private void ApplyShift(BlockContext context)
     {
-        var shift = new Dictionary<string, decimal>(StringComparer.Ordinal);
-        var unknownAxes = new List<string>();
+        var shift = new Dictionary<string, decimal?>(StringComparer.Ordinal);
         foreach (Word word in context.Block.Words)
         {
             if (!context.AxisOf.TryGetValue(word, out string? axis) || IsIncremental(word))
@@ -406,21 +405,13 @@ public sealed partial class VirtualMachine
                 continue;
             }
 
-            // TODO(question): a chain entry has no UNKNOWN form for a shift from an expression in STATIC mode (virtual
-            // machine 1, wave-1 question #100); the entry keeps 0 for it and names the axis, which is unknown outside
-            // the MACHINE frame (FrameRules.AppendShift).
-            if (NumberOf(word) is decimal value)
-            {
-                shift[axis] = value;
-            }
-            else
-            {
-                shift[axis] = 0m;
-                unknownAxes.Add(axis);
-            }
+            // A shift from an expression is not evaluated in STATIC mode: the entry holds it as UNKNOWN, and its axis
+            // is unknown outside the MACHINE frame (virtual machine 1, the answer of wave-1 question #100;
+            // FrameRules.AppendShift).
+            shift[axis] = NumberOf(word);
         }
 
-        FrameRules.AppendShift(_state, shift, unknownAxes);
+        FrameRules.AppendShift(_state, shift);
     }
 
     // TILT A= B= C= by spatial angles and TILT_AXIS A= B= C= by the rotary axis positions of the machine, appended to
@@ -430,7 +421,7 @@ public sealed partial class VirtualMachine
     private void ApplyTilt(BlockContext context, TransformKind kind)
     {
         Block block = context.Block;
-        var angles = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        var angles = new Dictionary<string, decimal?>(StringComparer.Ordinal);
         var axisAngles = new Dictionary<string, decimal?>(StringComparer.Ordinal);
         bool nativeBlock = WordCatalog.IsNativeParameterAllowed(block);
         foreach (Word word in block.Words)
@@ -440,10 +431,10 @@ public sealed partial class VirtualMachine
                 continue;
             }
 
-            // TODO(question): a chain entry has no UNKNOWN form for an angle from an expression in STATIC mode
-            // (virtual machine 1); the entry keeps 0 for it, and a rotary axis moved to it is unknown.
+            // An angle from an expression is not evaluated in STATIC mode: the entry holds it as UNKNOWN, and a rotary
+            // axis moved to it is unknown (virtual machine 1, the answer of wave-1 question #100).
             decimal? angle = NumberOf(word);
-            angles[word.Key] = angle ?? 0m;
+            angles[word.Key] = angle;
             if (kind == TransformKind.TiltAxis && context.AxisOf.TryGetValue(word, out string? axis))
             {
                 axisAngles[axis] = angle;
@@ -502,8 +493,7 @@ public sealed partial class VirtualMachine
             decimal? declared = NumberOf(word) is decimal value
                 ? DiameterRules.ToRadius(word, value, _state.Frame.Diameter, cycleAxis: null)
                 : null;
-            FrameRules.Setpos(_state, axis, declared, _homedWithoutReference.Contains(axis), context.Block,
-                Diagnostics);
+            FrameRules.Setpos(context, axis, declared, _homedWithoutReference.Contains(axis));
             _homedWithoutReference.Remove(axis);
         }
     }
@@ -525,8 +515,9 @@ public sealed partial class VirtualMachine
         }
 
         // HOME and a FRAME=MACHINE block move in machine coordinates and leave the other axes where they are in the
-        // machine frame (virtual machine 3 step 5, 3.4, D35); every other motion moves in the workpiece frame, and the
-        // records of the setpos shifts follow the axes it moved, read against the position store before the block.
+        // machine frame (virtual machine 3 step 5, 3.4, D35); every other motion moves in the workpiece frame, and it
+        // too leaves the axes it does not name as they were (3.4); the records of the setpos shifts follow the axes it
+        // moved, read against the position store before the block (FrameRules.FollowMotion).
         Dictionary<string, AxisPosition>? before = context.Block.Verb?.Key != "HOME"
             && !_state.Frame.MachineFrameBlock
             && _state.Frame.SetposAgainstMachine.Count > 0

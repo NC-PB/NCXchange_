@@ -230,7 +230,7 @@ internal sealed class StateChanges
     {
         return entry.Kind switch
         {
-            TransformKind.Shift => "SHIFT" + AxisWords(entry.Shift, entry.UnknownShift),
+            TransformKind.Shift => "SHIFT" + AxisWords(entry.Shift),
             TransformKind.Rotate => "ROTATE=" + EventText.Number(entry.Angle),
             TransformKind.Mirror => "MIRROR=" + string.Join(",", entry.Mirrored),
             TransformKind.Tilt => "TILT" + TiltWords(entry),
@@ -240,18 +240,17 @@ internal sealed class StateChanges
 
     private static string TiltWords(TransformEntry entry)
     {
-        return AxisWords(entry.Angles, []) + " MOVE=" + EventText.Ident(entry.Move)
+        return AxisWords(entry.Angles) + " MOVE=" + EventText.Ident(entry.Move)
             + " ROT=" + EventText.Ident(entry.Rot);
     }
 
-    // The axis words of a chain entry; an axis whose value came from an expression is unknown (virtual machine 1).
-    private static string AxisWords(IReadOnlyDictionary<string, decimal> values, IReadOnlyList<string> unknown)
+    // The axis words of a chain entry; a value from an expression is UNKNOWN and shown as ? (virtual machine 1).
+    private static string AxisWords(IReadOnlyDictionary<string, decimal?> values)
     {
         var text = new StringBuilder();
-        foreach (KeyValuePair<string, decimal> value in values)
+        foreach (KeyValuePair<string, decimal?> value in values)
         {
-            string number = unknown.Contains(value.Key) ? EventText.Unknown : EventText.Number(value.Value);
-            text.Append(' ').Append(value.Key).Append('=').Append(number);
+            text.Append(' ').Append(value.Key).Append('=').Append(EventText.Number(value.Value));
         }
 
         return text.ToString();

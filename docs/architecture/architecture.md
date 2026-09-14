@@ -346,10 +346,10 @@ classDiagram
     }
     class TransformEntry {
         +TransformKind Kind
-        +Dictionary~string,decimal~ Shift
-        +decimal Rotate
+        +Dictionary~string,decimal?~ Shift
+        +decimal? Rotate
         +AxisSet Mirror
-        +Dictionary~string,decimal~ Angles
+        +Dictionary~string,decimal?~ Angles
         +TiltMove Move
         +TiltRot Rot
     }
