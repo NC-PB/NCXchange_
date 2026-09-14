@@ -8,7 +8,9 @@ namespace Ncx.Core.VirtualMachine.Events;
 /// The one event with parts to edit (architecture 5.3).
 /// </summary>
 /// <remarks>
-/// Declared with the other events; the compilers of phase 3 (P3-03) raise it through IBlockWriter.
+/// Under VmOptions.RaiseBlockWrite the virtual machine raises it for every executed block, the lines still empty, to
+/// the compiler it runs for; the compiler fills OutputLines and hands the event to the IBlockWriter plugins of
+/// Ncx.Compilers before the lines reach its output (architecture 5.3 and 8, D106).
 /// </remarks>
 public sealed record BlockWriteEvent : VmEvent
 {

@@ -623,8 +623,26 @@ public sealed partial class VirtualMachine
         }
 
         ChannelSnapshot after = _state.Snapshot();
-        var events = new BlockEvents(context, _lastAfter ?? after, after, _program);
-        Publish(events.Raise(LastArc, LastCycleMotions, _underTool, _underProgram), after);
+        ChannelSnapshot before = _lastAfter ?? after;
+        var events = new BlockEvents(context, before, after, _program);
+        List<VmEvent> raised = events.Raise(LastArc, LastCycleMotions, _underTool, _underProgram);
+
+        // BLOCK_WRITE comes before the block is written, with its words and the lines still empty, last among the
+        // events of the block, to the compiler that writes it (virtual machine 7, architecture 8).
+        if (Options.RaiseBlockWrite)
+        {
+            raised.Add(new BlockWriteEvent
+            {
+                Channel = after.ChannelId,
+                Block = context.Block,
+                Before = before,
+                After = after,
+                Words = new List<Word>(context.Block.Words),
+                OutputLines = [],
+            });
+        }
+
+        Publish(raised, after);
     }
 
     // The state of a channel at the start of a run, from the machine, with the pre-pass over the file; reading an

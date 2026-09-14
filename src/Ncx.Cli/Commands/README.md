@@ -8,4 +8,6 @@ One class per command of architecture 10. `FormatCommand.cs` shows the shape: `C
 
 `AnalyzeCommand.cs` takes the file, `--machine`, `--vars`, `--from` and `--to` (D67), `--analytic tools,runtime`, `--static`, `--format text|csv`, `--skip-blocks` and `--strict` (`AnalyzeSettings.cs` holds what goes beyond the run); `Create(analytics, output, error)` gets the analytics that `../Program.cs` registers, and `Run(...)` hands `../Pipeline.cs` a factory that makes them for the machine of the run, then writes their reports.
 
+`CompileCommand.cs` takes an NCX file, `--machine` (required unless `ncx.toml` names the machine, D77), `--output <folder>` and `--strict`; `Create(compilers, error)` gets the compilers that `../Program.cs` registers, and `Run(...)` parses the file, hands it with the tool table of the machine (D10) to the compiler of the machine's controller and writes the files it gives into `out/<machine>/`, or into the folder of `--output`.
+
 Never here: the pipeline itself. A command stays thin and calls the stages of `Ncx.Core` and the other projects (phase 0, risks).

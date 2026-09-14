@@ -15,6 +15,13 @@ public sealed record VmOptions
     public bool ExpandCycles { get; init; }
 
     /// <summary>
+    /// Every executed block also raises BLOCK_WRITE, the last of its events, with the words of the block and no output
+    /// lines yet, so that the compiler subscribed to the run writes each block from its Before and After (virtual
+    /// machine 7, architecture 5.3 and 8). False by default: check, trace and analyze see the other events only.
+    /// </summary>
+    public bool RaiseBlockWrite { get; init; }
+
+    /// <summary>
     /// skip_blocks: which SKIP blocks are skipped; none by default, every SKIP block runs (D53).
     /// </summary>
     public SkipBlocks SkipBlocks { get; init; } = SkipBlocks.None;

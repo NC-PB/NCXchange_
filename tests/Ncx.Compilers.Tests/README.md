@@ -1,5 +1,7 @@
 # Ncx.Compilers.Tests
 
-The tests of `src/Ncx.Compilers`: NCX text in, the expected controller lines out, per machine file, and the round trips over the example files (architecture 3, 11). Empty until P3-03; the contract tests that run the same cases against every compiler come with the compilers (code-guidelines 4, Liskov substitution).
+The tests of `src/Ncx.Compilers`: NCX text in, the expected controller lines out, per machine file (architecture 3, 11).
+
+The framework (P3-03) is tested through `Fakes/`: `FakeCompiler` writes a small Fanuc-like syntax on top of `CompilerBase`, `FakeMachines` gives it the `[format]` and `[tool_change]` tables a test needs, `FakeCompile` compiles an NCX text for such a machine. Start with `CompilerBaseTests.cs` (the "Done when" of P3-03: two `[format]` tables, `RAW:FANUC` and `CYCLE:HEIDENHAIN=251` for their own and for another controller, a modal word written once), then `ToolChangeTests.cs` (`{next}` from a following `PRELOAD` and from `auto_preload`), `ToolTableWarningTests.cs` (the warning block of D10), `SubprogramTests.cs` (each `SUB` once, D99; `file_per_program`), `BlockWriterTests.cs` (`BLOCK_WRITE` and a block writer as a plugin writes one), and the parts alone: `NumberFormatterTests.cs`, `OutputBufferTests.cs`, `CommentCharsetTests.cs`, `TargetStateTests.cs`, `ChainWriterTests.cs` (D31), `CompilerRegistryTests.cs`, `DiagnosticCodesTests.cs`. The contract tests that run the same cases against every compiler come with the compilers (code-guidelines 4, Liskov substitution).
 
 Never here: a path relative to the working directory (`../README.md`).

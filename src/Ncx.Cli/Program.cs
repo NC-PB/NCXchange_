@@ -5,6 +5,7 @@ using Ncx.Analytics;
 using Ncx.Analytics.Runtime;
 using Ncx.Analytics.ToolList;
 using Ncx.Cli.Commands;
+using Ncx.Compilers;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Readers;
@@ -56,6 +57,7 @@ internal static class Program
             AnnotateCommand.Create(output, error),
             ConvertCommand.Create(Readers(), output, error),
             AnalyzeCommand.Create(Analytics(), output, error),
+            CompileCommand.Create(Compilers(), error),
         };
 
         // A usage error is reported as a diagnostic and decides exit code 2 before the run starts (D97, D98;
@@ -101,5 +103,17 @@ internal static class Program
         analytics.Register("tools", options => new ToolListAnalytic(options));
         analytics.Register("runtime", options => new RuntimeAnalytic(options));
         return analytics;
+    }
+
+    /// <summary>
+    /// The compilers by controller family, one registration line each, so that the controller of the machine file
+    /// chooses the compiler of ncx compile (architecture 8; code-guidelines 5, Strategy and Registry). A family
+    /// registers its compiler here with one line: compilers.Register(Controller.Heidenhain, () => new
+    /// HeidenhainCompiler()).
+    /// </summary>
+    internal static CompilerRegistry Compilers()
+    {
+        var compilers = new CompilerRegistry();
+        return compilers;
     }
 }

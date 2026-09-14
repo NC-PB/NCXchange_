@@ -36,6 +36,19 @@ internal sealed record RunMachine
     /// </summary>
     public string? FileName { get; init; }
 
+    /// <summary>
+    /// The machine file as it was found, its path and its name as the user knows it, next to which the tool table of
+    /// D10 lies and after which out/&lt;machine&gt;/ is named (machine-config 1, 10); null for the built-in default
+    /// machine and when no machine file could be read.
+    /// </summary>
+    public FoundFile? MachineFile { get; init; }
+
+    /// <summary>
+    /// ncx.toml of the working directory, which names the output folder of compile (architecture 10); null without
+    /// one.
+    /// </summary>
+    public ProjectSettings? Project { get; init; }
+
     // A file that cannot be found or read: the run does not start, exit code 2 (D97).
     private static RunMachine NotRead => new() { InputsRead = false };
 
@@ -81,7 +94,13 @@ internal sealed record RunMachine
         string? machineValue = settings.MachineFile ?? project?.Machine;
         if (machineValue is null)
         {
-            return new RunMachine { Machine = DefaultMachine.Create(), InputsRead = true, IsDefault = true };
+            return new RunMachine
+            {
+                Machine = DefaultMachine.Create(),
+                InputsRead = true,
+                IsDefault = true,
+                Project = project,
+            };
         }
 
         ProjectSettings? namedBy = settings.MachineFile is null ? project : null;
@@ -110,7 +129,8 @@ internal sealed record RunMachine
             return Stopped;
         }
 
-        return WithCatalog(machine, machineFile, folders, diagnostics) with { FileName = machineFile.Name };
+        RunMachine withCatalog = WithCatalog(machine, machineFile, folders, diagnostics);
+        return withCatalog with { FileName = machineFile.Name, MachineFile = machineFile, Project = project };
     }
 
     // A name that no machine folder holds and that is no file either is a missing machine file where one is named,
