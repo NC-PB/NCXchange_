@@ -27,7 +27,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 17 | ✓ P2-03 Cycle catalogs | 12 | |
 | 18 | ✓ P2-04 Example machines and `machines/` folder | 12 | closes M3; the second reading of "examples check clean" |
 | 19 | ✓ P3-01 Reader framework and source-side state | 13 | ask for the corpus now |
-| 20 | P3-02 Fanuc reader | 13 | closes M4 |
+| 20 | ✓ P3-02 Fanuc reader | 13 | closes M4 |
 | 21 | P3-03 Compiler framework and number formatting | 13 | |
 | 22 | P3-04 Heidenhain compiler | 13 | closes M5; needs `BOHREN.ncx` from 20 |
 | 23 | P3-05 Heidenhain reader | 13 | |

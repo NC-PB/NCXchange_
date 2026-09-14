@@ -4,7 +4,7 @@ namespace Ncx.Cli;
 
 /// <summary>
 /// What the command line asks of one run of check, trace or annotate: the file, the machine and the options the three
-/// commands share (architecture 10; D37, D53, D97, D103).
+/// commands share (architecture 10; D37, D53, D97, D103). convert takes the file, the machine and --strict of it.
 /// </summary>
 internal sealed record RunSettings
 {

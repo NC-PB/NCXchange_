@@ -13,6 +13,7 @@ namespace Ncx.Cli;
 //   CLI001-CLI099  the command line, reading the input, writing the output, ncx format (P0-06)
 //   CLI100-CLI199  ncx check, trace and annotate: their pipeline and the machine file of --machine (P1-07)
 //   CLI200-CLI249  the machine of a run: --machine by name, ncx.toml, the cycle catalog of the machine (P2-04)
+//   CLI250-CLI299  ncx convert: the machine file it requires, the reader of the machine's controller (P3-02)
 
 /// <summary>
 /// The diagnostic codes of Ncx.Cli: one constant per rule, named after the rule, the area prefix CLI and three digits

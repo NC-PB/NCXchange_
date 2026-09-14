@@ -2,22 +2,30 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Text;
 using Ncx.Cli.Commands;
+using Ncx.Core.Machine;
 using Ncx.Core.Model;
+using Ncx.Readers;
+using Ncx.Readers.Fanuc;
+using Ncx.Readers.Heidenhain;
 
 namespace Ncx.Cli;
 
 /// <summary>
 /// The composition root of ncx (code-guidelines 5): the root command with its commands, built by hand, run once. The
 /// commands of architecture 10 join as their tasks arrive: ncx format (phase 0, P0-06), then check, trace and annotate
-/// (phase 1, P1-07).
+/// (phase 1, P1-07), then convert (phase 3, P3-02).
 /// </summary>
 internal static class Program
 {
-    // The name of the tool, which a diagnostic about the command line names as its file (D98).
-    private const string ToolName = "ncx";
+    /// <summary>
+    /// The name of the tool, which a diagnostic about the command line names as its file (D98).
+    /// </summary>
+    internal const string ToolName = "ncx";
 
-    // The command line is one line.
-    private const int CommandLine = 1;
+    /// <summary>
+    /// The command line is one line.
+    /// </summary>
+    internal const int CommandLine = 1;
 
     public static int Main(string[] args)
     {
@@ -43,6 +51,7 @@ internal static class Program
             CheckCommand.Create(error),
             TraceCommand.Create(output, error),
             AnnotateCommand.Create(output, error),
+            ConvertCommand.Create(Readers(), output, error),
         };
 
         // A usage error is reported as a diagnostic and decides exit code 2 before the run starts (D97, D98;
@@ -64,5 +73,17 @@ internal static class Program
         }
 
         return parseResult.Invoke(new InvocationConfiguration { Output = output, Error = error });
+    }
+
+    /// <summary>
+    /// The readers by controller family, one registration line each, so that the controller of the machine file
+    /// chooses the reader of ncx convert (architecture 7; code-guidelines 5, Strategy and Registry).
+    /// </summary>
+    internal static ReaderRegistry Readers()
+    {
+        var readers = new ReaderRegistry();
+        readers.Register(Controller.Fanuc, () => new FanucReader());
+        readers.Register(Controller.Heidenhain, () => new HeidenhainReader());
+        return readers;
     }
 }

@@ -24,6 +24,12 @@ internal sealed record RunMachine
     /// </summary>
     public required bool InputsRead { get; init; }
 
+    /// <summary>
+    /// True when neither --machine nor ncx.toml names a machine file and the run gets the built-in default machine of
+    /// D103, which convert and compile never run against (D77, architecture 10).
+    /// </summary>
+    public bool IsDefault { get; init; }
+
     // A file that cannot be found or read: the run does not start, exit code 2 (D97).
     private static RunMachine NotRead => new() { InputsRead = false };
 
@@ -69,7 +75,7 @@ internal sealed record RunMachine
         string? machineValue = settings.MachineFile ?? project?.Machine;
         if (machineValue is null)
         {
-            return new RunMachine { Machine = DefaultMachine.Create(), InputsRead = true };
+            return new RunMachine { Machine = DefaultMachine.Create(), InputsRead = true, IsDefault = true };
         }
 
         ProjectSettings? namedBy = settings.MachineFile is null ? project : null;

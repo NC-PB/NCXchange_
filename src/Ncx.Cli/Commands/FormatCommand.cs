@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Text;
 using Ncx.Core.Model;
 using Ncx.Core.Parsing;
 using Ncx.Core.Writing;
@@ -15,12 +14,6 @@ namespace Ncx.Cli.Commands;
 /// </summary>
 internal static class FormatCommand
 {
-    // A diagnostic about a whole file stands on its first line, as the loaders of Ncx.Config report one.
-    private const int FileLine = 1;
-
-    // UTF-8 that writes no byte order mark of its own and refuses bytes that are no UTF-8 (language 3, Encoding).
-    private static readonly UTF8Encoding s_utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
     /// <summary>
     /// The format command of the ncx root command (architecture 10). It has no --machine option, because format takes
     /// no machine file (D91).
@@ -119,7 +112,7 @@ internal static class FormatCommand
         }
         else if (outputFile is not null)
         {
-            WriteOutputFile(outputFile, canonical, diagnostics);
+            OutputFile.Write(outputFile, canonical, diagnostics);
         }
         else
         {
@@ -162,27 +155,5 @@ internal static class FormatCommand
         }
 
         return line;
-    }
-
-    // The canonical text goes into the file of --output as UTF-8 (language 3, Encoding). A file that cannot be written
-    // is an ERROR of the run, which has started, so the exit code is 1 (D97, architecture 10; code-guidelines 6).
-    private static void WriteOutputFile(string outputFile, string canonical, Diagnostics diagnostics)
-    {
-        try
-        {
-            File.WriteAllText(outputFile, canonical, s_utf8);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            diagnostics.Add(new Diagnostic
-            {
-                Severity = Severity.Error,
-                File = outputFile,
-                Line = FileLine,
-                Code = DiagnosticCodes.OutputUnwritable,
-                Message = $"The canonical text cannot be written into the file: {exception.Message.TrimEnd('.')} "
-                    + "(architecture 10).",
-            });
-        }
     }
 }

@@ -29,7 +29,7 @@ public sealed partial class HeidenhainReaderTests
     // program number, controllers heidenhain.md 1), and keeps BLK FORM as a comment line, while heidenhain 7 rule 9
     // keeps BLK FORM as RAW with a WARNING; the reader follows heidenhain 7, and the test compares every other block of
     // the example as the phase plan says.
-    private static readonly KeyValuePair<string, string>[] s_heidenhainReading =
+    internal static readonly KeyValuePair<string, string>[] s_heidenhainReading =
     [
         new("PROGRAM=BEGIN NAME=\"2.5D FRAESEN\" NUMBER=1", "PROGRAM=BEGIN NAME=\"2.5D FRAESEN\""),
         new("ORIGIN=1", "ORIGIN=1\nRAW:HEIDENHAIN=\"2 BLK FORM 0.1 Z X0 Y0 Z-20\"\n"

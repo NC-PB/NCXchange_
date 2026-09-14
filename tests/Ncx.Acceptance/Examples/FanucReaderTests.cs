@@ -31,7 +31,7 @@ public sealed partial class FanucReaderTests
     // trivia and no SECTION (D92), S belongs to the M3 of its block (controllers fanuc.md 5), and N70 of the source
     // carries no G40 for the COMP=OFF of the Heidenhain R0. The test compares every other block of the example as the
     // plan says.
-    private static readonly KeyValuePair<string, string>[] s_fanucReading =
+    internal static readonly KeyValuePair<string, string>[] s_fanucReading =
     [
         new("SECTION=\"SIDE MILL D10 L35 SD10\"", ""),
         new("TOOL=1 OFFSET:LEN=1 OFFSET:RAD=1 RPM=1592", "TOOL=1"),
