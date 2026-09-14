@@ -5,6 +5,7 @@ using Ncx.Core.Model;
 using Ncx.Core.Parsing;
 using Ncx.Core.VirtualMachine;
 using Ncx.Core.VirtualMachine.Events;
+using Ncx.Plugins;
 
 namespace Ncx.Cli;
 
@@ -82,6 +83,11 @@ internal static class Pipeline
             }
         }
 
+        // The plugins of the working directory, whose rewriters join the expander and whose listeners join the virtual
+        // machine (virtual machine 7; architecture 9, 10). What they report goes into the diagnostics of the run, and
+        // a plugin that fails is left out while the run goes on (implementation 17, P7-01).
+        PluginSet plugins = RunPlugins.Load(settings, runMachine.Project, diagnostics);
+
         // Parse. A byte order mark is no part of the text the parser reads; annotate puts it back in front of its copy,
         // as ncx format does (wave-1 question #80).
         string byteOrderMark = text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
@@ -89,11 +95,11 @@ internal static class Pipeline
             : "";
         NcxProgram program = Parser.Parse(text.Substring(byteOrderMark.Length), settings.File, new ParserOptions());
 
-        // Expand: the expansion rules of the machine turn into generated NCX blocks around the blocks that trigger
-        // them, so that the virtual machine executes what the machine will really do (virtual machine 1, architecture
-        // 5.5, D63). The expander returns the program unexpanded when the parser reported an ERROR.
-        // TODO: the program rewriters of the plugins that ncx.toml names join the expander here (P7-01, D106).
-        NcxProgram expanded = Expander.Expand(program, machine, []);
+        // Expand: the expansion rules of the machine and the program rewriters of the plugins turn into generated NCX
+        // blocks around the blocks that trigger them, so that the virtual machine executes what the machine will
+        // really do (virtual machine 1, architecture 5.5, D63). The expander returns the program unexpanded when the
+        // parser reported an ERROR.
+        NcxProgram expanded = Expander.Expand(program, machine, plugins.Rewriters);
         bool runnable = !expanded.Diagnostics.HasErrors;
 
         // Run STATIC, the mode of check (virtual machine 1, D91), or INTERPRETED under trace --interpreted and for
@@ -110,10 +116,16 @@ internal static class Pipeline
         var vm = new VirtualMachine(machine, options, expanded.Diagnostics, mode, startValues)
         {
             ExternalPrograms = settings.Interpreted
-                ? name => LoadExternalProgram(name, settings.WorkingDirectory, machine)
+                ? name => LoadExternalProgram(name, settings.WorkingDirectory, machine, plugins.Rewriters)
                 : null,
         };
         foreach (IVmListener listener in listenersFor(machine, runMachine.FileName))
+        {
+            vm.Subscribe(listener);
+        }
+
+        // The listeners of the plugins read every event after the listeners of the command (virtual machine 7).
+        foreach (IVmListener listener in plugins.Listeners)
         {
             vm.Subscribe(listener);
         }
@@ -180,7 +192,10 @@ internal static class Pipeline
     // TODO(question): language 4.9 calls an external program by its file name (CALL="O9010") and virtual machine 3.6
     // searches the working directory, and neither says whether the name carries the extension of the NCX file; the name
     // is taken as written, and with .ncx when the working directory holds no file of that name, until that is answered.
-    internal static NcxProgram? LoadExternalProgram(string name, string workingDirectory, MachineConfig machine)
+    // TODO: the program rewriters of the plugins expand the external program like the file itself, but what a plugin
+    // reports about a block of it names the file of the run, whose diagnostics the plugins report into.
+    internal static NcxProgram? LoadExternalProgram(string name, string workingDirectory, MachineConfig machine,
+        IReadOnlyList<IProgramRewriter> rewriters)
     {
         string path = Path.Combine(workingDirectory, name);
         if (!File.Exists(path) && File.Exists(path + NcxExtension))
@@ -198,7 +213,7 @@ internal static class Pipeline
         }
 
         NcxProgram program = Parser.Parse(WithoutByteOrderMark(text), fileName, new ParserOptions());
-        return Expander.Expand(program, machine, []);
+        return Expander.Expand(program, machine, rewriters);
     }
 
     // A byte order mark is no part of the text the parser and the TOML loaders read (wave-1 question #80).

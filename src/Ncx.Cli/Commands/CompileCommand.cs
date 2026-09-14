@@ -5,6 +5,7 @@ using Ncx.Config;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Core.Parsing;
+using Ncx.Plugins;
 
 namespace Ncx.Cli.Commands;
 
@@ -133,10 +134,20 @@ internal static class CompileCommand
             return ExitCodes.Error;
         }
 
+        // The plugins of the working directory: their rewriters join the expander of the compiler, their listeners
+        // read every event of its STATIC run, their block writers receive BLOCK_WRITE with the lines of every block
+        // (virtual machine 7; architecture 8, 9; machine-config 10). What they report goes into the diagnostics of
+        // the run, and a plugin that fails is left out while the run goes on (implementation 17, P7-01).
+        PluginSet plugins = RunPlugins.Load(settings, runMachine.Project, diagnostics);
+        options = options with
+        {
+            Rewriters = plugins.Rewriters,
+            Listeners = plugins.Listeners,
+            BlockWriters = plugins.BlockWriters,
+        };
+
         // Parse, then compile: the compiler expands, runs the virtual machine STATIC and writes (architecture 8). A
         // byte order mark is no part of the text the parser reads (wave-1 question #80).
-        // TODO: the program rewriters and block writers of the plugins that ncx.toml names join the options here
-        // (P7-01, D106).
         NcxProgram program = Parser.Parse(WithoutByteOrderMark(text), settings.File, new ParserOptions());
         CompileResult result = compiler.Compile(program, machine, options);
         foreach (Diagnostic diagnostic in result.Diagnostics.Items)
@@ -145,7 +156,11 @@ internal static class CompileCommand
         }
 
         // The files go into out/<machine>/ of the working directory, or into the folder of --output (architecture 10,
-        // machine-config 10); a compile that an ERROR stopped has none (virtual machine 2.9).
+        // machine-config 10); a compile that an ERROR stopped has none (virtual machine 2.9). Neither is a file
+        // written after the ERROR of a plugin that failed: the run went on without the plugin, and a program the
+        // plugin did not see must not reach the machine (implementation 17, P7-01).
+        // TODO(question): D205, as recommended: compile writes no NC file after any ERROR, because that file goes to a
+        // control.
         // TODO(question): architecture 10 writes the NC file "under out/<machine>/" and names no --output for compile,
         // while format and convert take --output as a file; a compile under file_per_program writes several files. The
         // --output of compile names the folder the files go into, until that is answered.
@@ -153,7 +168,11 @@ internal static class CompileCommand
             ? Path.Combine(settings.WorkingDirectory, outputFolder)
             : Path.Combine(settings.WorkingDirectory, runMachine.Project?.Out ?? ProjectSettings.OutFolder,
                 MachineFolderOf(runMachine.MachineFile));
-        WriteFiles(result.Files, folder, diagnostics);
+        if (!diagnostics.HasErrors)
+        {
+            WriteFiles(result.Files, folder, diagnostics);
+        }
+
         error.Write(diagnostics.ToText());
         return ExitCodes.OfRun(diagnostics, settings.Strict);
     }

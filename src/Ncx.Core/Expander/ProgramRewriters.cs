@@ -17,7 +17,10 @@ internal static class ProgramRewriters
         GeneratedText generated)
     {
         RewriteResult result = rewriter.Rewrite(expansion.Block, context);
-        string name = rewriter.GetType().Name;
+
+        // The blocks of a rewriter carry its name: the name of its type, or the name it gives itself, the name of its
+        // plugin (architecture 9: trace shows the plugin's name).
+        string name = rewriter is INamedRewriter named ? named.Name : rewriter.GetType().Name;
         switch (result.Kind)
         {
             case RewriteKind.Replace:

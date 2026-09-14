@@ -1,5 +1,6 @@
 using Ncx.Config;
 using Ncx.Core.Expander;
+using Ncx.Core.VirtualMachine.Events;
 
 namespace Ncx.Compilers;
 
@@ -14,6 +15,12 @@ public sealed record CompileOptions
     /// virtual machine (architecture 5.5, D106); empty without plugins.
     /// </summary>
     public IReadOnlyList<IProgramRewriter> Rewriters { get; init; } = [];
+
+    /// <summary>
+    /// The listeners of the plugins, in their order, which the compiler subscribes to its STATIC run after itself, so
+    /// that they read every event of the run (virtual machine 7, architecture 9, D106); empty without plugins.
+    /// </summary>
+    public IReadOnlyList<IVmListener> Listeners { get; init; } = [];
 
     /// <summary>
     /// The block writers of the plugins, in their order, which receive BLOCK_WRITE with the lines of every block

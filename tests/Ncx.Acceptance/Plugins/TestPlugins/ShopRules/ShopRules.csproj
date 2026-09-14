@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A plugin as a shop builds one from the template of code-guidelines 11, for the tests of Ncx.Plugins: it
+    references Ncx.Plugins alone, which brings the four interfaces with it (D106), and EnableDynamicLoading lets it
+    load into a context of its own. Ncx.Plugins is not copied next to it, because the context shares every Ncx.*
+    assembly with the host (architecture 9). Ncx.Acceptance builds it and copies ShopRules.dll into TestPlugins/ of
+    its output folder, where the tests load it from (implementation 17, P7-01).
+  -->
+
+  <PropertyGroup>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../../src/Ncx.Plugins/Ncx.Plugins.csproj" Private="false"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <!-- Global usings for the Ncx namespaces, so that the .cs files need no using line (code-guidelines 11). -->
+  <ItemGroup>
+    <Using Include="Ncx.Compilers" />
+    <Using Include="Ncx.Core.Expander" />
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.VirtualMachine.Events" />
+    <Using Include="Ncx.Core.VirtualMachine.State" />
+    <Using Include="Ncx.Core.Writing" />
+    <Using Include="Ncx.Readers" />
+  </ItemGroup>
+
+</Project>

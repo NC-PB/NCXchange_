@@ -26,14 +26,16 @@ public sealed class ReferenceGraphTests
     };
 
     // Each test project references what it tests; Ncx.Analytics, Ncx.Plugins and Ncx.Cli are tested from
-    // Ncx.Acceptance until they deserve a test project of their own (implementation 00-method 4).
+    // Ncx.Acceptance until they deserve a test project of their own (implementation 00-method 4). Ncx.Acceptance also
+    // builds the two plugins its tests load, ShopRules and FaultyRules, without referencing their assemblies
+    // (implementation 17, P7-01).
     private static readonly Dictionary<string, string[]> s_testProjectReferences = new()
     {
         ["Ncx.Core.Tests"] = ["Ncx.Core"],
         ["Ncx.Config.Tests"] = ["Ncx.Config"],
         ["Ncx.Readers.Tests"] = ["Ncx.Readers"],
         ["Ncx.Compilers.Tests"] = ["Ncx.Compilers"],
-        ["Ncx.Acceptance"] = ["Ncx.Analytics", "Ncx.Plugins", "Ncx.Cli"],
+        ["Ncx.Acceptance"] = ["Ncx.Analytics", "Ncx.Plugins", "Ncx.Cli", "ShopRules", "FaultyRules"],
     };
 
     // The packages are Tomlyn for the TOML parser of Ncx.Config, System.CommandLine for the CLI, and xUnit with its

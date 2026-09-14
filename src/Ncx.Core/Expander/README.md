@@ -13,6 +13,7 @@ Start with `Expander.cs`: `Expand(program, machine, rewriters)` walks the blocks
 | `PositionPlaceholder.cs` | `{position:NAME}` becomes the axis words of `[positions]` (D100) |
 | `GeneratedText.cs` | parsing, origin and diagnostics of a generated block (D95, D98) |
 | `ProgramRewriters.cs`, `BlockRewriteContext.cs` | `Unchanged`, `Replace`, `Surround` applied to the block (architecture 9) |
+| `INamedRewriter.cs` | a rewriter whose blocks carry a name of its own, the plugin's, instead of the name of its type (architecture 9, P7-01) |
 | `LimitClamp.cs` | `limits = "clamp"` for `RPM`, `F` and machine-frame targets (D64) |
 | `BlockExpansion.cs` | one block while it is expanded, and where generated blocks may stand (language 4.13) |
 

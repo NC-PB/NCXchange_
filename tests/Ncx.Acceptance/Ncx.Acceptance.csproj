@@ -34,4 +34,26 @@
     <ProjectReference Include="../../src/Ncx.Cli/Ncx.Cli.csproj" />
   </ItemGroup>
 
+  <!--
+    The plugins the tests of Ncx.Plugins load (implementation 17, P7-01): each project of Plugins/TestPlugins/ builds
+    one plugin DLL, which is built before this project, never referenced, and copied into TestPlugins/ of the output
+    folder, where the tests load it from through the plugin loader into a context of its own (D106). Their sources
+    are no part of this project. The folder is not called plugins/, so that no command a test runs in the output
+    folder loads them.
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Plugins/TestPlugins/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Plugins/TestPlugins/ShopRules/ShopRules.csproj" ReferenceOutputAssembly="false"
+                      OutputItemType="NcxTestPlugin" />
+    <ProjectReference Include="Plugins/TestPlugins/FaultyRules/FaultyRules.csproj" ReferenceOutputAssembly="false"
+                      OutputItemType="NcxTestPlugin" />
+  </ItemGroup>
+
+  <Target Name="CopyNcxTestPlugins" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="@(NcxTestPlugin)" DestinationFolder="$(OutDir)TestPlugins" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

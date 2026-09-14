@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A plugin that fails, for the tests of Ncx.Plugins: each of its classes throws, or answers with a text the parser
+    rejects, on a word of its own, so that a test chooses the failure by the program it runs (implementation 17,
+    P7-01). Built like ShopRules: Ncx.Plugins alone (D106), loaded into a context of its own, copied by Ncx.Acceptance
+    into TestPlugins/ of its output folder.
+  -->
+
+  <PropertyGroup>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../../src/Ncx.Plugins/Ncx.Plugins.csproj" Private="false"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <!-- Global usings for the Ncx namespaces, so that the .cs files need no using line (code-guidelines 11). -->
+  <ItemGroup>
+    <Using Include="Ncx.Compilers" />
+    <Using Include="Ncx.Core.Expander" />
+    <Using Include="Ncx.Core.Model" />
+    <Using Include="Ncx.Core.VirtualMachine.Events" />
+    <Using Include="Ncx.Core.Writing" />
+    <Using Include="Ncx.Readers" />
+  </ItemGroup>
+
+</Project>

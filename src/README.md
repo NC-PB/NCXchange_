@@ -11,7 +11,7 @@ The guided tour through the code, from `Ncx.Cli/Program.cs` through one `ncx for
 | `Ncx.Readers/` | one reader per controller family: a controller program in, NCX out; so far the framework every reader shares (P3-01), the Fanuc, Heidenhain and Siemens readers come with P3-02, P3-05 and P5-01 |
 | `Ncx.Compilers/` | one compiler per controller family: NCX in, the program for one machine out (empty until P3-03) |
 | `Ncx.Analytics/` | listeners of the virtual machine that write text tables (empty until P4-02) |
-| `Ncx.Plugins/` | the plugin loader, what a plugin project references (empty until P7-01) |
+| `Ncx.Plugins/` | the plugin loader, what a plugin project references |
 | `Ncx.Cli/` | the command `ncx`: `format`, `check`, `trace` and `annotate` so far; `convert` and `compile` come in phase 3 |
 
 ## Looking for

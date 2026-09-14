@@ -3,6 +3,7 @@ using Ncx.Core.Expander;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine;
+using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.VirtualMachine.State;
 
 namespace Ncx.Compilers;
@@ -123,11 +124,18 @@ public abstract partial class CompilerBase : ICompiler
 
         // 3. The STATIC run with the compiler subscribed: every block with its Before and After, recorded before any
         // line is written, which is the look-ahead of {next}, {b}, {c} and auto_preload (virtual machine 1, D91;
-        // architecture 8; D52).
+        // architecture 8; D52). The listeners of the options, the plugins' ones, read every event of the run after the
+        // compiler, as a listener reads every event of any run (virtual machine 7; architecture 9; code-guidelines 5,
+        // Observer).
         var recorder = new StepRecorder();
         var vm = new VirtualMachine(machine, VmOptions.ForMachine(machine) with { RaiseBlockWrite = true },
             diagnostics);
         vm.Subscribe(recorder);
+        foreach (IVmListener listener in options.Listeners)
+        {
+            vm.Subscribe(listener);
+        }
+
         if (vm.Run(expanded).Stopped || diagnostics.HasErrors)
         {
             return Stopped(diagnostics);

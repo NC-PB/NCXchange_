@@ -101,7 +101,7 @@ internal static class JobPipeline
         };
         ExecutionMode mode = settings.Interpreted ? ExecutionMode.Interpreted : ExecutionMode.Static;
         Func<string, NcxProgram?>? externalPrograms = settings.Interpreted
-            ? name => Pipeline.LoadExternalProgram(name, settings.WorkingDirectory, machine)
+            ? name => Pipeline.LoadExternalProgram(name, settings.WorkingDirectory, machine, [])
             : null;
         var jobDiagnostics = new Diagnostics(jobFile);
         var runner = new JobRunner(job, machine, options, mode, jobDiagnostics);

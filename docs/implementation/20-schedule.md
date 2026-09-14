@@ -40,7 +40,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 30 | P5-02 Siemens compiler | 15 | closes M8 |
 | 31 | ✓ P6-01 Job scheduler and `SYNC` | 16 | |
 | 32 | P6-02 Job compiler and channel binding | 16 | closes M9 |
-| 33 | P7-01 Plugin interfaces and loading | 17 | |
+| 33 | ✓ P7-01 Plugin interfaces and loading | 17 | |
 | 34 | P7-02 Plugin template and `ncx plugin` commands | 17 | |
 | 35 | P7-03 Release 1.0 | 17 | closes M10 |
 

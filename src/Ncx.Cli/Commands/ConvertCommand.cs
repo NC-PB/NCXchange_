@@ -3,7 +3,9 @@ using Ncx.Core.Expander;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine;
+using Ncx.Core.VirtualMachine.Events;
 using Ncx.Core.Writing;
+using Ncx.Plugins;
 using Ncx.Readers;
 
 namespace Ncx.Cli.Commands;
@@ -124,11 +126,16 @@ internal static class ConvertCommand
             return ExitCodes.Error;
         }
 
+        // The plugins of the working directory: their reader rules read what the tables of the machine leave
+        // undecided, their rewriters and listeners join the check (virtual machine 7; architecture 9; D40, D66). What
+        // they report goes into the diagnostics of the run, and a plugin that fails is left out while the run goes on
+        // (implementation 17, P7-01).
+        PluginSet plugins = RunPlugins.Load(settings, runMachine.Project, diagnostics);
+
         // The reader turns the program into NCX, keeping as RAW what it cannot express, and the canonical writer writes
         // it (architecture 7; D5). A byte order mark is no part of the text the reader reads (wave-1 question #80).
-        // TODO: the reader rules and the program rewriters of the plugins that ncx.toml names join here (P7-01, D106).
         var source = new SourceFile(settings.File, WithoutByteOrderMark(text));
-        NcxProgram program = reader.Read(source, machine, new ReadOptions());
+        NcxProgram program = reader.Read(source, machine, new ReadOptions { Rules = plugins.SourceRules });
         string canonical = NcxWriter.Write(program);
 
         // convert ends with a STATIC pass over the produced program, expanded as ncx check expands it, and reports its
@@ -137,8 +144,14 @@ internal static class ConvertCommand
         // cites the controller program as the reader does (architecture 7, Begin(sourceLine); code-guidelines 6). An
         // ERROR of the reader stops the run before its first block, as an ERROR of the parser does (virtual machine
         // 2.9).
-        NcxProgram expanded = Expander.Expand(program, machine, []);
-        new VirtualMachine(machine, VmOptions.ForMachine(machine), expanded.Diagnostics).Run(expanded);
+        NcxProgram expanded = Expander.Expand(program, machine, plugins.Rewriters);
+        var vm = new VirtualMachine(machine, VmOptions.ForMachine(machine), expanded.Diagnostics);
+        foreach (IVmListener listener in plugins.Listeners)
+        {
+            vm.Subscribe(listener);
+        }
+
+        vm.Run(expanded);
         foreach (Diagnostic diagnostic in expanded.Diagnostics.Items)
         {
             diagnostics.Add(diagnostic);
