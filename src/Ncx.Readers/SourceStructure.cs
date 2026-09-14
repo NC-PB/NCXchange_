@@ -49,9 +49,10 @@ public sealed record SourceStructure
 
     /// <summary>
     /// The subprograms the block calls, each by the name of the section it enters, or by its number without leading
-    /// zeros where the source names it by number: "100" of M98 P100 and of M98 P0100, which enter O0100 (language
-    /// 4.9, CALL; controller-mapping 6). A section of the file that a block calls is a subprogram, since a CALL of a
-    /// program is an ERROR (language 4.13).
+    /// zeros where the source names it by number: "100" of M98 P100, M98 P0100, the older M98 P20100 and G65 P100,
+    /// which enter O0100 (language 4.9, CALL; controller-mapping 6). A section of the file that a block calls is a
+    /// subprogram, also one that holds an M30, since a CALL of a program is an ERROR (language 4.13; virtual machine
+    /// 3.6).
     /// </summary>
     public IReadOnlyList<string> Calls { get; init; } = [];
 

@@ -128,13 +128,14 @@ internal static class FanucMacro
     }
 
     /// <summary>
-    /// The number of the program an M98 P, a G65 P or an M198 P calls: the digits of P, and in the older form of M98,
-    /// P with more than four digits and no L, the last four (controllers fanuc.md 1, controller-mapping 6); null when P
-    /// is no program number.
+    /// The number of the program an M98 P, a G65 P, an M198 P or an M200 P of the builder nakamura calls: the digits of
+    /// P, and in the older form of M98 and in M200, P with more than four digits and no L, the last four (controllers
+    /// fanuc.md 1 and 7, controller-mapping 6); null when P is no program number.
     /// </summary>
     /// <param name="program">The P word.</param>
-    /// <param name="hasTimes">True when the block carries L, the count of the call.</param>
-    public static long? CalledProgram(SourceWord program, bool hasTimes)
+    /// <param name="olderForm">True for an M98 or an M200 without L, whose P may carry the count in front of the
+    /// program number; G65 P and M198 P are the program number as written.</param>
+    public static long? CalledProgram(SourceWord program, bool olderForm)
     {
         string digits = Digits(program);
         if (digits.Length == 0)
@@ -142,14 +143,15 @@ internal static class FanucMacro
             return null;
         }
 
-        // TODO(question): controller-mapping 6 reads M98 P51002 as program 1002 five times, while fanuc 1 gives the O
-        // numbers eight digits on the 30i; the older form is read whenever P has more than four digits and no L.
+        // TODO(question): wave-2 question #69: controller-mapping 6 reads M98 P51002 as program 1002 five times, while
+        // fanuc 1 gives the O numbers eight digits on the 30i; the older form of M98 and M200 is read whenever P has
+        // more than four digits and no L. G65 and M198 have no older form (fanuc 1 and 7, controller-mapping 6).
         if (!long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out long whole))
         {
             return null;
         }
 
-        return !hasTimes && digits.Length > 4 ? whole % 10000 : whole;
+        return olderForm && digits.Length > 4 ? whole % 10000 : whole;
     }
 
     /// <summary>
@@ -173,7 +175,7 @@ internal static class FanucMacro
         {
             string? code = word.Address is "G" or "M" ? NativeCode.Of(word) : null;
             bool older = code == "M98" || (code == "M200" && IsBuilderNakamura(machine));
-            if ((older || code is "G65" or "M198") && CalledProgram(program, times is not null) is long called)
+            if ((older || code is "G65" or "M198") && CalledProgram(program, older && times is null) is long called)
             {
                 calls.Add(new FanucCall(called, Repeats(program, times, older), code == "M198"));
             }
@@ -229,7 +231,8 @@ internal static class FanucMacro
 
         SourceWord? program = block.Take("P");
         SourceWord? times = block.Take("L");
-        long? number = program is null ? null : CalledProgram(program, times is not null);
+        bool olderForm = (m98 is not null || m200 is not null) && times is null;
+        long? number = program is null ? null : CalledProgram(program, olderForm);
         if (number is not long called)
         {
             block.Draft.KeepAsRaw("the call names no program number P");

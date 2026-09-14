@@ -165,17 +165,19 @@ internal sealed partial class StructurePass
     }
 
     // A section the source does not name, the Fanuc O program, is a subprogram when a block of the file calls it: a
-    // CALL enters a subprogram, and a CALL of a program is an ERROR because programs are entered from the job only
-    // (language 4.13, virtual machine 3.6); the subprogram is Onnnn ... M99 after the caller's M30
-    // (controller-mapping 1, 6). An M30 does not make a called section a program: in a subprogram it ends the program
-    // from the call, as a Fanuc M30 in a subprogram does (virtual machine 3.6).
-    // TODO(question): the documents do not say what an O section is that no block of the file calls: an O program of
-    // its own (several O programs in one file are several programs, controller-mapping 1) whose M99 loops as in a
-    // main program (controller-mapping 6), or a subprogram that another file calls (Onnnn ... M99 in its own file,
-    // controller-mapping 1, 6). Until that is answered it is a program when it holds an M30 or M2 and a subprogram
-    // otherwise, and when no section of the file is a program the first such section is, since a file holds at least
-    // one program (language 4.13). A subprogram in its own file therefore reads as a program: one that holds an M30
-    // (virtual machine 3.6) with its M99 as the loop, one that holds only Onnnn ... M99 as a program that loops.
+    // CALL enters a subprogram with the state of its caller, the other programs of the file run only when the job runs
+    // them, and a CALL of a program is an ERROR because programs are entered from the job only (language 4.13; virtual
+    // machine 3.6 and 3.9); the subprogram is Onnnn ... M99 after the caller's M30 (controller-mapping 1, 6). An M30
+    // does not make a called section a program: in a subprogram it ends the program from the call, as a Fanuc M30 in a
+    // subprogram does (virtual machine 3.6).
+    // TODO(question): wave-2 question #18, which widens #14. The documents do not say what an O section is that no
+    // block of the file calls: an O program of its own (several O programs in one file are several programs,
+    // controller-mapping 1) whose M99 loops as in a main program (controller-mapping 6), or a subprogram that another
+    // file calls (Onnnn ... M99 in its own file, controller-mapping 1, 6). Until that is answered it is a program when
+    // it holds an M30 or M2 and a subprogram otherwise, and when no section of the file is a program the first such
+    // section is, since a file holds at least one program (language 4.13). A subprogram in its own file therefore
+    // reads as a program: one that holds an M30 (virtual machine 3.6) with its M99 as the loop, one that holds only
+    // Onnnn ... M99 as a program that loops.
     private void DecideKinds(List<SourceSection> sections)
     {
         HashSet<string> called = CalledNames();
