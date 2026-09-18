@@ -1,0 +1,7 @@
+# Heidenhain
+
+The tests of the Heidenhain compiler (`src/Ncx.Compilers/Heidenhain/`): an NCX snippet in, the Klartext out, one test per rule of `controllers/heidenhain.md` 8 and per row of the Heidenhain column of `controller-mapping.md` that the compiler writes, named after the rule (`Rule3_ToolCall_TakesTheRpmOfTheFollowingBlock`, `Rule5_HomeOfAnAxisWithoutReferencePoint_IsTheErrorCmp100`).
+
+`HeidenhainCompile.cs` compiles a snippet for the iTNC 530 of `machines/heidenhain-itnc530.toml` with the cycle catalog `cycles/heidenhain.toml` (or, through `MillWith` and `MillAnd`, that file with a text replaced or tables added) and gives the Klartext between `BEGIN PGM` and `M30` without block numbers. The files follow the rules of heidenhain 8: `HeidenhainProgramFrameTests` (rule 1, comments, `RAW`, the skip), `HeidenhainMotionTests` (rules 2 and 4), `HeidenhainToolCallTests` (rule 3), `HeidenhainFrameTests` (rule 5, the frame chain, the modes, `RETRACT`, `TOLERANCE`), `HeidenhainSetposTests` (`SETPOS` folded into cycle 7, machine-config 3), `HeidenhainSubprogramTests` (rule 6), `HeidenhainCycleTests` (rule 7), `HeidenhainFlowTests` (the `Q` parameters, `LBL`, `FN 9` to `FN 12`, `REP`, the labels of one file), `HeidenhainFunctionTests` (the M functions and the words without a Klartext form).
+
+The examples end to end, with the comparison rules of phase 3, are in `../../Ncx.Acceptance/Examples/HeidenhainCompilerTests.cs`.

@@ -8,6 +8,7 @@ using Ncx.Analytics.ToolList;
 using Ncx.Analytics.ToolVectors;
 using Ncx.Cli.Commands;
 using Ncx.Compilers;
+using Ncx.Compilers.Heidenhain;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Readers;
@@ -121,6 +122,7 @@ internal static class Program
     internal static CompilerRegistry Compilers()
     {
         var compilers = new CompilerRegistry();
+        compilers.Register(Controller.Heidenhain, () => new HeidenhainCompiler());
         return compilers;
     }
 }
