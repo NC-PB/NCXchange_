@@ -54,7 +54,12 @@ internal sealed record MovingAxes
             // the smallest acceleration of the moving axes (virtual machine 8). A rotary axis turns in degrees: the
             // runtime of rotary moves belongs to the kinematics module (virtual machine 9), so it sets no limit here,
             // except in the polar and the cylinder plane, where its word is a length like the others (virtual machine
-            // 3.1, D102).
+            // 3.1, D102). The report lists the values of every rotary axis for that reason (implementation 14, risks).
+            // TODO(question): machine-config 4 gives rapid, max_feed and acceleration in mm/min and mm/s^2, the example
+            // machine files write deg/min and deg/s^2 on a rotary axis, and no document says in which unit the values
+            // of a rotary axis limit a motion in the polar or cylinder plane, where its word is a length; the estimate
+            // takes the numbers as they stand, as mm/min and mm/s^2, and the report says so. D192 asks which axes
+            // and units count for max_feed, VM 8 included, without the polar and the cylinder plane.
             AxisDef? axis = dynamics.Axis(target.Key);
             if (axis?.Kind == AxisKind.Rotary && !(InPlane(start) && InPlane(target.Value)))
             {

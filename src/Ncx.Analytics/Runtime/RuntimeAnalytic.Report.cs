@@ -13,15 +13,18 @@ public sealed partial class RuntimeAnalytic
         MachineDynamics dynamics = _estimator.Dynamics;
         var text = new StringBuilder();
 
-        // The report always says "estimate" and carries the machine file and every value it used, so that the
-        // maintainer corrects the file instead of the code (implementation 14, P4-02 and risks); without dynamics it
-        // says that it falls back to distance over feed (virtual machine 8).
+        // The report always says "estimate" and carries the machine file and every value it used, the rotary axes
+        // included, which limit a motion in the polar and cylinder plane, so that the maintainer corrects the file
+        // instead of the code (implementation 14, P4-02 and risks); without dynamics it says that it falls back to
+        // distance over feed (virtual machine 8).
         text.Append(TextTable.Line(ReportText.Title("Runtime estimate", _options), format));
         text.Append(TextTable.Line(
             "An estimate from the values of the machine file, not a measured cycle time (virtual machine 8, D64).",
             format));
         text.Append(TextTable.Line(dynamics.ProfileLine(), format));
-        text.Append('\n').Append(dynamics.AxisTable().Write(format));
+        text.Append('\n').Append(dynamics.LinearAxisTable().Write(format));
+        text.Append('\n').Append(TextTable.Line(MachineDynamics.RotaryAxisLine(), format));
+        text.Append(dynamics.RotaryAxisTable().Write(format));
         text.Append('\n').Append(dynamics.SpindleTable().Write(format));
 
         // Totals per tool, per section, per channel (virtual machine 8).
@@ -37,9 +40,9 @@ public sealed partial class RuntimeAnalytic
             + $"know, {ReportText.Count(_estimator.UnknownDwells)} dwells of unknown seconds.",
             format));
         text.Append(TextTable.Line(
-            $"Not in the estimate: the travel of rotary axes ({ReportText.Count(_estimator.RotaryMoves)} motions "
-            + "turned one; the runtime of rotary moves belongs to the kinematics module, virtual machine 9), tool "
-            + "changes, waits at marks.",
+            "Not in the estimate: the travel of rotary axes outside the polar and cylinder plane "
+            + $"({ReportText.Count(_estimator.RotaryMoves)} motions turned one; the runtime of rotary moves belongs to "
+            + "the kinematics module, virtual machine 9), tool changes, waits at marks.",
             format));
 
         // The time of the run is the longest channel; the job time with the waits at the marks comes with the job

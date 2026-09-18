@@ -4,9 +4,9 @@ namespace Ncx.Analytics.Runtime;
 
 /// <summary>
 /// The values of the machine file the runtime estimate uses (virtual machine 8, D64): rapid, max_feed and
-/// acceleration of every [[axis]] (machine-config 4), block_time, path_mode and corner_speed of [dynamics]
-/// (machine-config 4), accel_time of every spindle table (machine-config 5). The report lists every one of them, so
-/// that the maintainer corrects the file instead of the code (implementation 14, risks).
+/// acceleration of every [[axis]], linear and rotary (machine-config 4), block_time, path_mode and corner_speed of
+/// [dynamics] (machine-config 4), accel_time of every spindle table (machine-config 5). The report lists every one of
+/// them, so that the maintainer corrects the file instead of the code (implementation 14, risks).
 /// </summary>
 internal sealed class MachineDynamics
 {
@@ -98,22 +98,35 @@ internal sealed class MachineDynamics
     }
 
     /// <summary>
-    /// The values of every linear axis of the machine, which the profile limits and accelerates by; rotary axes add no
-    /// travel (virtual machine 9).
+    /// The values of every linear axis of the machine, which the profile limits and accelerates by (virtual machine 8),
+    /// in the units of machine-config 4.
     /// </summary>
-    public TextTable AxisTable()
+    public TextTable LinearAxisTable()
     {
-        var table = new TextTable("axis", "rapid (mm/min)", "max_feed (mm/min)", "acceleration (mm/s^2)");
-        foreach (AxisDef axis in _machine.Axes)
-        {
-            if (axis.Kind == AxisKind.Linear)
-            {
-                table.Add(axis.NcxName, ReportText.Number(axis.Rapid), ReportText.Number(axis.MaxFeed),
-                    ReportText.Number(axis.Acceleration));
-            }
-        }
+        return AxisTable(AxisKind.Linear, "rapid (mm/min)", "max_feed (mm/min)", "acceleration (mm/s^2)");
+    }
 
-        return table;
+    /// <summary>
+    /// The line of the report above the table of the rotary axes: where the estimate uses their values and how it reads
+    /// them.
+    /// </summary>
+    public static string RotaryAxisLine()
+    {
+        return "Rotary axes: they limit and accelerate a motion only in the polar or cylinder plane, where their word "
+            + "is a length (virtual machine 3.1, D102); the estimate then reads their numbers as mm/min and mm/s^2.";
+    }
+
+    /// <summary>
+    /// The values of every rotary axis of the machine, in the units the example machine files give a rotary axis
+    /// (deg/min, deg/s^2): a motion in the polar or cylinder plane limits and accelerates by them (MovingAxes).
+    /// </summary>
+    public TextTable RotaryAxisTable()
+    {
+        // The report carries every value the estimate used (implementation 14, risks), and a rotary axis sets the
+        // limits of a motion in the polar and the cylinder plane (virtual machine 3.1, 8, D102). Every rotary axis is
+        // listed, because a motion in that plane can name any of them, C or the C2 of a sub spindle (virtual machine
+        // 3.8 rule 3).
+        return AxisTable(AxisKind.Rotary, "rapid (deg/min)", "max_feed (deg/min)", "acceleration (deg/s^2)");
     }
 
     /// <summary>
@@ -128,6 +141,23 @@ internal sealed class MachineDynamics
             {
                 decimal? accelTime = AccelTime(resource.Id) is double seconds ? (decimal)seconds : null;
                 table.Add(resource.Id, ReportText.Number(accelTime));
+            }
+        }
+
+        return table;
+    }
+
+    // The axes of one kind in the order of the machine file, each with its rapid, max_feed and acceleration as the
+    // file gives them, none where it gives none.
+    private TextTable AxisTable(AxisKind kind, string rapid, string maxFeed, string acceleration)
+    {
+        var table = new TextTable("axis", rapid, maxFeed, acceleration);
+        foreach (AxisDef axis in _machine.Axes)
+        {
+            if (axis.Kind == kind)
+            {
+                table.Add(axis.NcxName, ReportText.Number(axis.Rapid), ReportText.Number(axis.MaxFeed),
+                    ReportText.Number(axis.Acceleration));
             }
         }
 

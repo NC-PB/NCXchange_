@@ -1,10 +1,11 @@
+using Ncx.Config;
 using Ncx.Core.Machine;
 
 namespace Ncx.Acceptance.Analytics;
 
 /// <summary>
-/// The machine files of the analytics tests, built by hand (machine-config 4, 5): a three-axis mill whose numbers make
-/// the times of the runtime estimate easy to compute by hand.
+/// The machine files of the analytics tests, built by hand (machine-config 4, 5): a three-axis mill and a lathe for the
+/// polar plane whose numbers make the times of the runtime estimate easy to compute by hand, and two five-axis mills.
 /// </summary>
 internal static class AnalyticMachines
 {
@@ -64,6 +65,24 @@ internal static class AnalyticMachines
                 ["TOOL"] = new FunctionTable { AccelTime = accelTime },
             },
             Coolant = new Dictionary<string, FunctionTable> { ["STANDARD"] = new FunctionTable() },
+        };
+    }
+
+    /// <summary>
+    /// A lathe for the polar plane (virtual machine 3.1, D102): the default machine of D103, whose work spindle MAIN
+    /// turns the rotary axis C, with [dynamics] exact stop; X and Z with rapid and max_feed 6000 mm/min and
+    /// acceleration 1000 mm/s^2, and C with numbers of its own as the example files give a rotary axis in deg/min and
+    /// deg/s^2: rapid 3600, max_feed 1200, acceleration 100. No axis has a reference point (D100).
+    /// </summary>
+    public static MachineConfig PolarLathe()
+    {
+        MachineConfig lathe = DefaultMachine.Create();
+        AxisDef c = lathe.ResolveAxis("C")! with { Rapid = 3600m, MaxFeed = 1200m, Acceleration = 100m };
+        return lathe with
+        {
+            Machine = lathe.Machine with { Name = "Polar lathe" },
+            Axes = [Linear("X", 1000m), Linear("Z", 1000m), c],
+            Dynamics = ExactStop,
         };
     }
 

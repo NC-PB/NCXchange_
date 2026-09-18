@@ -7,6 +7,9 @@ X     36000           20000              4000
 Y     36000           20000              4000
 Z     30000           20000              3500
 
+Rotary axes: they limit and accelerate a motion only in the polar or cylinder plane, where their word is a length (virtual machine 3.1, D102); the estimate then reads their numbers as mm/min and mm/s^2.
+axis  rapid (deg/min)  max_feed (deg/min)  acceleration (deg/s^2)
+
 spindle  accel_time (s)
 S1       1.5
 
@@ -20,5 +23,5 @@ channel  seconds  time
 1        191.5    0:03:12
 
 Not timed: 4 motions of unknown length, 0 motions without a known feed or rapid rate, 0 cycle calls whose motions the virtual machine does not know, 0 dwells of unknown seconds.
-Not in the estimate: the travel of rotary axes (0 motions turned one; the runtime of rotary moves belongs to the kinematics module, virtual machine 9), tool changes, waits at marks.
+Not in the estimate: the travel of rotary axes outside the polar and cylinder plane (0 motions turned one; the runtime of rotary moves belongs to the kinematics module, virtual machine 9), tool changes, waits at marks.
 Estimated time: 191.5 s (0:03:12), the longest channel.

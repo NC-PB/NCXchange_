@@ -376,6 +376,30 @@ public sealed class RuntimeAnalyticTests
         Assert.Contains("Estimated time: 1.1 s (0:00:01), the longest channel.", report, StringComparison.Ordinal);
     }
 
+    // Third review of P4-02 (implementation 14, risks: the report carries "every value it used"): in the polar plane
+    // the C word is a length (VM 3.1, D102), so a motion of C limits its feed by the max_feed of C and accelerates with
+    // the acceleration of C (VM 8): LINE C=10 at F=6000 with max_feed 1200 (20 mm/s) and 100 mm/s^2, exact stop, takes
+    // 0.2 s and 2 mm to reach 20 mm/s, 0.2 s and 2 mm to stop, 6 mm at 20 mm/s; 0.7 s. The report names those values
+    // of C in the table of the rotary axes, in the units of the example files, and says how the estimate reads them.
+    [Fact]
+    public void Report_MotionInThePolarPlane_NamesTheValuesOfTheRotaryAxisItUsed()
+    {
+        MachineConfig lathe = AnalyticMachines.PolarLathe();
+        var runtime = new RuntimeAnalytic(AnalyticRuns.Options(lathe));
+        string report = AnalyticRuns.Run(
+            Program(["SPINDLE_MODE:MAIN=AXIS", "RAPID Z=2", "POLAR=ON", "LINE X=10 C=0 F=6000"], "LINE C=10"),
+            lathe, runtime);
+
+        Assert.Equal(0.7, runtime.TotalSeconds, Precision);
+        Assert.Contains("\nRotary axes: they limit and accelerate a motion only in the polar or cylinder plane, where "
+            + "their word is a length (virtual machine 3.1, D102); the estimate then reads their numbers as mm/min "
+            + "and mm/s^2.\n"
+            + "axis  rapid (deg/min)  max_feed (deg/min)  acceleration (deg/s^2)\n"
+            + "C     3600             1200                100\n", report, StringComparison.Ordinal);
+        Assert.Contains("Not in the estimate: the travel of rotary axes outside the polar and cylinder plane (0 "
+            + "motions turned one;", report, StringComparison.Ordinal);
+    }
+
     // VM 8, D103: 2.5D_FRAESEN without a machine file: the default machine has neither [dynamics] nor a rapid rate, so
     // the LINE and ARC moves are distance over feed and the five RAPIDs of known length and the four of unknown length
     // are not timed, which the report counts.
