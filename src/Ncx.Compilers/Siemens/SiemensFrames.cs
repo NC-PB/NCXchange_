@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Ncx.Config.Templates;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
@@ -13,11 +14,17 @@ namespace Ncx.Compilers.Siemens;
 /// with {dir} from MOVE; DIAMON and DIAMOF from [diameter]; TRAORI, TRACYL and TRANSMIT from [transform]; CYCLE832
 /// from [tolerance]; G74 and G75 from [home]; PRESETON from [setpos]; RETRACT from [retract].
 /// </summary>
-internal static class SiemensFrames
+internal static partial class SiemensFrames
 {
     // The target keys of the settable frame and of the diameter programming (controllers siemens.md 2, groups 8, 29).
     private const string DatumGroup = "G54";
     private const string DiameterGroup = "DIAMON";
+
+    // The target keys of the programmable frame (group 3) and of the swivel of CYCLE800, which a RAW line may change
+    // outside the chain of the virtual machine (controllers siemens.md 2, 4): each stands in the target state only
+    // while it is unknown, from such a RAW line to the block that ends it again (AfterRaw, WriteChain).
+    private const string ProgrammableFrame = "TRANS";
+    private const string Swivel = "CYCLE800";
 
     // The words of the transform chain (language 4.2).
     private static readonly string[] s_chainWords = ["SHIFT", "ROTATE", "MIRROR", "TILT", "TILT_AXIS", "MOVE", "ROT"];
@@ -60,14 +67,31 @@ internal static class SiemensFrames
                 "ROT has no SINUMERIK form and is not written (controller-mapping 1, MOVE and ROT; language 4.2).");
         }
 
+        // After a RAW line that may have changed the programmable frame or the swivel (AfterRaw), a block that ends
+        // them in NCX ends them on the control too, although the chain of the virtual machine holds nothing of what the
+        // RAW text did: ORIGIN starts an empty chain and a RESET removes the entries of its kind (language 4.2); TRANS
+        // alone ends the programmable frame and CYCLE800() the swivel (controllers siemens.md 4). What stays of the
+        // chain is written again after it, so that the control has the chain of the virtual machine from here on.
+        bool endsProgrammable = write.IsMadeUnknown(ProgrammableFrame) && EndsProgrammableFrame(block);
+        bool endsSwivel = write.IsMadeUnknown(Swivel) && EndsSwivel(write);
         ChainChange change = ChainWriter.Between(write.Before.Frame, write.After.Frame);
-        if (change.IsEmpty)
+        if (change.IsEmpty && !endsProgrammable && !endsSwivel)
         {
             return;
         }
 
         int kept = write.After.Frame.Chain.Count - change.Appended.Count;
-        WriteRemoved(write, change, kept);
+        WriteRemoved(write, change, kept, endsProgrammable, endsSwivel);
+        if (endsProgrammable)
+        {
+            write.Target.Forget(ProgrammableFrame);
+        }
+
+        if (endsSwivel)
+        {
+            write.Target.Forget(Swivel);
+        }
+
         IReadOnlyList<TransformEntry> chain = write.After.Frame.Chain;
         for (int index = kept; index < chain.Count; index++)
         {
@@ -174,13 +198,74 @@ internal static class SiemensFrames
         }
     }
 
+    /// <summary>
+    /// After a RAW line: a RAW text that names an instruction of the programmable frame (TRANS, ATRANS, ROT, AROT,
+    /// ROTS, AROTS, CROTS, SCALE, ASCALE, MIRROR, AMIRROR, G58, G59) or of the swivel (CYCLE800, TOFRAME, TOROT, PAROT,
+    /// and ROTS, AROTS, CROTS, which NCX reads as TILT), or names a frame variable ($P_PFRAME, $P_ACTFRAME, $P_BFRAME),
+    /// may have changed it on the control, where the chain of the virtual machine does not hold it (controllers
+    /// siemens.md 4; controller-mapping 1, TILT; language 4.1, D5): it is unknown until a block ends it (WriteChain).
+    /// The settable frame is the datum, which every RAW line leaves unknown already.
+    /// </summary>
+    // TODO(question): the documents do not say whether a RAW line that names none of them, a builder cycle (the STAMA
+    // DREH(...), NEWCOORD(...); machine-builders 2) or a subprogram it calls, changes the frame; the frame stays as the
+    // chain has it after such a RAW, since TRANS and CYCLE800() before the next ORIGIN after every MSG and STOPRE would
+    // stand where the source has none (controllers sample-corpus.md: MSG before every operation), until that is
+    // answered, as for the modal call (SiemensCycles.AfterRaw).
+    public static void AfterRaw(SiemensBlock write, string raw)
+    {
+        foreach (string key in KeysNamedBy(raw))
+        {
+            write.MakeUnknown(key);
+        }
+    }
+
+    /// <summary>
+    /// At the start of a subprogram and at a label, where the control arrives from a caller or a jump that the STATIC
+    /// walk does not follow and every value of the target state is unknown (virtual machine 1, 3.9; D99): the
+    /// programmable frame or the swivel that a RAW line of the file may change is unknown too, since the RAW line may
+    /// stand in a caller or after the label, on the way of a jump back to it (controllers siemens.md 4, 8).
+    /// </summary>
+    public static void ForgetRawFrames(SiemensBlock write)
+    {
+        foreach (string key in write.File.RawFrameKeys)
+        {
+            write.MakeUnknown(key);
+        }
+    }
+
+    /// <summary>
+    /// The keys of the target state that a RAW text may change, the programmable frame and the swivel, by the
+    /// instructions and the frame variables it names (AfterRaw).
+    /// </summary>
+    /// <param name="raw">The text of the RAW block.</param>
+    public static List<string> KeysNamedBy(string raw)
+    {
+        // The words of the text, without its strings and its comments, whose words are no instructions.
+        string code = StringOrComment().Replace(raw, " ");
+        bool frameVariable = FrameVariable().IsMatch(code);
+        var keys = new List<string>();
+        if (frameVariable || ProgrammableInstruction().IsMatch(code))
+        {
+            keys.Add(ProgrammableFrame);
+        }
+
+        if (frameVariable || SwivelInstruction().IsMatch(code))
+        {
+            keys.Add(Swivel);
+        }
+
+        return keys;
+    }
+
     // A removed shift, rotation or mirror: the programmable frame again from its first entry, TRANS alone where none
     // stays and no appended entry replaces it; a removed tilt: CYCLE800() and the tilts that stay again (controllers
     // siemens.md 4: every replacing instruction deletes all earlier programmable frame instructions; language 4.2).
-    private static void WriteRemoved(SiemensBlock write, ChainChange change, int kept)
+    // The programmable frame or the swivel that a RAW line may have changed is ended the same way (WriteChain).
+    private static void WriteRemoved(SiemensBlock write, ChainChange change, int kept, bool endsProgrammable,
+        bool endsSwivel)
     {
-        bool programmable = false;
-        bool tilt = false;
+        bool programmable = endsProgrammable;
+        bool tilt = endsSwivel;
         foreach (TransformEntry entry in change.Removed)
         {
             programmable |= entry.Kind is TransformKind.Shift or TransformKind.Rotate or TransformKind.Mirror;
@@ -654,4 +739,47 @@ internal static class SiemensFrames
     {
         return value.ToString(CultureInfo.InvariantCulture);
     }
+
+    // The words that end the programmable frame in NCX: ORIGIN starts an empty chain, SHIFT=RESET and ROTATE=RESET
+    // remove their kind (language 4.2), MIRROR=OFF the mirror (D124, the reading of the virtual machine).
+    private static bool EndsProgrammableFrame(Block block)
+    {
+        return block.Has("ORIGIN")
+            || block.Has("SHIFT", null, "RESET")
+            || block.Has("ROTATE", null, "RESET")
+            || block.Has("MIRROR", null, "OFF");
+    }
+
+    // The words that end the swivel in NCX: TILT=RESET and TILT_AXIS=RESET (language 4.2, D82), and ORIGIN, which
+    // starts an empty chain, where [transform] of the machine gives the swivel an end, TILT_OFF (machine-config 5): a
+    // machine without it has no swivel the compiler could end, and the RESET words report the missing template.
+    private static bool EndsSwivel(SiemensBlock write)
+    {
+        Block block = write.Block;
+        return block.Has("TILT", null, "RESET")
+            || block.Has("TILT_AXIS", null, "RESET")
+            || (block.Has("ORIGIN") && write.Machine.Transform?.TiltOff is not null);
+    }
+
+    // A string in double quotes, or a comment from ; to the end of its line (controllers siemens.md 1).
+    [GeneratedRegex("\"[^\"\\n]*\"|;[^\\n]*", RegexOptions.CultureInvariant)]
+    private static partial Regex StringOrComment();
+
+    // An instruction of the programmable frame, group 3 (controllers siemens.md 4), as a word of its own; names are
+    // case-insensitive (siemens 1).
+    [GeneratedRegex("(?<![A-Za-z0-9_$])(A?TRANS|A?ROTS?|CROTS|A?SCALE|A?MIRROR|G5[89])(?![A-Za-z0-9_])",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex ProgrammableInstruction();
+
+    // An instruction that swivels the plane or aligns the frame with the tool, and the spatial rotations that NCX
+    // reads as TILT (controllers siemens.md 4; controller-mapping 1, TILT).
+    [GeneratedRegex("(?<![A-Za-z0-9_$])(CYCLE800|TOFRAME[A-Z]*|TOROT[A-Z]*|PAROT[A-Z]*|A?ROTS|CROTS)(?![A-Za-z0-9_])",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex SwivelInstruction();
+
+    // A frame variable, $P_PFRAME, $P_BFRAME, $P_ACTFRAME and the others whose name ends in FRAME (controllers
+    // siemens.md 4); $P_UIFR is the settable frame, the datum.
+    [GeneratedRegex("(?<![A-Za-z0-9_])\\$P_[A-Z0-9_]*FRAME(?![A-Za-z0-9_])",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex FrameVariable();
 }

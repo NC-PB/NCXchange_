@@ -176,7 +176,8 @@ public sealed class SiemensProgramFrameTests
         Assert.Equal(Lines("/G0 X10", "/3G0 X20"), MillBody("SKIP RAPID X=10", "SKIP=3 RAPID X=20"));
     }
 
-    // Siemens 12 rule 6: RAW:SIEMENS blocks verbatim, with their own N number where they carry one.
+    // Siemens 12 rule 6: RAW:SIEMENS blocks verbatim, with their own N number where they carry one; block_numbers
+    // gives that number no other line, since N numbers must be unique for the block search (siemens 1).
     [Fact]
     public void RawSiemens_IsWrittenVerbatim()
     {
@@ -184,8 +185,32 @@ public sealed class SiemensProgramFrameTests
             "RAW:SIEMENS=\"N20 STOPRE\""), Mill());
 
         Assert.False(result.Diagnostics.HasErrors, result.Diagnostics.ToText());
-        Assert.Equal("%_N_T_MPF\r\nN10 G17 G40 G90 G94 G71\r\nN20 MSG(\"ROUGHING\")\r\nN20 STOPRE\r\nN30 M30\r\n",
+        Assert.Equal("%_N_T_MPF\r\nN10 G17 G40 G90 G94 G71\r\nN30 MSG(\"ROUGHING\")\r\nN20 STOPRE\r\nN40 M30\r\n",
             Assert.Single(result.Files).Text);
+    }
+
+    // Siemens 1: N numbers must be unique for the block search. A RAW line keeps the number of its source block,
+    // skipped or not (siemens 12 rule 6), and the numbering of block_numbers passes over every number a line of the
+    // file carries, so that each number names one block (machine-config 2).
+    [Fact]
+    public void BlockNumbers_BesideRawLinesWithNumbersOfTheirOwn_AreUnique()
+    {
+        CompileResult result = Run(Program(MillHeader, "RAPID X=0", "RAW:SIEMENS=\"N20 MSG(\\\"OP1\\\")\"",
+            "LINE X=10 F=100", "RAW:SIEMENS=\"/N40 STOPRE\"", "RAPID X=20"), Mill());
+
+        Assert.False(result.Diagnostics.HasErrors, result.Diagnostics.ToText());
+        string text = Assert.Single(result.Files).Text;
+        Assert.Equal(Lines(
+            "%_N_T_MPF",
+            "N10 G17 G40 G90 G94 G71",
+            "N30 G0 X0",
+            "N20 MSG(\"OP1\")",
+            "N50 G1 G90 G94 X10 F100",
+            "/N40 STOPRE",
+            "N60 G0 G90 X20",
+            "N70 M30"), text.ReplaceLineEndings("\n"));
+        List<string> numbers = BlockNumbersOf(text);
+        Assert.Equal(numbers.Distinct().Count(), numbers.Count);
     }
 
     // Language 4.1, RAW: RAW of another controller compiles only to it, an ERROR here (D5, CMP001 of the framework).
@@ -206,6 +231,22 @@ public sealed class SiemensProgramFrameTests
         CompileResult result = Run(Program(MillHeader, "ROTARY_FEED=MM_MIN"), Mill());
 
         Assert.Equal(["CMP533"], CompilerCodes(result));
+    }
+
+    // The N numbers of the lines of a text, the skipped ones too, in their order (siemens 1).
+    private static List<string> BlockNumbersOf(string text)
+    {
+        var numbers = new List<string>();
+        foreach (string line in text.ReplaceLineEndings("\n").Split('\n'))
+        {
+            string unskipped = line.TrimStart('/');
+            if (unskipped.StartsWith('N') && unskipped.Length > 1 && char.IsAsciiDigit(unskipped[1]))
+            {
+                numbers.Add(new string(unskipped.Skip(1).TakeWhile(char.IsAsciiDigit).ToArray()));
+            }
+        }
+
+        return numbers;
     }
 
     // The mill with the channels 1 and 2 and a program_layout.

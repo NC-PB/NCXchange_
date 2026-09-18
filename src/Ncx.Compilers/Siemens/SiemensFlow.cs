@@ -33,9 +33,12 @@ internal static class SiemensFlow
         // at their next use (language 2 rule 2; controller-mapping 5, CYCLE_F; controllers siemens.md 5, 12 rule 3).
         // Every jump ends the modal call before it (WriteJump, WriteRepeat, the calls, RAW whose text may jump), so
         // the modal call is off after the label where it is off before it, and unknown otherwise: the next call at a
-        // position arms it again, the next motion ends it (siemens 7; controller-mapping 5, CYCLE_CALL).
+        // position arms it again, the next motion ends it (siemens 7; controller-mapping 5, CYCLE_CALL). The frame
+        // that a RAW line of the file may change is unknown as well, and the next block that ends it writes the end
+        // (siemens 4; SiemensFrames.ForgetRawFrames).
         bool modalCallOff = SiemensCycles.ModalCallOff(write);
         write.MakeTargetUnknown();
+        SiemensFrames.ForgetRawFrames(write);
         if (modalCallOff)
         {
             SiemensCycles.ModalCallEnded(write);

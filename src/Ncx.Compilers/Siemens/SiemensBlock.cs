@@ -142,6 +142,16 @@ internal sealed partial class SiemensBlock
     }
 
     /// <summary>
+    /// True where the value under a key was made unknown (MakeUnknown), by a RAW line or a label, and not only never
+    /// written in the program or walk.
+    /// </summary>
+    /// <param name="key">The key: "TRANS".</param>
+    public bool IsMadeUnknown(string key)
+    {
+        return Target.ActiveOf(key) == UnknownValue;
+    }
+
+    /// <summary>
     /// Makes every value the target state knows unknown.
     /// </summary>
     public void MakeTargetUnknown()

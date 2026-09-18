@@ -65,7 +65,9 @@ internal static class SiemensProgramFrame
 
         if (block.Has("SUB", null, "BEGIN"))
         {
-            // %_N_NAME_SPF, then PROC NAME at the top of every subprogram (controllers siemens.md 12 rule 1).
+            // %_N_NAME_SPF, then PROC NAME at the top of every subprogram (controllers siemens.md 12 rule 1); the
+            // subprogram starts without a modal call and with the frame that a RAW line of the file may change
+            // unknown (SiemensCycles.BeginUnit, SiemensFrames.ForgetRawFrames; D99).
             write.Written("SUB");
             write.Written("NAME");
             string name = write.File.UnitNameOf(section, fileStem, write);
@@ -73,6 +75,7 @@ internal static class SiemensProgramFrame
             write.Write(SiemensFlow.ProcLine(write, section, name));
             SiemensFlow.WriteExterns(write, section, fileStem);
             SiemensCycles.BeginUnit(write);
+            SiemensFrames.ForgetRawFrames(write);
             return true;
         }
 

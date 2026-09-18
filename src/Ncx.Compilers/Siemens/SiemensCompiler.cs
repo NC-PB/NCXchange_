@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Core.VirtualMachine.State;
@@ -78,6 +79,53 @@ public sealed class SiemensCompiler : CompilerBase, ICompiler
     }
 
     /// <summary>
+    /// The number a line carries itself, the N20 of a RAW line "N20 MSG(...)" or "/N20 STOPRE" that the reader kept
+    /// with the number of its source block, which block_numbers passes over and gives no other line of the file
+    /// (controllers siemens.md 1; machine-config 2).
+    /// </summary>
+    // N numbers are optional and must be unique for the block search (controllers siemens.md 1), and a RAW line is
+    // written verbatim (siemens 12 rule 6), its own number too: the numbering of block_numbers goes on past every
+    // number a line of the file carries, so that each number names one block. Siemens 1 asks the numbers to be unique,
+    // not ascending; a RAW number stands where its block stands.
+    // TODO(question): no document says whether block_numbers may renumber the N of a RAW line so that the numbers of
+    // the file ascend, which would change the RAW text against rule 6 and move the target of a GOTO to a block number
+    // (siemens 8); the number is kept and passed over, until that is answered.
+    protected override int? OwnBlockNumber(string line)
+    {
+        // The skip mark, / or /0 to /9, stands before the number (controllers siemens.md 1).
+        int start = 0;
+        if (start < line.Length && line[start] == '/')
+        {
+            start++;
+            if (start < line.Length && char.IsAsciiDigit(line[start]))
+            {
+                start++;
+            }
+
+            while (start < line.Length && line[start] == ' ')
+            {
+                start++;
+            }
+        }
+
+        if (start + 1 >= line.Length || line[start] != 'N' || !char.IsAsciiDigit(line[start + 1]))
+        {
+            return null;
+        }
+
+        int end = start + 1;
+        while (end < line.Length && char.IsAsciiDigit(line[end]))
+        {
+            end++;
+        }
+
+        return int.TryParse(line.AsSpan(start + 1, end - start - 1), NumberStyles.None, CultureInfo.InvariantCulture,
+            out int number)
+            ? number
+            : null;
+    }
+
+    /// <summary>
     /// Writes one block: the structure of the file, RAW verbatim, and every other block concern by concern in the
     /// order the control executes them, state before motion (language 5 rule 3): the label, the frames, the tool
     /// change, the spindles, the transformations, the modal call, the main line with the modal codes, the motion and
@@ -122,7 +170,8 @@ public sealed class SiemensCompiler : CompilerBase, ICompiler
     // language 4.1, D5), and what the control has active is not known after it: the modal codes, the feed, the edge,
     // the datum, the diameter programming and the master spindle, which the next block that needs them writes again.
     // The modal call of the compiler ends before it, since every block with a position, one in the RAW text too, would
-    // call it, and a jump in the RAW text would carry it to its label (controllers siemens.md 7, 8).
+    // call it, and a jump in the RAW text would carry it to its label (controllers siemens.md 7, 8). The programmable
+    // frame and the swivel are unknown after a RAW text that names their instructions (controllers siemens.md 4).
     private static bool WriteRaw(SiemensBlock write)
     {
         if (RawText(write.Block) is not string raw)
@@ -149,6 +198,7 @@ public sealed class SiemensCompiler : CompilerBase, ICompiler
         }
 
         SiemensCycles.AfterRaw(write, raw);
+        SiemensFrames.AfterRaw(write, raw);
         SiemensProgramFrame.WriteComment(write);
         return true;
     }

@@ -46,10 +46,21 @@ internal sealed class SiemensFile
             {
                 _subs.TryAdd(name, section);
             }
+
+            if (step.Block.Find("RAW")?.Value is StringValue raw)
+            {
+                RawFrameKeys.UnionWith(SiemensFrames.KeysNamedBy(raw.Content));
+            }
         }
 
         CollectParameters();
     }
+
+    /// <summary>
+    /// The keys of the target state of the programmable frame and the swivel that a RAW line of the file may change
+    /// (SiemensFrames.AfterRaw, controllers siemens.md 4).
+    /// </summary>
+    public HashSet<string> RawFrameKeys { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// The file of a run: every step of the STATIC walk (architecture 8).

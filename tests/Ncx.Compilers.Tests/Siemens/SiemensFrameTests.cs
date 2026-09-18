@@ -5,10 +5,17 @@ namespace Ncx.Compilers.Tests.Siemens;
 /// <summary>
 /// Rule 4 of controllers siemens.md 12 and the frames of the Siemens column of controller-mapping 1: ORIGIN, the chain
 /// in program order as TRANS and ATRANS, AROT, AMIRROR, CYCLE800 from [transform], G74 and G75, PRESETON, DIAMON, the
-/// transformations and CYCLE832 for TOLERANCE, and the sub spindle side whose datum runs Z the other way.
+/// transformations and CYCLE832 for TOLERANCE, the sub spindle side whose datum runs Z the other way, and the end of a
+/// programmable frame or a swivel that a RAW line made.
 /// </summary>
 public sealed class SiemensFrameTests
 {
+    // The swivel of the Hermle C22 U program of the corpus, which the reader keeps as RAW (controllers siemens.md 4).
+    private const string RawHermleSwivel = "RAW:SIEMENS=\"CYCLE800(0,\\\"HERMLE\\\",0,39,0,0,0,180,0,-90,0,0,0,-1,)\"";
+
+    // The line the RAW swivel writes.
+    private const string HermleSwivel = "CYCLE800(0,\"HERMLE\",0,39,0,0,0,180,0,-90,0,0,0,-1,)";
+
     // Controller-mapping 1, ORIGIN: G54 to G57 are 1 to 4, G505 to G599 5 and up, G500 0 (siemens 4).
     [Fact]
     public void Origin_OneFiveAndZero_IsG54G505AndG500()
@@ -88,6 +95,100 @@ public sealed class SiemensFrameTests
         CompileResult result = Run(Program(MillTurnHeader, "TILT B=45 MOVE=STAY ROT=COORD"), MillTurn());
 
         Assert.Equal(["CMP533"], CompilerCodes(result));
+    }
+
+    // Siemens 4: CYCLE800() cancels the swivel; TILT=RESET removes the tilt (language 4.2). After a RAW swivel the
+    // chain of the virtual machine holds no tilt, and the control stays swivelled unless the reset is written:
+    // CYCLE800() of TILT_OFF (machine-config 5), the CYCLE800() of the Hermle program the reader reads as TILT=RESET.
+    [Fact]
+    public void TiltReset_AfterARawSwivel_IsCycle800()
+    {
+        Assert.Equal(Lines(HermleSwivel, "CYCLE800()"), MillTurnBody(RawHermleSwivel, "TILT=RESET"));
+    }
+
+    // Siemens 4: TRANS alone clears the programmable frame; SHIFT=RESET removes the shift (language 4.2), so after a
+    // RAW TRANS the control is shifted until TRANS alone is written, although the chain of the virtual machine is
+    // empty.
+    [Fact]
+    public void ShiftReset_AfterARawTrans_IsTransAlone()
+    {
+        Assert.Equal(Lines("TRANS X10", "TRANS"), MillBody("RAW:SIEMENS=\"TRANS X10\"", "SHIFT=RESET"));
+    }
+
+    // Siemens 4, every replacing instruction deletes all earlier programmable frame instructions: the part of the chain
+    // that stays after the reset is written again from its first entry, which ends what the RAW text left.
+    [Fact]
+    public void ShiftReset_AfterARawTrans_WritesTheRotationThatStaysAgain()
+    {
+        Assert.Equal(Lines("ROT RPL=30", "TRANS X10", "ROT RPL=30"),
+            MillBody("ROTATE=30", "RAW:SIEMENS=\"TRANS X10\"", "SHIFT=RESET"));
+    }
+
+    // Language 4.2, ORIGIN starts an empty chain: after a RAW TRANS, TRANS alone clears the programmable frame before
+    // the datum (siemens 4), which the RAW line left unknown too.
+    [Fact]
+    public void Origin_AfterARawTrans_ClearsTheProgrammableFrameWithTrans()
+    {
+        Assert.Equal(Lines("G54", "TRANS X10", "TRANS", "G54"),
+            MillBody("ORIGIN=1", "RAW:SIEMENS=\"TRANS X10\"", "ORIGIN=1"));
+    }
+
+    // Language 4.2, ORIGIN starts an empty chain: after a RAW swivel, CYCLE800() of TILT_OFF ends it (siemens 4;
+    // machine-config 5); the programmable frame, which the RAW text does not name, stays as it was.
+    [Fact]
+    public void Origin_AfterARawSwivel_EndsTheSwivelWithCycle800()
+    {
+        Assert.Equal(Lines("G54", HermleSwivel, "CYCLE800()", "G54"),
+            MillTurnBody("ORIGIN=1", RawHermleSwivel, "ORIGIN=1"));
+    }
+
+    // Virtual machine 1: the STATIC walk does not follow the jump back, which arrives at the label with the swivel of
+    // the RAW line after it, so TILT=RESET after the label writes CYCLE800() on every pass (siemens 4, 8).
+    [Fact]
+    public void TiltReset_AfterALabelThatAJumpReachesFromARawSwivel_IsCycle800()
+    {
+        Assert.Equal(Lines("R1=0", "AGAIN:", "CYCLE800()", HermleSwivel, "R1=R1+1", "IF R1<2 GOTOB AGAIN"),
+            MillTurnBody("VAR:R1=0", "LABEL=AGAIN", "TILT=RESET", RawHermleSwivel, "VAR:R1={$R1 + 1}",
+                "JUMP=AGAIN IF={$R1 < 2}"));
+    }
+
+    // D99: a subprogram is written once for every caller from an unknown target state, so a caller's RAW swivel may be
+    // active where it starts, and its TILT=RESET writes CYCLE800() (siemens 4; virtual machine 3.9).
+    [Fact]
+    public void TiltReset_InASubprogramCalledAfterARawSwivel_IsCycle800()
+    {
+        string program = $"""
+            FILE=BEGIN NCX=1
+            PROGRAM=BEGIN NAME="T"
+            {MillTurnHeader}
+            {RawHermleSwivel}
+            CALL=UNTILT
+            PROGRAM=END
+            SUB=BEGIN NAME=UNTILT
+            TILT=RESET
+            SUB=END
+            FILE=END
+            """;
+
+        Assert.EndsWith(Lines("%_N_UNTILT_SPF", "PROC UNTILT", "CYCLE800()", "RET"),
+            TextOf(Run(program, MillTurn())), StringComparison.Ordinal);
+    }
+
+    // Machine-config 5: a machine without TILT_OFF in [transform] cannot write the end of a swivel that a RAW line may
+    // have made, which TILT=RESET asks for: the ERROR of the missing template, not a program that stays swivelled.
+    [Fact]
+    public void TiltReset_AfterARawSwivel_OnAMachineWithoutTiltOff_IsAnError()
+    {
+        Assert.Equal(["CMP010"], CompilerCodes(Run(Program(MillHeader, RawHermleSwivel, "TILT=RESET"), Mill())));
+    }
+
+    // Siemens 4: MSG changes no frame, and the text of its message names no instruction, so ORIGIN after it writes the
+    // datum and no reset (controller-mapping 1, COMMENT: MSG is an operator message).
+    [Fact]
+    public void Origin_AfterAMessageThatNamesTrans_WritesNoReset()
+    {
+        Assert.Equal(Lines("G54", "MSG(\"TRANS X10\")", "G54"),
+            MillTurnBody("ORIGIN=1", "RAW:SIEMENS=\"MSG(\\\"TRANS X10\\\")\"", "ORIGIN=1"));
     }
 
     // Controller-mapping 1, HOME: G74 with the machine axis names and 0 (siemens 3), G75 with the axes, FP= the point.
