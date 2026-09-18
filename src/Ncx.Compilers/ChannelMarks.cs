@@ -5,9 +5,9 @@ namespace Ncx.Compilers;
 
 /// <summary>
 /// The listener of one channel on the STATIC run of a job (virtual machine 3.7, 7): the marks the channel passes in
-/// execution order, the mark every block of its expanded program stands behind, generated blocks among them, and the
-/// subprograms its walk enters, until the PROGRAM=END of its program. The job compiler finds the same mark in the
-/// program of another channel with it (D56).
+/// execution order, the mark every block of its expanded program stands behind, generated blocks among them, the
+/// subprograms its walk enters and the mark it waits at, until the PROGRAM=END of its program. The job compiler finds
+/// the same mark in the program of another channel with it (D56), and the SYNC that a deadlock leaves it waiting at.
 /// </summary>
 internal sealed class ChannelMarks : IVmListener
 {
@@ -44,6 +44,12 @@ internal sealed class ChannelMarks : IVmListener
     /// </summary>
     public List<Section> Subs { get; } = [];
 
+    /// <summary>
+    /// The SYNC block the channel waits at and has not been released from: after a deadlock, the mark it can never
+    /// pass (virtual machine 3.7); null while it waits at no mark.
+    /// </summary>
+    public Block? WaitingAt { get; private set; }
+
     public void On(VmEvent vmEvent)
     {
         // A STATIC job walks the rest of each file after the programs of its channels (virtual machine 1, 3.9); that
@@ -55,8 +61,14 @@ internal sealed class ChannelMarks : IVmListener
 
         switch (vmEvent)
         {
+            // SYNC_WAIT: the channel waits at a mark until every channel that takes part waits there (3.7).
+            case SyncEvent { Released: false } wait:
+                WaitingAt = wait.Block;
+                break;
+
             // SYNC_RELEASE: the channel passed a mark, together with the other channels that took part (3.7).
             case SyncEvent { Released: true } sync:
+                WaitingAt = null;
                 Releases.Add(new MarkRelease
                 {
                     Mark = sync.Mark,

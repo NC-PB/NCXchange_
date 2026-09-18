@@ -55,6 +55,13 @@ public static partial class DiagnosticCodes
     public const string NoMarkForGeneratedSync = "CMP711";
 
     /// <summary>
+    /// CMP712: a SYNC the job compiler generates, for [sync] start_mark or for a word bound to every channel, can never
+    /// be released in the job as it would be written, the deadlock of the job (virtual machine 3.7; machine-config 5,
+    /// D56), as when a channel waits for another with WAIT_CHANNEL or is started by START_CHANNEL (language 4.8).
+    /// </summary>
+    public const string GeneratedSyncDeadlocks = "CMP712";
+
+    /// <summary>
     /// CMP720, a WARNING: a subprogram of a file of the job that no channel program calls stands in the output file of
     /// no channel (language 4.13, D99).
     /// </summary>

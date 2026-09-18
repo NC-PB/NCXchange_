@@ -21,6 +21,13 @@ internal static class JobCompile
     public const string DefaultSync = "[sync]\nwait = \"M{mark}\"\nmark_range = [100, 199]";
 
     /// <summary>
+    /// The start of another channel and the wait for its end as the lathe of the test writes them, M300 P{channel} and
+    /// M301 P{channel} (machine-config 5, [sync] start_channel and wait_channel; language 4.8), keys to add to a [sync]
+    /// table.
+    /// </summary>
+    public const string ChannelWords = "\nstart_channel = \"M300 P{channel}\"\nwait_channel = \"M301 P{channel}\"";
+
+    /// <summary>
     /// The twin-turret lathe.
     /// </summary>
     /// <param name="sync">The [sync] table.</param>

@@ -12,7 +12,8 @@ namespace Ncx.Compilers;
 /// word it needs in every channel program duplicated into each behind a generated SYNC; one output file per channel,
 /// named as [format] channel_files says. Every file of the job is expanded once, and the channel-bound words of the
 /// expanded programs are placed, those an expansion rule generates as well as those of the file. The job runs STATIC
-/// once first, as ncx check --job runs it, which pairs the marks of the channels and reports the deadlock.
+/// once first, as ncx check --job runs it, which pairs the marks of the channels and reports the deadlock, and once
+/// more as it would be written, with the SYNCs the job compiler generated, whose deadlock is an ERROR as well.
 /// </summary>
 public sealed partial class JobCompiler
 {
@@ -71,7 +72,14 @@ public sealed partial class JobCompiler
             return Stopped(diagnostics);
         }
 
-        // 4. Every channel program through the compiler of the family, with the view of the job, which tells it that
+        // 4. The job as it would be written, with the SYNCs the job compiler generated, runs STATIC once more: a SYNC
+        // that can never be released is the deadlock ERROR of the job, and nothing is written (virtual machine 3.7).
+        if (RunWrittenJob(jobFile, job, channels, machine, diagnostics))
+        {
+            return Stopped(diagnostics);
+        }
+
+        // 5. Every channel program through the compiler of the family, with the view of the job, which tells it that
         // the program comes expanded; one file per channel, and none when a channel has an ERROR, since a run stops on
         // ERROR (virtual machine 2.9; D205).
         var outputs = new List<ChannelOutput>();

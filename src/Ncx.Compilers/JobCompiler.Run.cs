@@ -6,10 +6,11 @@ using Ncx.Core.VirtualMachine;
 
 namespace Ncx.Compilers;
 
-// The expansion and the STATIC run of a job before it is compiled (architecture 5.5; virtual machine 3.7; architecture
+// The expansion and the STATIC runs of a job before it is compiled (architecture 5.5; virtual machine 3.7; architecture
 // 5.4; implementation 16, P6-02): every file expanded once, then one virtual machine per channel program in rounds, as
 // ncx check --job runs it, with a listener per channel that records the marks it passes, the mark every block of its
-// expanded program stands behind and the subprograms it calls.
+// expanded program stands behind and the subprograms it calls; and the run of the job as it would be written, with the
+// SYNCs the job compiler generated.
 public sealed partial class JobCompiler
 {
     // The rules of the job scheduler (virtual machine 3.7, 5; machine-config 8), which the compile of one channel
@@ -119,6 +120,88 @@ public sealed partial class JobCompiler
         }
 
         return result.Stopped ? null : Channels(job, files, expanded, result, marks);
+    }
+
+    // The job as it would be written runs STATIC once more, every channel program with the SYNCs the job compiler
+    // generated for start_mark and for the words bound to every channel (machine-config 5; D56): all channels waiting
+    // with no releasable mark is the deadlock ERROR (virtual machine 3.7), and nothing is written (2.9). The run of the
+    // written job reports on diagnostics of its own, since the compile of each channel program reports what the
+    // virtual machine finds on its blocks; only the deadlock is taken from it. True after the ERROR.
+    // TODO(question): machine-config 5 writes start_mark "as the first block of every channel program" and D56 has the
+    // job compiler insert "the SYNC it needs", but no document says where such a SYNC stands when a channel is started
+    // by the START_CHANNEL of another or waits for the end of another with WAIT_CHANNEL (language 4.8), so that it can
+    // never be released; a generated SYNC that a channel waits at in the deadlock is the ERROR CMP712 that names the
+    // deadlock, until that is answered.
+    private static bool RunWrittenJob(string jobFile, JobManifest job, List<JobChannel> channels,
+        MachineConfig machine, Diagnostics diagnostics)
+    {
+        var jobDiagnostics = new Diagnostics(jobFile);
+        var runner = new JobRunner(job, machine, VmOptions.ForMachine(machine) with { RaiseBlockWrite = true },
+            ExecutionMode.Static, jobDiagnostics);
+        var waits = new List<ChannelMarks>();
+        for (int index = 0; index < channels.Count; index++)
+        {
+            JobChannel channel = channels[index];
+            NcxProgram written = channel.Build() with { Diagnostics = new Diagnostics(channel.File.FileName) };
+            var marks = new ChannelMarks(written);
+            runner.Add(job.Channels[index], written).Vm.Subscribe(marks);
+            waits.Add(marks);
+        }
+
+        JobResult result = runner.Run();
+        if (!result.Stopped || DeadlockOf(result, jobDiagnostics) is not Diagnostic deadlock)
+        {
+            return false;
+        }
+
+        // The ERROR stands on every SYNC of the job compiler that a channel waits at in the deadlock, the block the
+        // documents give the job compiler no other place for (D98); a deadlock that no such SYNC takes part in is the
+        // deadlock ERROR of the job as the scheduler reports it (virtual machine 3.7).
+        bool reported = false;
+        for (int index = 0; index < channels.Count; index++)
+        {
+            if (waits[index].WaitingAt is Block { Generated: { Source: Writer } generated } sync)
+            {
+                var report = new Diagnostics(channels[index].File.FileName);
+                report.Error(sync, DiagnosticCodes.GeneratedSyncDeadlocks,
+                    $"{sync.Find("SYNC")?.ToCanonical()}, which the job compiler writes for {generated.Reason}, can "
+                    + $"never be released in the job as written (machine-config 5, D56). {deadlock.Message}");
+                AddAll(diagnostics, report);
+                reported = true;
+            }
+        }
+
+        if (!reported)
+        {
+            diagnostics.Add(deadlock);
+        }
+
+        return true;
+    }
+
+    // The deadlock ERROR of a run of the job, where the job scheduler reported it: on the block the first waiting
+    // channel waits at, or on the manifest (virtual machine 3.7); null when the run stopped on another ERROR, which the
+    // compile of the channel program reports.
+    private static Diagnostic? DeadlockOf(JobResult result, Diagnostics jobDiagnostics)
+    {
+        var lists = new List<Diagnostics> { jobDiagnostics };
+        foreach (ChannelRun channel in result.Channels)
+        {
+            lists.Add(channel.Diagnostics);
+        }
+
+        foreach (Diagnostics list in lists)
+        {
+            foreach (Diagnostic diagnostic in list.Items)
+            {
+                if (diagnostic.Code == Ncx.Core.Model.DiagnosticCodes.SyncDeadlock)
+                {
+                    return diagnostic;
+                }
+            }
+        }
+
+        return null;
     }
 
     // The channels of the job in the order of the manifest, each with the program it ran in its expanded file and the

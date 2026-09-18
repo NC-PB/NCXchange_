@@ -304,6 +304,60 @@ public sealed class JobBindingTests
         Assert.Equal(DiagnosticCodes.NoSameMarkInChannel, JobCompile.ErrorOf(result).Code);
     }
 
+    // Virtual machine 3.7, D56 and the TODO(question) of JobCompiler.RunWrittenJob: channel 1 waits for the end of
+    // channel 2 before a word bound to every channel, whose generated wait stands after the header of channel 2, so
+    // neither channel can go on in the job as written: CMP712 on the generated wait of channel 2, and nothing is
+    // written.
+    [Fact]
+    public void AllChannelsWord_AfterAWaitForTheEndOfTheOtherChannel_DeadlocksTheWrittenJobAndIsCmp712()
+    {
+        string machine = JobCompile.Machine(JobCompile.DefaultSync + JobCompile.ChannelWords,
+            spindleSync: "channels = \"all\"");
+
+        CompileResult result = JobCompile.Run(machine,
+            JobCompile.Program(1000, "WAIT_CHANNEL=2", "SPINDLE_SYNC=MAIN,SUB"), JobCompile.Program(1000, "DWELL=1"));
+
+        Diagnostic error = JobCompile.ErrorOf(result);
+        Assert.Equal(DiagnosticCodes.GeneratedSyncDeadlocks, error.Code);
+        Assert.Equal("C2.ncx", error.File);
+        Assert.Equal(2, error.Line);
+        Assert.Equal(5, error.OriginLine);
+    }
+
+    // Virtual machine 3.7, D56 and the TODO(question) of JobCompiler.RunWrittenJob: the generated wait before a word
+    // bound to every channel stands in channel 1 before the START_CHANNEL that starts channel 2, so it can never be
+    // released: CMP712, and nothing is written.
+    [Fact]
+    public void AllChannelsWord_BeforeTheStartOfTheOtherChannel_DeadlocksTheWrittenJobAndIsCmp712()
+    {
+        string machine = JobCompile.Machine(JobCompile.DefaultSync + JobCompile.ChannelWords,
+            spindleSync: "channels = \"all\"");
+
+        CompileResult result = JobCompile.Run(machine,
+            JobCompile.Program(1000, "SPINDLE_SYNC=MAIN,SUB", "START_CHANNEL=2"), JobCompile.Program(1000, "DWELL=1"));
+
+        Diagnostic error = JobCompile.ErrorOf(result);
+        Assert.Equal(DiagnosticCodes.GeneratedSyncDeadlocks, error.Code);
+        Assert.Equal("C1.ncx", error.File);
+        Assert.Equal(4, error.Line);
+        Assert.Equal(4, error.OriginLine);
+    }
+
+    // Language 4.8 and D56: after the START_CHANNEL that starts channel 2, the generated wait before a word bound to
+    // every channel is released with the one after the header of channel 2, and the job is written.
+    [Fact]
+    public void AllChannelsWord_AfterTheStartOfTheOtherChannel_StandsInBothProgramsBehindAGeneratedWait()
+    {
+        string machine = JobCompile.Machine(JobCompile.DefaultSync + JobCompile.ChannelWords,
+            spindleSync: "channels = \"all\"");
+
+        List<string> texts = JobCompile.TextsOf(JobCompile.Run(machine,
+            JobCompile.Program(1000, "START_CHANNEL=2", "SPINDLE_SYNC=MAIN,SUB"), JobCompile.Program(1000, "DWELL=1")));
+
+        Assert.Equal("%\nO1000 (T)\nG18 G99 G40 G80\nM300 P2\nM100\nM96\nM30\n%\n", texts[0]);
+        Assert.Equal("%\nO1000 (T)\nM100\nM96\nG18 G99 G40 G80\nG4 P1000\nM30\n%\n", texts[1]);
+    }
+
     // Machine-config 5, D56: without a mark_range the job compiler has no mark for the SYNC a word bound to every
     // channel needs: CMP711.
     [Fact]
