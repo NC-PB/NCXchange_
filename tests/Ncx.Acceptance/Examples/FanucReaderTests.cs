@@ -20,6 +20,7 @@ namespace Ncx.Acceptance.Examples;
 /// 3D_FRAESEN.fanuc.nc in well under a second, the Nakamura pair with RAW only for the codes the plan names, and under
 /// NCX_CORPUS every Fanuc and ISO file of the corpus without a crash.
 /// </summary>
+[Collection(ChainTiming.Name)]
 public sealed partial class FanucReaderTests
 {
     // The blocks of examples/2.5D_FRAESEN.ncx that the Fanuc reading writes otherwise, in their order: the example is

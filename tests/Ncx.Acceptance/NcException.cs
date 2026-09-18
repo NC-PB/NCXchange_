@@ -1,14 +1,15 @@
-namespace Ncx.Acceptance.Examples;
+namespace Ncx.Acceptance;
 
 /// <summary>
 /// A difference between a source program and a compiled program that the documents cannot settle, grounded in its
-/// question and never a silent one (phase 3, comparison rules): the lines of the source it stands for and the lines the
-/// compiled program writes instead, both as NC text that the comparison normalizes like every other line.
+/// question and never a silent one (phase 3, comparison rules; <see cref="NcComparer"/>): the lines of the source it
+/// stands for and the lines the compiled program writes instead, both as NC text that the comparison normalizes like
+/// every other line.
 /// </summary>
 internal sealed record NcException
 {
     /// <summary>
-    /// The question or the rule the difference is grounded in: "wave-1 question #12, D49".
+    /// The question or the rule the difference is grounded in: "D163: Q213 of CHIP_BREAK".
     /// </summary>
     public required string Grounds { get; init; }
 

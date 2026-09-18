@@ -17,7 +17,9 @@ namespace Ncx.Cli.Commands;
 /// (architecture 7, 10). convert always needs a machine file, from --machine or from ncx.toml, never the built-in
 /// default machine (D77, D103). The NCX text goes to the standard output or into the file of --output, the diagnostics
 /// to the standard error (D98). Exit code 0 without an ERROR, 1 with one or with a WARNING under --strict, 2 when the
-/// program or the machine file cannot be read or no machine file is named (D97).
+/// program or the machine file cannot be read or no machine file is named (D97). ncx convert --batch &lt;folder&gt;
+/// --machine &lt;toml&gt; --report &lt;file&gt; converts every file of a folder instead (BatchCommand; implementation
+/// 13, P3-07).
 /// </summary>
 internal static class ConvertCommand
 {
@@ -35,6 +37,7 @@ internal static class ConvertCommand
         var fileArgument = new Argument<string>("file")
         {
             Description = "The controller program: a Fanuc or ISO program, a Heidenhain Klartext program.",
+            Arity = ArgumentArity.ZeroOrOne,
         };
         var machineOption = new Option<string>("--machine")
         {
@@ -47,31 +50,80 @@ internal static class ConvertCommand
             Description = "Write the NCX text into this file instead of the standard output.",
             HelpName = "file",
         };
+        var batchOption = new Option<string>("--batch")
+        {
+            Description = "Convert every file of this folder and of its folders instead of one program, never stopping "
+                + "on an error, and write the summary into the file of --report.",
+            HelpName = "folder",
+        };
+        var reportOption = new Option<string>("--report")
+        {
+            Description = "With --batch: the file the summary goes into, per file and in total the blocks, the RAW "
+                + "blocks per word and the diagnostics per code.",
+            HelpName = "file",
+        };
 
         // --strict, which every command accepts (architecture 10, D97).
         var strictOption = RunOptions.StrictOption();
         var command = new Command(
             "convert",
             "Read a controller program into canonical NCX with the reader of the machine's controller, and check the "
-            + "result STATIC. Needs the machine file, by --machine or by ncx.toml.")
+            + "result STATIC; with --batch every file of a folder, with a summary. Needs the machine file, by "
+            + "--machine or by ncx.toml.")
         {
             fileArgument,
             machineOption,
             outputOption,
+            batchOption,
+            reportOption,
             strictOption,
         };
 
-        command.SetAction(parseResult => Run(
-            new RunSettings
+        // convert takes one program, or a folder with --batch, whose summary goes into the file of --report and which
+        // writes no NCX text (implementation 13, P3-07; D209). A command line that mixes the two is a usage error, exit
+        // code 2 (D97).
+        command.Validators.Add(result =>
+        {
+            bool batch = result.GetValue(batchOption) is not null;
+            if (!batch && result.GetValue(fileArgument) is null)
             {
-                File = parseResult.GetRequiredValue(fileArgument),
+                result.AddError("convert needs the controller program, or a folder with --batch");
+            }
+
+            if (batch && result.GetValue(fileArgument) is not null)
+            {
+                result.AddError("--batch converts the files of its folder, so it takes no controller program");
+            }
+
+            if (batch && result.GetValue(reportOption) is null)
+            {
+                result.AddError("--batch writes its summary into the file of --report, which is missing");
+            }
+
+            if (!batch && result.GetValue(reportOption) is not null)
+            {
+                result.AddError("--report is the summary of --batch, which is missing");
+            }
+
+            if (batch && result.GetValue(outputOption) is not null)
+            {
+                result.AddError("--batch writes no NCX text, so it takes no --output");
+            }
+        });
+
+        command.SetAction(parseResult =>
+        {
+            string? folder = parseResult.GetValue(batchOption);
+            var settings = new RunSettings
+            {
+                File = folder ?? parseResult.GetRequiredValue(fileArgument),
                 MachineFile = parseResult.GetValue(machineOption),
                 Strict = parseResult.GetValue(strictOption),
-            },
-            parseResult.GetValue(outputOption),
-            readers,
-            output,
-            error));
+            };
+            return folder is not null
+                ? BatchCommand.Run(settings, parseResult.GetRequiredValue(reportOption), readers, error)
+                : Run(settings, parseResult.GetValue(outputOption), readers, output, error);
+        });
         return command;
     }
 
@@ -93,13 +145,9 @@ internal static class ConvertCommand
 
         // Code 2 is decided before the run starts and takes precedence: the controller program, ncx.toml, the machine
         // file and its cycle catalog are read first, and one that cannot be found or read stops everything (D97,
-        // architecture 10). All of them are read, so that all are reported.
-        // TODO(question): language 3 gives the encoding of an NCX file, UTF-8, and no document gives the encoding of a
-        // controller program, which older controls and editors write in a code page of their own. It is read as UTF-8
-        // like every input of ncx, and a program whose bytes are no UTF-8 is an input that cannot be read, exit code 2,
-        // until that is answered.
-        string? text = InputFile.Read(settings.File, DiagnosticCodes.InputUnreadable, "The controller program",
-            "language 3, Encoding; D97", diagnostics);
+        // architecture 10). All of them are read, so that all are reported. The program is UTF-8 text, or Windows-1252
+        // with a WARNING (ControllerProgram, D229).
+        string? text = ControllerProgram.Read(settings.File, diagnostics);
         RunMachine runMachine = RunMachine.Select(settings, diagnostics);
 
         // convert always needs the machine file the program was written for, named by --machine or by the machine key
@@ -132,30 +180,9 @@ internal static class ConvertCommand
         // (implementation 17, P7-01).
         PluginSet plugins = RunPlugins.Load(settings, runMachine.Project, diagnostics);
 
-        // The reader turns the program into NCX, keeping as RAW what it cannot express, and the canonical writer writes
-        // it (architecture 7; D5). A byte order mark is no part of the text the reader reads (wave-1 question #80).
-        var source = new SourceFile(settings.File, WithoutByteOrderMark(text));
-        NcxProgram program = reader.Read(source, machine, new ReadOptions { Rules = plugins.SourceRules });
+        // The reader and the STATIC check over what it produced, then the canonical writer (architecture 7, 10; D5).
+        NcxProgram program = Convert(new SourceFile(settings.File, text), machine, reader, plugins, diagnostics);
         string canonical = NcxWriter.Write(program);
-
-        // convert ends with a STATIC pass over the produced program, expanded as ncx check expands it, and reports its
-        // diagnostics together with the reader's, the reader's first (architecture 7, 10; virtual machine 1; D91, D98).
-        // The blocks of the program carry the lines of the source blocks they were read from, so what the check finds
-        // cites the controller program as the reader does (architecture 7, Begin(sourceLine); code-guidelines 6). An
-        // ERROR of the reader stops the run before its first block, as an ERROR of the parser does (virtual machine
-        // 2.9).
-        NcxProgram expanded = Expander.Expand(program, machine, plugins.Rewriters);
-        var vm = new VirtualMachine(machine, VmOptions.ForMachine(machine), expanded.Diagnostics);
-        foreach (IVmListener listener in plugins.Listeners)
-        {
-            vm.Subscribe(listener);
-        }
-
-        vm.Run(expanded);
-        foreach (Diagnostic diagnostic in expanded.Diagnostics.Items)
-        {
-            diagnostics.Add(diagnostic);
-        }
 
         // The NCX text goes to the standard output, or into the file of --output (architecture 10).
         // TODO(question): architecture 10 gives convert the output ".ncx in the working directory" without naming the
@@ -179,9 +206,51 @@ internal static class ConvertCommand
         return ExitCodes.OfRun(diagnostics, settings.Strict);
     }
 
-    // A machine file that neither --machine nor ncx.toml names is reported as a mistake of the command line: the tool
-    // as its file and line 1, the one line of the command, as a usage error is reported (wave-1 question #79; D98).
-    private static void ReportMachineRequired(Diagnostics diagnostics)
+    /// <summary>
+    /// Converts the text of one controller program: the reader of the machine's controller, then the STATIC check over
+    /// the program it produced, whose diagnostics are added after the reader's (architecture 7, 10). ncx convert writes
+    /// the program with the canonical writer; ncx convert --batch counts its blocks.
+    /// </summary>
+    /// <param name="source">The program, named as the diagnostics name it.</param>
+    /// <param name="machine">The machine the program was written for.</param>
+    /// <param name="reader">The reader of the machine's controller.</param>
+    /// <param name="plugins">The plugins of the working directory; null for none.</param>
+    /// <param name="diagnostics">Where the diagnostics of the reader and of the check go, in that order (D98).</param>
+    /// <returns>The program the reader produced.</returns>
+    internal static NcxProgram Convert(SourceFile source, MachineConfig machine, IReader reader, PluginSet? plugins,
+        Diagnostics diagnostics)
+    {
+        // The reader turns the program into NCX, keeping as RAW what it cannot express (architecture 7; D5); the reader
+        // rules of the plugins read what the tables of the machine leave undecided (D40, D66).
+        NcxProgram program = reader.Read(source, machine, new ReadOptions { Rules = plugins?.SourceRules ?? [] });
+
+        // convert ends with a STATIC pass over the produced program, expanded as ncx check expands it, and reports its
+        // diagnostics together with the reader's, the reader's first (architecture 7, 10; virtual machine 1; D91, D98).
+        // The blocks of the program carry the lines of the source blocks they were read from, so what the check finds
+        // cites the controller program as the reader does (architecture 7, Begin(sourceLine); code-guidelines 6). An
+        // ERROR of the reader stops the run before its first block, as an ERROR of the parser does (virtual machine
+        // 2.9).
+        NcxProgram expanded = Expander.Expand(program, machine, plugins?.Rewriters ?? []);
+        var vm = new VirtualMachine(machine, VmOptions.ForMachine(machine), expanded.Diagnostics);
+        foreach (IVmListener listener in plugins?.Listeners ?? [])
+        {
+            vm.Subscribe(listener);
+        }
+
+        vm.Run(expanded);
+        foreach (Diagnostic diagnostic in expanded.Diagnostics.Items)
+        {
+            diagnostics.Add(diagnostic);
+        }
+
+        return program;
+    }
+
+    /// <summary>
+    /// A machine file that neither --machine nor ncx.toml names is reported as a mistake of the command line: the tool
+    /// as its file and line 1, the one line of the command, as a usage error is reported (wave-1 question #79; D98).
+    /// </summary>
+    internal static void ReportMachineRequired(Diagnostics diagnostics)
     {
         diagnostics.Add(new Diagnostic
         {
@@ -195,10 +264,12 @@ internal static class ConvertCommand
         });
     }
 
-    // The controller of the machine file chooses the reader, one per controller family, from the registry
-    // (architecture 7; machine-config 1; code-guidelines 5, Strategy and Registry). A family without a reader is an
-    // ERROR on the program, which is then not read.
-    private static IReader? ReaderOf(MachineConfig machine, ReaderRegistry readers, Diagnostics diagnostics)
+    /// <summary>
+    /// The controller of the machine file chooses the reader, one per controller family, from the registry
+    /// (architecture 7; machine-config 1; code-guidelines 5, Strategy and Registry). A family without a reader is an
+    /// ERROR on the program, which is then not read.
+    /// </summary>
+    internal static IReader? ReaderOf(MachineConfig machine, ReaderRegistry readers, Diagnostics diagnostics)
     {
         if (machine.Machine.Controller is Controller controller && readers.Create(controller) is IReader reader)
         {
@@ -210,14 +281,5 @@ internal static class ConvertCommand
             $"The machine \"{machine.Machine.Name}\" has {family}, and ncx has no reader for its programs, so the "
             + "program is not converted (architecture 7; machine-config 1).");
         return null;
-    }
-
-    // A byte order mark is no part of the text a reader reads, as it is none of the text the parser reads (wave-1
-    // question #80).
-    private static string WithoutByteOrderMark(string text)
-    {
-        return text.StartsWith(InputFile.ByteOrderMark, StringComparison.Ordinal)
-            ? text.Substring(InputFile.ByteOrderMark.Length)
-            : text;
     }
 }

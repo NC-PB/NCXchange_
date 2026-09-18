@@ -104,19 +104,34 @@ public sealed partial class ConvertCommandTests : IDisposable
         Assert.Equal(["CLI002", "CLI200"], Codes(_error));
     }
 
-    // Language 3, Encoding; D97: a controller program is read as UTF-8 like every input of ncx, so one whose bytes are
-    // no UTF-8 cannot be read, exit code 2 (the TODO(question) of ConvertCommand.Run).
+    // D229, as recommended: a controller program whose bytes are no UTF-8 is read as Windows-1252 with the WARNING
+    // CLI352 on its first line, and the NCX text carries its umlauts as UTF-8 (language 3, Encoding).
     [Fact]
-    public void Convert_ProgramThatIsNoUtf8_ExitsTwoWithCli002()
+    public void Convert_ProgramThatIsNoUtf8_IsReadAsWindows1252WithAWarning()
     {
         string file = _project.WriteBytesInWorkingDirectory("latin1.nc",
             Encoding.Latin1.GetBytes("%\nO0001 (ÄNDERUNG)\nM30\n%\n"));
 
         int exitCode = RunConvert(file, "fanuc-mill-30i");
 
-        Assert.Equal(2, exitCode);
-        Assert.Equal("", _output);
-        Assert.StartsWith($"{file}(1): ERROR CLI002: ", _error, StringComparison.Ordinal);
+        Assert.True(exitCode == 0, _error);
+        Assert.StartsWith($"{file}(1): WARNING CLI352: ", _error, StringComparison.Ordinal);
+        Assert.Contains("NAME=\"ÄNDERUNG\"", _output, StringComparison.Ordinal);
+    }
+
+    // D229: a program that is UTF-8 text is read as UTF-8, its byte order mark left out, without a WARNING.
+    [Fact]
+    public void Convert_ProgramThatIsUtf8WithAByteOrderMark_IsReadWithoutAWarning()
+    {
+        string file = _project.WriteBytesInWorkingDirectory("utf8.nc",
+            [.. new UTF8Encoding(true).GetPreamble(), .. Encoding.UTF8.GetBytes("%\nO0001 (ÄNDERUNG)\nM30\n%\n")]);
+
+        int exitCode = RunConvert(file, "fanuc-mill-30i");
+
+        Assert.True(exitCode == 0, _error);
+        Assert.DoesNotContain("CLI352", _error, StringComparison.Ordinal);
+        Assert.StartsWith("FILE=BEGIN NCX=1\n", _output, StringComparison.Ordinal);
+        Assert.Contains("NAME=\"ÄNDERUNG\"", _output, StringComparison.Ordinal);
     }
 
     // D97, machine-config 1: a machine file that reads but loads with an ERROR stops the run before it starts, with

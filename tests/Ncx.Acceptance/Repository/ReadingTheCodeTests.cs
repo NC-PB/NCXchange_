@@ -4,8 +4,9 @@ namespace Ncx.Acceptance.Repository;
 
 /// <summary>
 /// The guided tour docs/reading-the-code.md against the code: every file and folder it names exists, and it runs from
-/// Program.cs through one ncx format run and one ncx check run into the virtual machine (code-guidelines 10.3; phase 0,
-/// P0-07; phase 1, exit checklist).
+/// Program.cs through one ncx format run and one ncx check run into the virtual machine, then through one ncx convert
+/// into the reader and one ncx compile into the compiler (code-guidelines 10.3; phase 0, P0-07; phase 1 and phase 3,
+/// exit checklists).
 /// </summary>
 public sealed class ReadingTheCodeTests
 {
@@ -19,13 +20,17 @@ public sealed class ReadingTheCodeTests
     private static readonly string[] s_fileEndings =
         [".cs", ".csproj", ".h", ".json", ".md", ".nc", ".ncx", ".props", ".sln", ".toml", ".txt", ".yml"];
 
-    // The route of the tour, in the order its files are first named (phase 0, P0-07; phase 1, P1-07).
+    // The route of the tour, in the order its files are first named (phase 0, P0-07; phase 1, P1-07; phase 3, P3-07).
     private static readonly string[] s_route =
     [
         "src/Ncx.Cli/Program.cs",
         "src/Ncx.Cli/Commands/FormatCommand.cs",
         "src/Ncx.Cli/Commands/CheckCommand.cs",
         "src/Ncx.Core/VirtualMachine/VirtualMachine.cs",
+        "src/Ncx.Cli/Commands/ConvertCommand.cs",
+        "src/Ncx.Readers/ReaderBase.cs",
+        "src/Ncx.Cli/Commands/CompileCommand.cs",
+        "src/Ncx.Compilers/CompilerBase.cs",
     ];
 
     // Code-guidelines 10.3, P0-07 done when: the tour is checked against the code by a test that asserts that the files
@@ -51,9 +56,10 @@ public sealed class ReadingTheCodeTests
     }
 
     // Phase 0, P0-07: the tour goes from Program.cs through one ncx format run and one ncx check run into the virtual
-    // machine, so it names the files of that route first in that order.
+    // machine, and phase 3, P3-07, on through convert and compile, so it names the files of that route first in that
+    // order.
     [Fact]
-    public void Tour_FirstNamedFiles_RunFromProgramThroughFormatAndCheckIntoTheVirtualMachine()
+    public void Tour_FirstNamedFiles_RunFromProgramThroughFormatCheckConvertAndCompile()
     {
         List<string> paths = NamedPaths(ReadTour());
 

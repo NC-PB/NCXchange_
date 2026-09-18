@@ -26,23 +26,16 @@ public sealed partial class HeidenhainCompilerTests : IDisposable
     // The block of Expected/BOHREN.ncx that the Fanuc tapping M29 S500 reads into.
     private const string RigidTap = "RPM=500 FUNC:RIGID_TAP=ON";
 
-    // The target state of a program starts unknown (P3-03), so the FEED_MODE=PER_MIN of the header is M137, which the
-    // Klartext sources, whose control has it after the end of the program before, do not write (the TODO(question) of
-    // HeidenhainFunctions, the header of a program).
-    private static readonly NcException s_programStart = new()
+    /// <summary>
+    /// The target state of a program starts unknown (P3-03), so the FEED_MODE=PER_MIN of the header is M137, which the
+    /// Klartext sources, whose control has it after the end of the program before, do not write (the TODO(question) of
+    /// HeidenhainFunctions, the header of a program).
+    /// </summary>
+    internal static readonly NcException s_programStart = new()
     {
         Grounds = "the question of the target state at the start of a program: M137 for the FEED_MODE=PER_MIN of the "
             + "header",
         Compiled = ["M137"],
-    };
-
-    // The compiler writes program_end, M30, before END PGM (heidenhain 8 rule 1, D49); the Klartext sources end without
-    // it, which the control tolerates (heidenhain 1).
-    private static readonly NcException s_programEnd = new()
-    {
-        Grounds = "wave-1 question #12, answered by D49 and heidenhain 8 rule 1: the program_end line is no difference "
-            + "where the source ends in another form or in none",
-        Compiled = ["M30"],
     };
 
     private readonly ProjectHarness _project = new(Fixture.RepositoryRoot());
@@ -56,20 +49,17 @@ public sealed partial class HeidenhainCompilerTests : IDisposable
     }
 
     // M5: ncx compile examples/2.5D_FRAESEN.ncx --machine heidenhain-itnc530 is equivalent to 2.5D_FRAESEN.h under the
-    // comparison rules (block numbers, formatting and comment placement ignored), except the header's M137, the stock
-    // definition the example keeps as a comment (D217), and the M30 the source leaves out (wave-1 question #12).
+    // comparison rules (block numbers, formatting and comment placement ignored; the M30 the source leaves out is no
+    // difference by them, wave-1 question #12 and D49), except the header's M137 and the stock definition the example
+    // keeps as a comment (D217).
     [Fact]
     public void Compile_25DFraesen_IsEquivalentToTheHeidenhainSourceExceptTheListedDifferences()
     {
         string compiled = Compile("2.5D_FRAESEN.ncx", Fixture.ReadText("2.5D_FRAESEN.ncx"), "2.5D FRAESEN.h");
 
         Assert.Equal("", _error);
-        string? difference = new NcEquivalence(Mill()).Compare(Fixture.ReadText("sources/2.5D_FRAESEN.h"), compiled,
-        [
-            s_programStart,
-            StockDefinition("BLK FORM 0.1 Z X0 Y0 Z-20", "BLK FORM 0.2 X100 Y100 Z0"),
-            s_programEnd,
-        ]);
+        string? difference = new NcComparer(Mill()).Compare(Fixture.ReadText("sources/2.5D_FRAESEN.h"), compiled,
+            Differences25DFraesen());
         Assert.True(difference is null, difference);
     }
 
@@ -85,13 +75,46 @@ public sealed partial class HeidenhainCompilerTests : IDisposable
         string frozen = File.ReadAllText(
             Path.Combine(Fixture.RepositoryRoot(), "tests", "Ncx.Acceptance", "Expected", "BOHREN.ncx"))
             .ReplaceLineEndings("\n");
-        Assert.Contains(RigidTap + "\n", frozen, StringComparison.Ordinal);
 
-        string compiled = Compile("BOHREN.ncx", frozen.Replace(RigidTap + "\n", "", StringComparison.Ordinal),
-            "BOHREN.h");
+        string compiled = Compile("BOHREN.ncx", WithoutRigidTap(frozen), "BOHREN.h");
 
         Assert.Equal(["CMP105", "CMP105"], Codes(_error));
-        string? difference = new NcEquivalence(Mill()).Compare(Fixture.ReadText("sources/BOHREN.h"), compiled,
+        string? difference = new NcComparer(Mill()).Compare(Fixture.ReadText("sources/BOHREN.h"), compiled,
+            BohrenDifferences(frozen));
+        Assert.True(difference is null, difference);
+    }
+
+    // Phase 3, P3-04 scope: the examples with Q parameters, labels, a conditional jump, a subprogram with incremental
+    // words, JUMP=END and HOME compile for the machine without an ERROR.
+    [Theory]
+    [InlineData("PATTERN_LOOP.ncx", "PATTERN.h")]
+    [InlineData("INCREMENTAL_SUB.ncx", "SLOT_ROW.h")]
+    public void Compile_ExamplesThatCheckWithTheMachine_CompileWithoutAnError(string example, string output)
+    {
+        string compiled = Compile(example, Fixture.ReadText(example), output);
+
+        Assert.StartsWith("0 BEGIN PGM ", compiled, StringComparison.Ordinal);
+        Assert.DoesNotContain("ERROR", _error, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The differences of 2.5D_FRAESEN.ncx compiled for the iTNC 530 against 2.5D_FRAESEN.h, in their order: the M137
+    /// of the header and the stock definition the example keeps as a comment (D217).
+    /// </summary>
+    internal static List<NcException> Differences25DFraesen()
+    {
+        return [s_programStart, StockDefinition("BLK FORM 0.1 Z X0 Y0 Z-20", "BLK FORM 0.2 X100 Y100 Z0")];
+    }
+
+    /// <summary>
+    /// The differences of Expected/BOHREN.ncx, the Fanuc reading, compiled for the iTNC 530 against BOHREN.h, in their
+    /// order, each with its question.
+    /// </summary>
+    /// <param name="frozen">Expected/BOHREN.ncx with LF line endings, whose fourth operation the compiled program
+    /// writes as single moves.</param>
+    internal static List<NcException> BohrenDifferences(string frozen)
+    {
+        return
         [
             s_programStart,
             StockDefinition("BLK FORM 0.1 Z X0 Y0 Z-25", "BLK FORM 0.2 X100 Y20 Z0"),
@@ -115,27 +138,25 @@ public sealed partial class HeidenhainCompilerTests : IDisposable
                 ],
                 Compiled = SingleMoves(frozen),
             },
-            s_programEnd,
-        ]);
-        Assert.True(difference is null, difference);
+        ];
     }
 
-    // Phase 3, P3-04 scope: the examples with Q parameters, labels, a conditional jump, a subprogram with incremental
-    // words, JUMP=END and HOME compile for the machine without an ERROR.
-    [Theory]
-    [InlineData("PATTERN_LOOP.ncx", "PATTERN.h")]
-    [InlineData("INCREMENTAL_SUB.ncx", "SLOT_ROW.h")]
-    public void Compile_ExamplesThatCheckWithTheMachine_CompileWithoutAnError(string example, string output)
+    /// <summary>
+    /// Expected/BOHREN.ncx without the block that the Fanuc tapping M29 S500 reads into, which the iTNC 530 does not
+    /// compile (the TODO(question) of the BOHREN test).
+    /// </summary>
+    /// <param name="frozen">Expected/BOHREN.ncx with LF line endings.</param>
+    internal static string WithoutRigidTap(string frozen)
     {
-        string compiled = Compile(example, Fixture.ReadText(example), output);
-
-        Assert.StartsWith("0 BEGIN PGM ", compiled, StringComparison.Ordinal);
-        Assert.DoesNotContain("ERROR", _error, StringComparison.Ordinal);
+        Assert.Contains(RigidTap + "\n", frozen, StringComparison.Ordinal);
+        return frozen.Replace(RigidTap + "\n", "", StringComparison.Ordinal);
     }
 
-    // D217 (wave-2 question #81), controllers heidenhain.md 7 rule 9: BLK FORM is RAW:HEIDENHAIN in the Heidenhain
-    // reading, and the NCX program holds no stock definition.
-    private static NcException StockDefinition(string first, string second)
+    /// <summary>
+    /// D217 (wave-2 question #81), controllers heidenhain.md 7 rule 9: BLK FORM is RAW:HEIDENHAIN in the Heidenhain
+    /// reading, and the NCX program holds no stock definition.
+    /// </summary>
+    internal static NcException StockDefinition(string first, string second)
     {
         return new NcException
         {
@@ -161,7 +182,11 @@ public sealed partial class HeidenhainCompilerTests : IDisposable
         return "CYCL DEF 200 BOHREN Q200=5 Q201=-21,732 Q206=" + feed + " Q202=21,732 Q210=0 Q203=0 Q204=5 Q211=0";
     }
 
-    private static string Cycle203(string feed, string breaks)
+    /// <summary>
+    /// Cycle 203 of BOHREN.h as the comparison normalizes it, with its plunge feed Q206 and its number of chip breaks
+    /// Q213.
+    /// </summary>
+    internal static string Cycle203(string feed, string breaks)
     {
         return "CYCL DEF 203 UNIVERSALBOHREN Q200=5 Q201=-21,732 Q206=" + feed + " Q202=1,2 Q210=0 Q203=0 Q204=5 "
             + "Q212=0 Q213=" + breaks + " Q205=1,2 Q211=0 Q208=MAX Q256=0,6";

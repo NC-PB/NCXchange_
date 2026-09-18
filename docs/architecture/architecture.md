@@ -1062,6 +1062,7 @@ The API is shaped for NC programmers with little C# (code-guidelines.md, section
 | Command | Input | Pipeline | Output |
 |---|---|---|---|
 | `ncx convert <file> --machine <toml>` | controller file | reader, NcxWriter, STATIC check | `.ncx` in the working directory, diagnostics |
+| `ncx convert --batch <folder> --machine <toml> --report <file> [--strict]` | every file of a folder and of its folders | per file as `convert`, never stopping on an error | the report of `--report`: per file and in total the blocks, the `RAW` blocks per word and the diagnostics per code; the diagnostics of every file |
 | `ncx compile <file.ncx> --machine <toml> [--output <folder>]` | NCX | parser, VM STATIC, compiler | NC file under `out/<machine>/` or in the folder of `--output`, diagnostics |
 | `ncx compile --job <name.ncxjob.toml>` | job manifest | parser per channel, job compiler | one NC file per channel |
 | `ncx format <file.ncx> [--check] [--output <file>]` | NCX | parser, NcxWriter | canonical text to stdout or `--output`; with `--check` no output, exit 1 on a difference |

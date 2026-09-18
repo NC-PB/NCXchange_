@@ -1,0 +1,25 @@
+ncx convert --batch (implementation 13, P3-07)
+machine: fanuc-mill-30i.toml (Generic Fanuc 30i vertical mill, Fanuc)
+files: 9, converted 9, unreadable 0, crashed 0
+
+file                            result     blocks  RAW            diagnostics
+2.5D_FRAESEN.fanuc.nc           converted      43  -              -
+2.5D_FRAESEN.h                  converted      52  RAW:FANUC 47   RDR001 47, RDR010 1, VM400 47
+3D_FRAESEN.fanuc.nc             converted     830  -              -
+3D_FRAESEN.h                    converted     837  RAW:FANUC 832  RDR001 832, RDR010 1, VM400 832
+BOHREN.fanuc.nc                 converted     343  -              -
+BOHREN.h                        converted     173  RAW:FANUC 143  RDR001 143, RDR010 1, VM400 143, VM523 143
+NAKAMURA_WY250L_O1000.path1.nc  converted     105  RAW:FANUC 14   RDR001 14, RDR100 31, VM005 1, VM400 14, VM523 1
+NAKAMURA_WY250L_O1000.path2.nc  converted     149  RAW:FANUC 18   RDR001 18, RDR100 52, VM005 1, VM400 18, VM523 1
+README.md                       converted      14  RAW:FANUC 7    RDR001 7, RDR010 1, RDR011 1, VM400 7
+
+total           count  files
+blocks           2546      9
+RAW:FANUC        1061      6
+RDR001 WARNING   1061      6
+RDR010 WARNING      4      4
+RDR011 WARNING      1      1
+RDR100 WARNING     83      2
+VM005 ERROR         2      2
+VM400 WARNING    1061      6
+VM523 WARNING     145      3

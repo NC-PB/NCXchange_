@@ -166,32 +166,21 @@ public sealed partial class ConvertExampleTests : IDisposable
         Assert.True(crashes.Count == 0, $"{crashes.Count} of {files} files crash:\n" + string.Join('\n', crashes));
     }
 
-    // The blocks of examples/2.5D_FRAESEN.ncx as a reading gives them: each block the reading writes otherwise replaced
-    // by the lines of its reading, by none where the source has no block there (FanucReaderTests,
-    // HeidenhainReaderTests).
-    private static List<string> ExampleBlocks(KeyValuePair<string, string>[] reading)
+    /// <summary>
+    /// The blocks of examples/2.5D_FRAESEN.ncx as a reading gives them: each block the reading writes otherwise
+    /// replaced by the lines of its reading, by none where the source has no block there (FanucReaderTests,
+    /// HeidenhainReaderTests).
+    /// </summary>
+    internal static List<string> ExampleBlocks(KeyValuePair<string, string>[] reading)
     {
-        var expected = new List<string>();
-        int difference = 0;
-        foreach (string block in BlocksOf(Fixture.ReadText("2.5D_FRAESEN.ncx")))
-        {
-            if (difference < reading.Length && reading[difference].Key == block)
-            {
-                expected.AddRange(reading[difference].Value.Split('\n', StringSplitOptions.RemoveEmptyEntries));
-                difference++;
-                continue;
-            }
-
-            expected.Add(block);
-        }
-
-        Assert.Equal(reading.Length, difference);
-        return expected;
+        return RoundTrips.WithReadings(BlocksOf(Fixture.ReadText("2.5D_FRAESEN.ncx")), reading);
     }
 
-    // The blocks of an NCX text in canonical form without their comments; the trivia are no blocks (P3-02: the
-    // comparison strips comments and trivia on both sides).
-    private static List<string> BlocksOf(string text)
+    /// <summary>
+    /// The blocks of an NCX text in canonical form without their comments; the trivia are no blocks (P3-02: the
+    /// comparison strips comments and trivia on both sides).
+    /// </summary>
+    internal static List<string> BlocksOf(string text)
     {
         NcxProgram program = Parser.Parse(text, "converted.ncx", new ParserOptions());
         Assert.True(program.Diagnostics.Items.Count == 0, program.Diagnostics.ToText());

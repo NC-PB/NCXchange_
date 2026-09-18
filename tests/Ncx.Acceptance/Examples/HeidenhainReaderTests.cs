@@ -22,6 +22,7 @@ namespace Ncx.Acceptance.Examples;
 /// otherwise, 3D_FRAESEN.h in well under a second, and under NCX_CORPUS every Heidenhain file of the corpus without a
 /// crash.
 /// </summary>
+[Collection(ChainTiming.Name)]
 public sealed partial class HeidenhainReaderTests
 {
     // The blocks of examples/2.5D_FRAESEN.ncx that the Heidenhain reading writes otherwise, in their order; a reading
@@ -114,6 +115,18 @@ public sealed partial class HeidenhainReaderTests
             Path.Combine(Fixture.RepositoryRoot(), "tests", "Ncx.Acceptance", "Expected", "BOHREN.ncx"));
         NcxProgram read = Read("BOHREN.h");
 
+        Assert.Equal(string.Join('\n', BohrenReading(frozen)), string.Join('\n', BlocksOf(read)));
+    }
+
+    /// <summary>
+    /// The blocks the Heidenhain reading of BOHREN.h gives, comments and trivia left out: the blocks of
+    /// Expected/BOHREN.ncx, frozen from the Fanuc source, with the blocks the two sources write otherwise replaced by
+    /// the Heidenhain reading (s_bohrenReading), and every comment line of the file, a comment of the Fanuc source
+    /// (D92), as the SECTION of the * - block of the Klartext source (controller-mapping 1).
+    /// </summary>
+    /// <param name="frozen">The text of Expected/BOHREN.ncx.</param>
+    internal static List<string> BohrenReading(string frozen)
+    {
         var expected = new List<string>();
         int difference = 0;
         bool skipping = false;
@@ -155,7 +168,7 @@ public sealed partial class HeidenhainReaderTests
 
         Assert.Equal(s_bohrenReading.Length, difference);
         expected.RemoveAll(block => block.Length == 0);
-        Assert.Equal(string.Join('\n', expected), string.Join('\n', BlocksOf(read)));
+        return [.. string.Join('\n', expected).Split('\n')];
     }
 
     // 3D_FRAESEN.h, 830 blocks of short moves, converts in well under a second (phase 3, P3-05).

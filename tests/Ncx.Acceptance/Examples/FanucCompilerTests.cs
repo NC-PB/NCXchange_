@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using Ncx.Acceptance.Cli;
 using Ncx.Compilers;
 using Ncx.Compilers.Fanuc;
@@ -18,12 +16,27 @@ namespace Ncx.Acceptance.Examples;
 
 /// <summary>
 /// The acceptance of the Fanuc compiler (phase 3, P3-06; milestone M6): the round trips Fanuc to NCX to Fanuc of
-/// 2.5D_FRAESEN, BOHREN and 3D_FRAESEN reproduce their sources under the comparison rules of implementation 13,
+/// 2.5D_FRAESEN, BOHREN and 3D_FRAESEN reproduce their sources under the comparison rules of implementation 13
+/// (NcComparer),
 /// 2.5D_FRAESEN.ncx compiles to its Fanuc source except the blocks its notes give the Fanuc reading otherwise (D217),
 /// ncx compile writes the program, and the whole chain over 3D_FRAESEN takes well under a second.
 /// </summary>
-public sealed partial class FanucCompilerTests : IDisposable
+[Collection(ChainTiming.Name)]
+public sealed class FanucCompilerTests : IDisposable
 {
+    /// <summary>
+    /// The two blocks of 2.5D_FRAESEN.fanuc.nc that the example gives the Fanuc reading otherwise: its note 4 writes
+    /// the returns of N380 and N390 as RAPID Z=0 FRAME=MACHINE and RAPID X=0 Y=0 FRAME=MACHINE, which compile to G53
+    /// (D217).
+    /// </summary>
+    internal static readonly NcException s_movesOfNote4 = new()
+    {
+        Grounds = "D217 and note 4 of 2.5D_FRAESEN.ncx: the example's moves in the MACHINE frame where the Fanuc "
+            + "source writes G91 G28 Z0 and G28 X0 Y0",
+        Source = ["G91 G28 Z0", "G28 X0 Y0"],
+        Compiled = ["G53 Z0.", "G53 X0. Y0."],
+    };
+
     private readonly CliHarness _cli = new();
 
     public void Dispose()
@@ -42,7 +55,8 @@ public sealed partial class FanucCompilerTests : IDisposable
 
         string compiled = RoundTrip(source, mill);
 
-        AssertEquivalent(Fixture.ReadText("sources/" + source), compiled, mill);
+        string? difference = new NcComparer(mill).Compare(Fixture.ReadText("sources/" + source), compiled, []);
+        Assert.True(difference is null, difference);
     }
 
     // P3-06 done when: 2.5D_FRAESEN.ncx compiles to a program equivalent to 2.5D_FRAESEN.fanuc.nc. The example gives
@@ -59,10 +73,9 @@ public sealed partial class FanucCompilerTests : IDisposable
 
         string compiled = Compile(example, mill);
 
-        string expected = Fixture.ReadText("sources/2.5D_FRAESEN.fanuc.nc")
-            .Replace("N380 G91 G28 Z0", "N380 G53 Z0.", StringComparison.Ordinal)
-            .Replace("N390 G28 X0 Y0", "N390 G53 X0. Y0.", StringComparison.Ordinal);
-        AssertEquivalent(expected, compiled, mill);
+        string? difference = new NcComparer(mill).Compare(Fixture.ReadText("sources/2.5D_FRAESEN.fanuc.nc"), compiled,
+            [s_movesOfNote4]);
+        Assert.True(difference is null, difference);
     }
 
     // Architecture 10: ncx compile 2.5D_FRAESEN.ncx --machine fanuc-mill-30i writes the program into the folder of
@@ -116,69 +129,6 @@ public sealed partial class FanucCompilerTests : IDisposable
         return Assert.Single(result.Files).Text;
     }
 
-    // The comparison rules of implementation 13 (P3-07, made precise there): block numbers, comments and blank lines
-    // removed, whitespace trimmed, every number of both sides formatted with the decimals of the machine's [format], so
-    // that 70. and 70 are equal and -.534 equals -0.534; a header line and a T M6 line compared as a set of words;
-    // every other line word for word, in order. On a difference both texts are shown as normalized.
-    private static void AssertEquivalent(string expected, string actual, MachineConfig machine)
-    {
-        string expectedLines = string.Join('\n', Normalized(expected, machine));
-        string actualLines = string.Join('\n', Normalized(actual, machine));
-        Assert.Equal(expectedLines, actualLines);
-    }
-
-    private static List<string> Normalized(string text, MachineConfig machine)
-    {
-        var lines = new List<string>();
-        bool inHeader = false;
-        foreach (string raw in text.ReplaceLineEndings("\n").Split('\n'))
-        {
-            string line = BlockNumber().Replace(Comment().Replace(raw, ""), "").Trim();
-            if (line.Length == 0)
-            {
-                continue;
-            }
-
-            var words = new List<string>();
-            foreach (string word in line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            {
-                words.Add(NumberOf(word, machine));
-            }
-
-            bool onlyCodes = words.TrueForAll(word => word.StartsWith('G'));
-            inHeader = (inHeader || words[0].StartsWith('O')) && (words[0].StartsWith('O') || onlyCodes);
-            if ((inHeader && onlyCodes) || words.Contains("M6"))
-            {
-                words.Sort(StringComparer.Ordinal);
-            }
-
-            lines.Add(string.Join(' ', words));
-        }
-
-        return lines;
-    }
-
-    // A word of an address and a number with the decimals of the address in [format], without trailing zeros.
-    private static string NumberOf(string word, MachineConfig machine)
-    {
-        Match match = AddressAndNumber().Match(word);
-        if (!match.Success)
-        {
-            return word;
-        }
-
-        string address = match.Groups[1].Value;
-        decimal number = decimal.Parse(match.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
-        if (machine.Format?.Decimals.TryGetValue(address, out int decimals) == true)
-        {
-            number = Math.Round(number, decimals, MidpointRounding.AwayFromZero);
-        }
-
-        string text = number.ToString(CultureInfo.InvariantCulture);
-        text = text.Contains('.', StringComparison.Ordinal) ? text.TrimEnd('0').TrimEnd('.') : text;
-        return address + (text == "-0" ? "0" : text);
-    }
-
     // The mill of the Fanuc sources with the cycle catalog of its [cycles] (machine-config 6).
     private static MachineConfig Mill()
     {
@@ -192,13 +142,4 @@ public sealed partial class FanucCompilerTests : IDisposable
         Assert.True(catalog is not null, diagnostics.ToText());
         return CycleCatalogLoader.WithCatalog(machine, catalog);
     }
-
-    [GeneratedRegex(@"\([^)]*\)", RegexOptions.CultureInvariant)]
-    private static partial Regex Comment();
-
-    [GeneratedRegex(@"^N[0-9]+\s*", RegexOptions.CultureInvariant)]
-    private static partial Regex BlockNumber();
-
-    [GeneratedRegex(@"^([A-Z]+)([-+]?(?:[0-9]+\.?[0-9]*|\.[0-9]+))$", RegexOptions.CultureInvariant)]
-    private static partial Regex AddressAndNumber();
 }

@@ -1,6 +1,6 @@
 # Reading the code
 
-Status: 2026-09-13, end of phase 1. The path through the code for the first afternoon (code-guidelines 10.3): from `src/Ncx.Cli/Program.cs`, where every command of `ncx` starts, through one `ncx format` run and one `ncx check` run into the virtual machine, file by file. Phase 3 extends it to `convert` and `compile` (P3-07).
+Status: 2026-09-18, phase 3. The path through the code for the first afternoon (code-guidelines 10.3): from `src/Ncx.Cli/Program.cs`, where every command of `ncx` starts, through one `ncx format` run and one `ncx check` run into the virtual machine, then through one `ncx convert` of a source of the 2.5D example into NCX and one `ncx compile` of the example back to a controller, file by file (P3-07).
 
 The C# needed is the C# of code-guidelines 10.2: classes, methods, `if`, `foreach`, `switch`, lists and dictionaries. Every rule in the code starts with a comment that names the section of the specification it implements, `(virtual machine 3.5)` or `(D90)`; open that section beside the code and read the two together (code-guidelines 1 and 2). The names of the sections are the names of the documents: language is `docs/spec/ncx-language.md`, virtual machine `docs/spec/ncx-virtual-machine.md`, machine-config `docs/spec/machine-config.md`, architecture `docs/architecture/architecture.md`, and D90 is a row of `docs/decisions/decisions.md`. Every path below is written from the root of the repository.
 
@@ -18,16 +18,22 @@ Everything after `--` is the command line of `ncx`; where this tour writes `ncx 
 flowchart LR
     P[Program] --> F[FormatCommand]
     P --> C[CheckCommand]
+    P --> CV[ConvertCommand]
+    P --> CP[CompileCommand]
     F --> PA[Parser] --> W[NcxWriter]
     C --> PL[Pipeline]
     PL --> M[machine file or default machine]
     PL --> PA2[Parser] --> X[Expander] --> V[VirtualMachine]
     V --> E[seven steps per block]
+    CV --> R[reader of the controller] --> W2[NcxWriter]
+    R --> V
+    CP --> PA3[Parser] --> K[compiler of the controller]
+    K --> V
 ```
 
 ## 1. The command line
 
-`src/Ncx.Cli/Program.cs`. `Main` calls `Run(args, output, error)`, and `Run` builds the root command with its commands by hand: `FormatCommand`, `CheckCommand`, `TraceCommand` and `AnnotateCommand`, one class each in `src/Ncx.Cli/Commands/`. This is the composition root (code-guidelines 5): no container, no global setting, the wiring on the screen is all there is. `root.Parse(args)` reads the command line; a mistake in it is the diagnostic `CLI001` and exit code 2, before anything runs (D97). Otherwise `Invoke` calls the command that the first word names.
+`src/Ncx.Cli/Program.cs`. `Main` calls `Run(args, output, error)`, and `Run` builds the root command with its commands by hand: `FormatCommand`, `CheckCommand`, `TraceCommand`, `AnnotateCommand`, `ConvertCommand`, `AnalyzeCommand`, `CompileCommand` and `PluginCommand`, one class each in `src/Ncx.Cli/Commands/`. `Readers()` and `Compilers()` below it register one reader and one compiler per controller family, a line each (code-guidelines 5, Strategy and Registry). This is the composition root (code-guidelines 5): no container, no global setting, the wiring on the screen is all there is. `root.Parse(args)` reads the command line; a mistake in it is the diagnostic `CLI001` and exit code 2, before anything runs (D97). Otherwise `Invoke` calls the command that the first word names.
 
 Two things every command shares:
 
@@ -215,27 +221,115 @@ channel  block  variable          old      new
 
 `src/Ncx.Cli/Commands/TraceCommand.cs` runs the same pipeline with one listener, `src/Ncx.Cli/History/TraceListener.cs`. A listener implements `IVmListener` (`src/Ncx.Core/VirtualMachine/Events/IVmListener.cs`), one method, `On(VmEvent)`, and receives every event with `Before` and `After`, two snapshots of the channel state that it can read and never change (virtual machine 7; D61). The events of one block are put together in `src/Ncx.Core/VirtualMachine/Events/BlockEvents.cs`, in the order the block acts; `src/Ncx.Core/VirtualMachine/VirtualMachine.Events.cs` keeps the listeners and hands the `After` of one block on as the `Before` of the next. The whole event sequence of the example is `tests/Ncx.Acceptance/Expected/2.5D_FRAESEN.events.txt`. `ncx annotate`, `src/Ncx.Cli/Commands/AnnotateCommand.cs`, is the same run with another listener; the analytics of phase 4 and the plugins that watch a run are listeners as well.
 
-## 5. Where a change goes
+## 5. One `ncx convert` run
+
+```sh
+dotnet run --project src/Ncx.Cli -- convert docs/spec/examples/sources/2.5D_FRAESEN.fanuc.nc --machine fanuc-mill-30i
+```
+
+`convert` reads a controller program into NCX (architecture 7). The Fanuc source of the example, `O0001` with its `N` blocks, comes out as the blocks of the example, except the few its notes give the Fanuc reading otherwise: the offsets where `G43 H` and `D` stand (note 2, D7), the speed with its `M3`, `HOME Z` for `G91 G28 Z0` (note 4), and no `SECTION` for a comment line (D92, D217). Follow the source block
+
+```text
+N80 G43 Z2. H1
+```
+
+which comes out as
+
+```text
+RAPID Z=2 OFFSET:LEN=1
+```
+
+### 5.1 The command
+
+`src/Ncx.Cli/Commands/ConvertCommand.cs`. `Run`:
+
+1. Read the program with `src/Ncx.Cli/ControllerProgram.cs`: UTF-8 text, or Windows-1252 with the WARNING `CLI352` when its bytes are no UTF-8 (D229).
+2. The machine of the run through `src/Ncx.Cli/RunMachine.cs`, as `check` finds it, but never the built-in default machine: without `--machine` and without an ncx.toml that names a machine the run stops with `CLI250`, exit code 2, since only the machine file tells what its M codes mean (D77).
+3. The controller of the machine file, `controller = "fanuc"` in `machines/fanuc-mill-30i.toml`, chooses the reader from the registry that `Program.Readers()` fills.
+4. `Convert`: the reader, then the expander and the virtual machine STATIC over the program the reader produced, whose diagnostics follow the reader's, so that `convert` reports what `check` would (architecture 7, 10).
+5. `NcxWriter.Write`, the writer of `format`, to the standard output or into the file of `--output`.
+
+With `--batch <folder> --report <file>` instead of the program, `src/Ncx.Cli/Commands/BatchCommand.cs` runs the same `Convert` over every file of a folder, never stops on an error, and writes a summary of counts and codes, which is how a reader is run over the corpus of the maintainer (`tests/corpus-reports/README.md`).
+
+### 5.2 The reader
+
+`src/Ncx.Readers/ReaderBase.cs`. `Read` is the skeleton every reader shares, a template method (code-guidelines 5); a family fills in the steps its controller writes otherwise.
+
+1. The tokenizer of the family, `src/Ncx.Readers/Fanuc/FanucTokenizer.cs`, cuts the text into `SourceBlock`s of `SourceWord`s: `N80`, `G43`, `Z2.`, `H1`, and the comment `( )` of a block (controllers fanuc.md 1).
+2. `StructureOf` says what each block is for the file: `%` the frame of the file, `O0001` the start of a program, `M2` its end. `src/Ncx.Readers/StructurePass.cs` lays out the plan of the reading from it: `FILE=BEGIN`, `PROGRAM=BEGIN NAME="2.5D FRAESEN" NUMBER=1`, the blocks, `PROGRAM=END`, `FILE=END` (language 4.13).
+3. Every block of the plan updates `src/Ncx.Readers/SourceState.cs`, the small source-side state of what the controller leaves implicit: the modal groups (the `G0` of `N70` still moves `N80`), absolute or incremental, the preloaded tool (architecture 7).
+4. `ReadBlock` of the family, `src/Ncx.Readers/Fanuc/FanucReader.cs`, hands the block to one file per concern in turn: `FanucMacro`, `FanucFrames`, `FanucToolWords`, `FanucCycles`, `FanucMotion`, `FanucBuilder`. For `N80` the length offset `G43 H1` is `OFFSET:LEN=1` in `src/Ncx.Readers/Fanuc/FanucToolWords.cs`, where the source has it (D7), and `Z2.` under the active `G0` is `RAPID Z=2` in `src/Ncx.Readers/Fanuc/FanucMotion.cs`, the verb written on every block (controllers fanuc.md 9).
+5. A word that no concern reads keeps its block as `RAW:FANUC` with the WARNING `RDR001` (`src/Ncx.Readers/RawEmitter.cs`, D5): nothing is dropped, and the block goes back to the same controller verbatim.
+6. The words go into `src/Ncx.Core/Writing/NcxBuilder.cs`, which puts them into canonical order at the end of the block; the program it builds is the record `NcxProgram` that `format` writes.
+
+### 5.3 Where it is tested
+
+- `tests/Ncx.Readers.Tests/Fanuc/`: one test per row of the Fanuc column of controller-mapping, NC text in and NCX text out, `G43H1_IsTheLengthOffset_AndG49Cancels` among them.
+- `tests/Ncx.Acceptance/RoundTrips.cs`: every example source converted through the command line and compared with the example or with its frozen reading in `tests/Ncx.Acceptance/Expected/`, the differences its notes list named with their rules.
+- `tests/Ncx.Acceptance/Cli/BatchCommandTests.cs`: the batch, and its reports of the example sources in `tests/corpus-reports/`.
+
+## 6. One `ncx compile` run
+
+```sh
+dotnet run --project src/Ncx.Cli -- compile docs/spec/examples/2.5D_FRAESEN.ncx --machine heidenhain-itnc530
+```
+
+`compile` writes the program of an NCX file for one machine (architecture 8): here the Klartext program named after the example, 2.5D FRAESEN.h in the folder out/heidenhain-itnc530 of the working directory (machine-config 10). Follow line 10 of the example,
+
+```text
+TOOL=1 OFFSET:LEN=1 OFFSET:RAD=1 RPM=1592
+```
+
+which comes out as the tool call of the source:
+
+```text
+4 TOOL CALL 1 Z S1592
+```
+
+### 6.1 The command
+
+`src/Ncx.Cli/Commands/CompileCommand.cs`. `Run` finds the machine as `convert` does, never the default machine (D77), the compiler of its controller from `Program.Compilers()`, and the tool table next to the machine file (D10); it parses the file with the parser of `format`, hands the program to the compiler, and writes the files the compiler gives into the folder, none after an ERROR, since that file goes to a control (D205).
+
+### 6.2 The compiler
+
+`src/Ncx.Compilers/CompilerBase.cs`. `Compile` is the template method of every compiler, four steps:
+
+1. Expand, as `check` does: the expansion rules of the machine become NCX blocks, which the compiler writes like the others (virtual machine 1, D63).
+2. `RAW` of another controller and a native cycle of another family are an ERROR before anything is written (`src/Ncx.Compilers/CompilerBase.Native.cs`; D5, D94).
+3. The virtual machine runs STATIC with `src/Ncx.Compilers/StepRecorder.cs` subscribed, which keeps every block with its state before and after it. The compiler writes from those states, never deciding what a word means itself (architecture 8), and looks ahead in them for the `{next}` tool of a preload (D52).
+4. `WriteSteps` (`src/Ncx.Compilers/CompilerBase.Walks.cs`) hands every block to `WriteBlock` of the family, each subprogram once (D99), and lays out the files by `program_layout` (D48).
+
+`WriteBlock` of `src/Ncx.Compilers/Heidenhain/HeidenhainCompiler.cs` writes a block concern by concern in the order the control executes it: the frame, the tool, the modes and functions, each state word in a Klartext block of its own before the motion (language 5 rule 3), then the motion, then the dwell, the calls and the end. For line 10, `src/Ncx.Compilers/Heidenhain/HeidenhainToolCall.cs` assembles `TOOL CALL 1 Z S1592` from `TOOL`, the `WORKPLANE=XY` of the header and the `RPM` of the same block; the two offsets are implicit in the call (controllers heidenhain.md 8 rule 3). What stays the same for every family is in the folder above it: `src/Ncx.Compilers/TargetState.cs` knows what the control has active, so that a modal word stands only where it changes (`F2387` once); `src/Ncx.Compilers/NumberFormatter.cs` writes every number by the `[format]` of the machine, `X+50,4` with the comma and without trailing zeros; `src/Ncx.Compilers/OutputBuffer.cs` numbers the blocks and ends the lines as the `[format]` says, from 0 and with CR LF on the iTNC 530.
+
+With `--machine fanuc-mill-30i` the same run goes through `src/Ncx.Compilers/Fanuc/FanucCompiler.cs` and gives the Fanuc source back, `N40 T1 M6`, `N60 S1592 M3`, `N80 G43 Z2. H1`.
+
+### 6.3 Where it is tested
+
+- `tests/Ncx.Compilers.Tests/Heidenhain/`: one test per rule of heidenhain.md 8, `Rule3_ToolCall_IsAssembledFromToolWorkplaneAndTheRpmOfTheSameBlock` among them; `tests/Ncx.Compilers.Tests/Fanuc/` the same for fanuc.md 10.
+- `tests/Ncx.Acceptance/RoundTrips.cs`: every source converted and compiled back to its own controller, and the example and the frozen readings compiled to the other one, each compared with the source under the comparison rules of code-guidelines 8, which `tests/Ncx.Acceptance/NcComparer.cs` implements: block numbers, comments and number formats do not count, the order of the words in a motion block does, and a difference is shown as a unified diff. A difference the documents cannot settle is an `NcException` that names its question.
+
+## 7. Where a change goes
 
 Before a change goes into the source, the two levels above it are checked (code-guidelines 10.1; `docs/README.md`, Three levels of extension):
 
 | Level | For | Where |
 |---|---|---|
 | Configuration | another machine, other M codes, a retract before the tool change, a cycle | a TOML file in `machines/` or `cycles/`, after `docs/spec/machine-config.md`; `src/Ncx.Config/MachineConfigLoader.cs` reads it, and no code changes |
-| Plugin | a rule the TOML cannot say | one class with one method: an `IProgramRewriter` (`src/Ncx.Core/Expander/IProgramRewriter.cs`) changes blocks before the run, an `IVmListener` watches it. The coolant clutch rule of code-guidelines 11 is `tests/Ncx.Core.Tests/Expander/CoolantClutchRule.cs`, and `tests/Ncx.Core.Tests/Expander/CoolantClutchRuleTests.cs` has the same rule as TOML. The template of `templates/ncx-plugin/`, the loader and `ncx plugin new` come in phase 7 |
-| Source | a new word, a new rule of the virtual machine, a new command | below |
+| Plugin | a rule the TOML cannot say | one class with one method: an `IProgramRewriter` (`src/Ncx.Core/Expander/IProgramRewriter.cs`) changes blocks before the run, an `IVmListener` watches it, an `ISourceRule` reads a source block for a reader, an `IBlockWriter` changes the lines of a compiler. `ncx plugin new` copies the template of `templates/ncx-plugin/`, whose coolant clutch rule is the one of code-guidelines 11; `docs/plugins.md` tells the rest |
+| Source | a new word, a new rule of the virtual machine, a new controller family, a new command | below |
 
 In the source:
 
 - A new word of the language is its entry in the catalog file of its table in `src/Ncx.Core/Catalog/`, its rank in `src/Ncx.Core/Catalog/CanonicalRanks.cs`, and, when it sets state, one registration line and one method in the class of its group in `src/Ncx.Core/VirtualMachine/Handlers/`. `tests/Ncx.Core.Tests/Catalog/WordCatalogTableTests.cs` then rewrites `docs/spec/generated/word-catalog.md`, so the change shows in the diff next to the specification.
 - A new rule of the validation list goes into the file of its family in `src/Ncx.Core/VirtualMachine/Validation/`, with its code in `src/Ncx.Core/Model/`, its row in the table and a test named after it.
+- A source construct a reader does not read yet goes into the file of its concern in the folder of the family, `src/Ncx.Readers/Fanuc/FanucCycles.cs` for a Fanuc cycle, with a test in `tests/Ncx.Readers.Tests/`; its written form into the concern of the compiler, `src/Ncx.Compilers/Heidenhain/HeidenhainCycles.cs` for a Klartext cycle. A new controller family is a folder of each and one registration line in `Program.Readers()` and `Program.Compilers()`.
 - A new command is a class in `src/Ncx.Cli/Commands/`, one line in `Program.Run`, and its row in the command table of architecture 10.
 - A change of the language, the virtual machine or the configuration is a decision first (`docs/README.md`, Conventions).
 
-## 6. What comes next
+## 8. What comes next
 
-Phase 3 adds `ncx convert`, a controller program in and NCX out, and `ncx compile`, NCX in and the program for one machine out; P3-07 extends this tour through both with the 2.5D example. The reader framework is there already: `src/Ncx.Readers/ReaderBase.cs`, with the skeleton every reader shares told in `src/Ncx.Readers/README.md`.
+`ncx analyze` runs the program INTERPRETED with the analytics of `src/Ncx.Analytics/` subscribed as listeners (phase 4), the Siemens reader and compiler follow the two families of this tour (phase 5), jobs run several channels at once (phase 6), and plugins load into the runs of every command (phase 7). Each folder has its README, and the tests of each are named after the rules they check.
 
 ## About this tour
 
-For whoever changes it: a file or folder of the repository is written in backticks with its path from the repository root, and a class or method by its name alone (`ToolChangeRules`, `Execute`); a command line that names files of the repository stands in a block marked `sh`; program text, output and a file the reader writes himself stand in a block marked `text` and name no file. `tests/Ncx.Acceptance/Repository/ReadingTheCodeTests.cs` checks that every path named that way exists and that the route runs from `src/Ncx.Cli/Program.cs` through `format` and `check` into `src/Ncx.Core/VirtualMachine/VirtualMachine.cs`. A task that renames or moves a file the tour names updates the tour in the same commit (code-guidelines 12).
+For whoever changes it: a file or folder of the repository is written in backticks with its path from the repository root, and a class or method by its name alone (`ToolChangeRules`, `Execute`); a command line that names files of the repository stands in a block marked `sh`; program text, output and a file the reader writes himself stand in a block marked `text` and name no file. `tests/Ncx.Acceptance/Repository/ReadingTheCodeTests.cs` checks that every path named that way exists and that the route runs from `src/Ncx.Cli/Program.cs` through `format` and `check` into `src/Ncx.Core/VirtualMachine/VirtualMachine.cs`, then through `convert` into `src/Ncx.Readers/ReaderBase.cs` and through `compile` into `src/Ncx.Compilers/CompilerBase.cs`. A task that renames or moves a file the tour names updates the tour in the same commit (code-guidelines 12).
