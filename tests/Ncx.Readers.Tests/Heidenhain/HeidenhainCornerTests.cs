@@ -37,7 +37,7 @@ public sealed class HeidenhainCornerTests
 
     // The line after a rounding starts where the arc ends, and its IY counts from the corner point the line before
     // ends at: the reader writes it from the end of the arc, so that the path ends where the source's does (D58,
-    // language 4.3; wave-2 question #90).
+    // language 4.3; D255).
     [Fact]
     public void Rnd_BeforeAnIncrementalLine_WritesItsIncrementalWordFromTheEndOfTheArc()
     {
@@ -102,7 +102,7 @@ public sealed class HeidenhainCornerTests
     // line along X to (10, 0) into the clockwise arc of radius 4 about (14, 0), the rounding R2.5 about (8, 2.5)
     // touches the line at (8, 0) and the arc at (10.308, 1.538), and the arc keeps its end and its centre (D58,
     // language 4.3). The pole may stand before the line, before the corner or after it; a pole by IX and IY, the
-    // polar angle IPA of a CP and the incremental end of a CR count from the corner point (wave-2 question #90), and
+    // polar angle IPA of a CP and the incremental end of a CR count from the corner point (D255), and
     // an axis a C leaves out stays there; an arc by its radius CR keeps R, an arc of more than a turn its sweep ANGLE
     // less the part the rounding took (D84).
     [Theory]
@@ -161,7 +161,7 @@ public sealed class HeidenhainCornerTests
     }
 
     // A CC alone after the corner takes the corner point as its pole, as an incremental word after the corner counts
-    // from it (wave-2 question #90), and the polar line LP after the corner ends at its point about that pole (D58).
+    // from it (D255), and the polar line LP after the corner ends at its point about that pole (D58).
     [Fact]
     public void Rnd_BeforeAPoleAloneAndAPolarLine_TakesTheCornerPointAsThePole()
     {
@@ -218,7 +218,7 @@ public sealed class HeidenhainCornerTests
     }
 
     // A CHF or RND with its own F stays RAW, and the lines about it are read as the source writes them (the
-    // TODO(question) of HeidenhainCorners, wave-2 question #89).
+    // TODO(question) D255 of HeidenhainCorners).
     [Theory]
     [InlineData("3 CHF 2 F50")]
     [InlineData("3 RND R2 F50")]

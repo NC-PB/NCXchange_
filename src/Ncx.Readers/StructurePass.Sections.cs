@@ -84,7 +84,8 @@ internal sealed partial class StructurePass
         // A program without an end in the source ends after its last block; that is the M99 loop, or a WARNING when
         // the source has no end at all (language 4.13; controller-mapping 1, the missing M30 of Klartext).
         // TODO(question): controller-mapping 1 makes the missing M30 of Klartext a WARNING and says nothing of a Fanuc
-        // or Siemens program without M30, M2 or M17; every reader reports it with the same WARNING.
+        // or Siemens program without M30, M2 or M17; every reader reports it with the same WARNING until D211 is
+        // answered.
         bool loops = _structures[last].Role == StructureRole.Return && !_blocks[last].BlockSkip;
         if (!loops && FindRole(section, StructureRole.ProgramEnd, unskippedOnly: false) is null)
         {
@@ -150,10 +151,9 @@ internal sealed partial class StructurePass
     }
 
     // PROGRAM=BEGIN NAME="..." NUMBER=n; the comment after O is the name when the source gives none, Oxxxx (name)
-    // (controller-mapping 1, language 4.1).
-    // TODO(question): examples/2.5D_FRAESEN.ncx keeps the name as written, NAME="2.5D FRAESEN" for O0001 (2.5D
-    // FRAESEN), while examples/INCREMENTAL_SUB.ncx writes NAME="SLOT_ROW" for O0003 (SLOT ROW); the name is taken as
-    // written, trimmed, the form of the example that phase 3 converts from its source.
+    // (controller-mapping 1, language 4.1). The name is the comment as written, trimmed: the comment after O is the
+    // name the control shows (controllers fanuc.md 1), NAME takes a string (language 4.1), and the acceptance of P3-02
+    // reads O0001 (2.5D FRAESEN) as NAME="2.5D FRAESEN" (implementation 13, P3-01 and P3-02).
     private ReadStep ProgramBegin(int begin)
     {
         SourceStructure structure = _structures[begin];

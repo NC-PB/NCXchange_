@@ -97,7 +97,7 @@ internal static class FrameValidation
     // TODO(question): virtual machine 5 warns for "ROT on a target without table kinematics" without saying what table
     // kinematics is in a machine file, nor whether it is checked without one; here it is a rotary [[axis]] whose owner
     // is a [[resource]] of type table (machine-config 4), and a run without a machine file does not check it, until
-    // that is answered.
+    // D191 is answered.
     public static void CheckRot(Block block, MachineConfig machine, Diagnostics diagnostics)
     {
         if (block.Find("ROT") is not Word rot || machine.Machine.Controller is null || HasRotaryTable(machine))

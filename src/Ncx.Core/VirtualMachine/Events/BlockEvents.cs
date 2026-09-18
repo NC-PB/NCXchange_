@@ -96,7 +96,7 @@ internal sealed class BlockEvents
         // motions (P1-05: the distance under a tool is summed from MOTION lengths per holder).
         // TODO(question): virtual machine 7 gives the distance and block count under the tool without saying, on a
         // machine with several holders, under whose tool a block and its motions are; they count under the tool of the
-        // holder of the last TOOL (lastHolder, 2.3), which OFFSET addresses as well (3.8 rule 2), until that is
+        // holder of the last TOOL (lastHolder, 2.3), which OFFSET addresses as well (3.8 rule 2), until D236 is
         // answered.
         if (_after.LastHolder is string holder
             && _after.Holders.TryGetValue(holder, out HolderSnapshot? lastHolder)
@@ -131,7 +131,7 @@ internal sealed class BlockEvents
     // TODO(question): virtual machine 7 raises TOOL_END when a tool leaves the spindle, and PROGRAM=END keeps the tool
     // in the spindle (virtual machine 4), so the last tool of a program gets no TOOL_END and its distance and block
     // count reach no listener, while the tool list needs them (virtual machine 8); no TOOL_END is raised at
-    // PROGRAM_END until that is answered.
+    // PROGRAM_END until D233 is answered.
     private void AddToolChanges(Dictionary<string, RunStatistics> underTool)
     {
         foreach (KeyValuePair<string, HolderSnapshot> holder in _after.Holders)
@@ -249,7 +249,7 @@ internal sealed class BlockEvents
     // ExpandCycles its MOTION events follow it.
     // TODO(question): virtual machine 7 raises CYCLE_CALL at "every call", while 3.3 raises the call "as the individual
     // MOTION events" under ExpandCycles and architecture 5.1 raises "CYCLE_CALL or expanded MOTION events"; CYCLE_CALL
-    // is raised at every call and the MOTION events follow it under ExpandCycles, until that is answered.
+    // is raised at every call and the MOTION events follow it under ExpandCycles, until D234 is answered.
     private void AddCycleCall()
     {
         if (_block.Verb?.Key != "CYCLE_CALL" || _after.Cycle.Name is not string name)
@@ -377,7 +377,7 @@ internal sealed class BlockEvents
     // The name and the number of the program (virtual machine 2.1), with the run statistics at PROGRAM_END.
     // TODO(question): virtual machine 7 gives PROGRAM_END "run statistics" and 3.6 raises them without saying what they
     // are; they are the blocks executed from PROGRAM=BEGIN to PROGRAM=END and the distance summed from the MOTION
-    // lengths, the figures TOOL_END carries for a tool, until that is answered.
+    // lengths, the figures TOOL_END carries for a tool, until D235 is answered.
     private ProgramEvent ProgramEvent(EventPhase phase, RunStatistics underProgram)
     {
         bool end = phase == EventPhase.End;

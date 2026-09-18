@@ -16,7 +16,7 @@ public interface ISourceRule
     // once per source block, with one method, does it. The reader offers a rule only the blocks the tables leave
     // undecided and calls nothing after the last block, so a rule that held blocks back until its sequence is complete
     // would find the blocks the tables decide written before the ones it held, and would lose a block held at the end
-    // of the file (D5: nothing is dropped). Until it is answered, a claim covers the one block offered.
+    // of the file (D5: nothing is dropped). Until D232 is answered, a claim covers the one block offered.
 
     /// <summary>
     /// Offers one source block to the rule. A rule that claims it writes its NCX blocks for it with the builder,

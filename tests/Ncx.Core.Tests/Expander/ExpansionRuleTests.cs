@@ -86,8 +86,8 @@ public sealed class ExpansionRuleTests
     }
 
     // A catalog cycle may carry pre (machine-config 5a, the Doosan M291 before G83). Which block triggers the rule of a
-    // catalog cycle is open (TODO(question) in ExpansionRules): the rule fires on the block that names the cycle, so
-    // the mode function stands before that block and not before its CYCLE_CALL blocks.
+    // catalog cycle is open (TODO(question) D204 in ExpansionRules): the rule fires on the block that names the cycle,
+    // so the mode function stands before that block and not before its CYCLE_CALL blocks.
     [Fact]
     public void MachineConfig5a_CatalogCyclePre_StandsBeforeTheBlockThatNamesTheCycle()
     {

@@ -21,7 +21,7 @@ internal static class ExpansionRules
     {
         // TODO(question): architecture 5.5 and machine-config 5a do not say in which order the blocks of several rules
         // on one block stand; they nest, the rule of the first word in canonical order outermost, and the blocks of the
-        // rewriters stand inside those of the rules, next to the block, until that is answered.
+        // rewriters stand inside those of the rules, next to the block, until D199 is answered.
         var triggered = new List<TriggeredRule>();
         foreach (Word word in CanonicalOrder.Sort(block))
         {
@@ -42,7 +42,7 @@ internal static class ExpansionRules
     // TODO(question): machine-config 5a gives the four keys to "every function state", while its example writes them
     // once per table, THROUGH = { ON = "M51", OFF = "M9", requires = ..., restore = ... }, and the machine model keeps
     // one rule per table (FunctionTable.Rule); the rule applies to every word that sets a state of its table,
-    // COOLANT:THROUGH=OFF as well as COOLANT:THROUGH=ON, until that is answered.
+    // COOLANT:THROUGH=OFF as well as COOLANT:THROUGH=ON, until D198 is answered.
     private static TriggeredRule? RuleOf(Word word, MachineConfig machine)
     {
         switch (word.Key)
@@ -72,7 +72,7 @@ internal static class ExpansionRules
             // on the definition gives the mode code before the cycle of language 4.7.1 (the Doosan M291 before G83),
             // but a post, or a requires with its restore, then undoes the mode or the required state before the
             // CYCLE_CALL blocks drill. The rule fires on the block that names the cycle, never on a CYCLE_CALL block,
-            // until that is answered.
+            // until D204 is answered.
             case "CYCLE":
                 return CycleEntryOf(word, machine) is CycleEntry entry
                     ? Triggered(entry.Rule, "cycle " + entry.Name)
@@ -84,7 +84,7 @@ internal static class ExpansionRules
 
     // A cycle is named by CYCLE=name, a name of the cycle catalog (language 4.7.1), or written natively as
     // CYCLE:<controller>=n, which the catalog of that controller family passes through and finds by its native cycle,
-    // n compared as the catalog writes it (CycleCatalog.FindNative, wave-1 question #69). CYCLE=OFF names no cycle.
+    // n compared as the catalog writes it (CycleCatalog.FindNative, D144). CYCLE=OFF names no cycle.
     private static CycleEntry? CycleEntryOf(Word word, MachineConfig machine)
     {
         CycleCatalog catalog = machine.CycleCatalog;

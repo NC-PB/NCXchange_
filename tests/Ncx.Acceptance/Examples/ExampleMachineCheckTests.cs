@@ -23,8 +23,9 @@ public sealed class ExampleMachineCheckTests : IDisposable
         // TODO(question): VM 5 checks the spindle of the current tool holder before a LINE, the default spindle when
         // the holder has none. millturn1.toml gives its turret H1 the driven-tool spindle S3 (TOOL), so the turning
         // LINEs 13 and 14 of MILLTURN_TRANSFER, which cut while MAIN turns, report the WARNING VM500 twice against it;
-        // whether a turning tool in a turret with driven tools needs the work spindle instead is open. The expected
-        // file records the two WARNINGs as VM 5 has them.
+        // whether a turning tool in a turret with driven tools needs the work spindle instead is D129, which names this
+        // case (its option lets the rule pass while the spindle of the workpiece holder runs). The expected file
+        // records the two WARNINGs as VM 5 has them until D129 is answered.
         return new TheoryData<string, string>
         {
             { "2.5D_FRAESEN.ncx", "heidenhain-itnc530" },

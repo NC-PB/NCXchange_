@@ -45,7 +45,7 @@ internal static class AnnotateCommand
         // program to run.
         // TODO(question): virtual machine 6 does not say what annotate writes when an ERROR stops the run; it writes
         // the copy with the values of the blocks executed before the ERROR, and nothing when the file, the machine
-        // file, the parser or the expander stopped the run before its first block, until that is answered.
+        // file, the parser or the expander stopped the run before its first block, until D205 is answered.
         if (run.Program is NcxProgram program)
         {
             output.Write(run.ByteOrderMark + AnnotatedText.Write(program, annotations));

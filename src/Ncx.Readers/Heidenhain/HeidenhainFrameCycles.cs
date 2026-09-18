@@ -91,7 +91,7 @@ internal static class HeidenhainFrameCycles
     // (controllers heidenhain.md 3; controller-mapping 1, ORIGIN; language 4.2).
     // TODO(question): heidenhain 3 does not say whether cycle 247 ends an active cycle 7, 8, 10 or tilted plane on the
     // control, while ORIGIN empties the chain of NCX (language 4.2, D31); the reader writes ORIGIN and does not write
-    // them again, as the Fanuc reader does for G54 over G52.
+    // them again, as the Fanuc reader does for G54 over G52, until D253 is answered.
     private static void ReadOrigin(HeidenhainBlock block)
     {
         SourceWord? preset = block.Source.Find("Q339");

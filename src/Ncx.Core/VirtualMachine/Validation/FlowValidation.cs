@@ -152,7 +152,7 @@ internal static class FlowValidation
     // (virtual machine 3.6). A LABEL makes its block and the blocks after it reachable, and PROGRAM=END is the target
     // of JUMP=END (language 4.9, virtual machine 2.7), so it is never unreachable.
     // TODO(question): virtual machine 3.9 and language 4.13 name the unreachable block "inside a program" and virtual
-    // machine 5 lists it without that restriction; the blocks of a subprogram are not checked until that is answered.
+    // machine 5 lists it without that restriction; the blocks of a subprogram are not checked until D195 is answered.
     private static void CheckReachable(NcxProgram program, Section section, Diagnostics diagnostics)
     {
         Block? unconditionalJump = null;
@@ -181,7 +181,7 @@ internal static class FlowValidation
         }
     }
 
-    // "the program SLOT_ROW", "the subprogram 100".
+    // "the program SLOT ROW", "the subprogram 100".
     private static string SectionName(Section section)
     {
         string kind = section.Kind == SectionKind.Program ? "the program" : "the subprogram";

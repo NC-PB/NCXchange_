@@ -102,7 +102,7 @@ The three forms of an arc in its working plane (language 4.3; VM 3.2, 5; D36, D8
 |---|---|---|---|
 | `VM220` | ERROR | ARC without CENTER, R or ANGLE. | language 4.3; VM 3.2, 5 |
 | `VM221` | ERROR | CENTER on one plane axis only. | VM 3.2 |
-| `VM222` | ERROR | CENTER on an axis outside the working plane. | VM 3.2 |
+| `VM222` | ERROR | CENTER on an axis outside the working plane. | language 4.3; VM 3.2 |
 | `VM223` | ERROR | ARC with both CENTER and R. | language 4.3 |
 | `VM224` | ERROR | ANGLE with R. | language 4.3; VM 3.2, 5; D84 |
 | `VM225` | ERROR | ANGLE with plane end-point words. | language 4.3; VM 3.2, 5; D84 |

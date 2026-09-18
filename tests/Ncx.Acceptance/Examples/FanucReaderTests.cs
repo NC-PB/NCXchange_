@@ -31,7 +31,7 @@ public sealed partial class FanucReaderTests
     // offsets where G43 H and D stand, D7; HOME for G28), and controller-mapping 1 makes a comment-only Fanuc line
     // trivia and no SECTION (D92), S belongs to the M3 of its block (controllers fanuc.md 5), and N70 of the source
     // carries no G40 for the COMP=OFF of the Heidenhain R0. The test compares every other block of the example as the
-    // plan says.
+    // plan says, until D217 is answered.
     internal static readonly KeyValuePair<string, string>[] s_fanucReading =
     [
         new("SECTION=\"SIDE MILL D10 L35 SD10\"", ""),
@@ -129,9 +129,11 @@ public sealed partial class FanucReaderTests
     }
 
     // The Nakamura pair with nakamura-ntjx.toml keeps as RAW the builder codes of its [raw] table, G411, G300, G333,
-    // G131, as RAW:NAKAMURA, the data setting G10 as RAW:FANUC (controller-mapping 9; G10 is the control's, not in
-    // [raw]), and the three blocks of path 2 that read system variables the machine file does not map (#11099, #5024,
-    // #5025; language 4.12, D51) as RAW:FANUC; nothing else. The output formats to itself.
+    // G131, as RAW:NAKAMURA, the data setting G10 as RAW:FANUC (the RAW address is the controller or builder dialect,
+    // language 4.1; [raw] names the builder codes, machine-config 5; G10 is the control's, controller-mapping 9 and
+    // controllers fanuc.md 9 rule 7), and the three blocks of path 2 that read system variables the machine file does
+    // not map (#11099, #5024, #5025; language 4.12, D51) as RAW:FANUC until D250 is answered; nothing else. The output
+    // formats to itself.
     [Theory]
     [InlineData("NAKAMURA_WY250L_O1000.path1.nc")]
     [InlineData("NAKAMURA_WY250L_O1000.path2.nc")]

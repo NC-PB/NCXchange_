@@ -181,7 +181,7 @@ internal static class HeidenhainMotion
         bool auto = next < block.Source.Words.Count && block.Source.Words[next].Address == "AUTO";
 
         // TODO(question): heidenhain 2 gives F AUTO the feed of the tool table, which neither an NCX word nor a key of
-        // the machine file holds; the block is kept RAW.
+        // the machine file holds; the block is kept RAW until D251 is answered.
         if (auto || feed.Text.Length == 0)
         {
             block.Draft.KeepAsRaw(auto

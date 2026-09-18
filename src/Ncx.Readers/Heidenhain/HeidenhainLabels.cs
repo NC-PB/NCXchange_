@@ -213,7 +213,7 @@ internal sealed class HeidenhainLabels
     // TODO(question): heidenhain 7 rule 3 does not say what an LBL section is that CALL LBL calls and that stands
     // before the M30 of its program, or in a program without M30 (the main flow runs through it as well), nor what an
     // LBL is that is called and also used by REP or an FN jump; such an LBL is no subprogram, and the CALL LBL of it is
-    // kept RAW.
+    // kept RAW, until D254 is answered.
     private void DecideSubs(IReadOnlyList<SourceBlock> blocks, HashSet<string> called, int mainEnd)
     {
         int insideUntil = -1;

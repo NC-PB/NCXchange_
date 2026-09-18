@@ -53,7 +53,7 @@ internal static class ChannelValidation
     /// </summary>
     // TODO(question): virtual machine 3.7 warns for "SYNC in a single-channel job" without saying which run is one when
     // a file is checked without a job manifest (machine-config 8); a file whose programs all run on one channel is a
-    // single-channel job, and a file with programs on several channels is left to the job scheduler, until that is
+    // single-channel job, and a file with programs on several channels is left to the job scheduler, until D196 is
     // answered.
     public static bool IsSingleChannelJob(NcxProgram program)
     {

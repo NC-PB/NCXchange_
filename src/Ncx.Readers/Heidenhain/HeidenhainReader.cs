@@ -383,7 +383,7 @@ public sealed partial class HeidenhainReader : ReaderBase
     // TODO(question): heidenhain 5 has CYCLE=OFF written "before the next non-cycle motion", which for a definition
     // followed by its positioning blocks and then M99 would switch the cycle off before its first call; the reader
     // writes it before the first non-cycle motion after a call of the cycle, and the definition again where the cycle
-    // is called while NCX has it off.
+    // is called while NCX has it off, until D227 is answered.
     private void Write(HeidenhainBlock reading)
     {
         HeidenhainState state = reading.Heidenhain;

@@ -101,7 +101,7 @@ internal sealed class GeneratedText
     {
         // TODO(question): language 4.15 and virtual machine 3.10 do not say whether a generated block is skipped with
         // the SKIP block it was generated for (D53); it carries the SKIP word of its origin, so that skip_blocks skips
-        // the stop, the retract or the mode code together with the block that needs them, until that is answered.
+        // the stop, the retract or the mode code together with the block that needs them, until D201 is answered.
         IReadOnlyList<Word> words = block.Words;
         if (generated.Origin.Find("SKIP") is Word skip && !block.Has("SKIP"))
         {
@@ -148,7 +148,7 @@ internal sealed class GeneratedText
     // diagnostic about its text names that block and the rule or rewriter that wrote it (language 4.15, D98).
     // TODO(question): D98 renders a diagnostic on a generated block as file(line, from 12) without saying which line a
     // generated block has, since it stands on no line of the file; it has the line of its origin, which reads
-    // file(12, from 12), until that is answered.
+    // file(12, from 12), until D200 is answered.
     private Block? Parse(string text, string parsedText, string writer, GeneratedBlock generated)
     {
         Block origin = generated.Origin;

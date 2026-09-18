@@ -80,6 +80,10 @@ internal static class HeidenhainFunctions
     /// Reads the M functions of a block that the other concerns left.
     /// </summary>
     /// <param name="block">The block being read.</param>
+    // TODO(question): heidenhain.md 2 allows up to two M functions at the end of an L block and does not say whether
+    // each acts at the start or at the end of the motion, while the state words of an NCX motion block act before its
+    // motion (language 5 rule 3); an M function read with the motion (ReadsWithMotion) is written into the NCX block of
+    // the motion, which reads L Z+100 R0 FMAX M5 as SPINDLE=OFF before the retract, until D252 is answered.
     public static void Read(HeidenhainBlock block)
     {
         if (!block.Draft.IsRaw)

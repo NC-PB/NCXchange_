@@ -72,7 +72,7 @@ internal static class MotionValidation
     // TODO(question): virtual machine 5 compares "F above an axis max_feed" without saying which axes (those the block
     // moves, those of the machine), nor how a feed per revolution compares with a feed per minute; F per minute is
     // compared where it is written with the max_feed of every linear axis of the machine, and a feed per revolution is
-    // not compared, until that is answered.
+    // not compared, until D192 is answered.
     public static void CheckFeedAboveMaxFeed(BlockContext context)
     {
         ChannelState state = context.State;
@@ -113,8 +113,8 @@ internal static class MotionValidation
     /// <param name="before">The position store before the block.</param>
     // TODO(question): machine-config 4 calls the limits of a modulo rotary axis its display range and not a travel
     // limit, and names no key that tells a modulo axis from a rotary axis with travel limits (a tilting B); the limits
-    // of rotary axes are not compared until that is answered. Whether the machine coordinates of an X axis programmed
-    // in diameters are diameters is wave-1 question #4: the stored radius is compared with the limits as written.
+    // of rotary axes are not compared until D193 is answered. Whether the machine coordinates of an X axis programmed
+    // in diameters are diameters is D137: the stored radius is compared with the limits as written.
     public static void CheckLimits(BlockContext context, IReadOnlyDictionary<string, AxisPosition> before)
     {
         ChannelState state = context.State;

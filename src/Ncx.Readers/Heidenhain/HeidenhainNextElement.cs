@@ -6,7 +6,7 @@ namespace Ncx.Readers.Heidenhain;
 /// to its end point, LP to its polar point about the pole, C about the pole, CR by its radius, CP about the pole, each
 /// in the working plane with numbers, and the CC blocks on both sides of the corner that set the pole. An incremental
 /// word, a CC alone or by IX and IY, and a polar coordinate that takes the current position count from the corner
-/// point, as the reader then reads them (HeidenhainCorners.CurrentPosition and FromCornerEnd; wave-2 question #90).
+/// point, as the reader then reads them (HeidenhainCorners.CurrentPosition and FromCornerEnd; D255).
 /// </summary>
 internal static class HeidenhainNextElement
 {

@@ -115,10 +115,10 @@ internal static class HeidenhainCorners
     /// <param name="block">The block being read.</param>
     public static HeidenhainPoint? CurrentPosition(HeidenhainBlock block)
     {
-        // TODO(question): wave-2 question #90, heidenhain 2 does not say where a coordinate after a CHF or RND counts
-        // from, the corner point the element before programs or the end of the corner the tool stands at; the reader
-        // counts from the corner point, the incremental words (FromCornerEnd), a CC alone or by IX and IY, and a polar
-        // coordinate that takes the current position, as the Fanuc reader counts the G91 line after ,C and ,R.
+        // TODO(question): D255, heidenhain 2 does not say where a coordinate after a CHF or RND counts from, the corner
+        // point the element before programs or the end of the corner the tool stands at; the reader counts from the
+        // corner point, the incremental words (FromCornerEnd), a CC alone or by IX and IY, and a polar coordinate that
+        // takes the current position, as the Fanuc reader counts the G91 line after ,C and ,R, until D255 is answered.
         HeidenhainCorner? corner = block.Heidenhain.Corner;
         return corner is { Problem: null, Point: HeidenhainPoint point } && block.Line <= corner.NextLine
             ? point
@@ -128,7 +128,7 @@ internal static class HeidenhainCorners
     /// <summary>
     /// The value of an axis word of the element after an expanded corner: an incremental word counts from the corner
     /// point in the source and from the end of the corner in NCX, so it is written less the way the corner went, and
-    /// the element ends where the source's does (D58, language 4.3; wave-2 question #90); any other word as read.
+    /// the element ends where the source's does (D58, language 4.3; D255); any other word as read.
     /// </summary>
     /// <param name="block">The block being read.</param>
     /// <param name="word">The axis word.</param>
@@ -148,7 +148,7 @@ internal static class HeidenhainCorners
 
     /// <summary>
     /// The arc after an expanded corner names both axes of the plane at its end: an axis the source leaves out stays at
-    /// the corner point, where NCX would keep it at the end of the corner (D58; wave-2 question #90).
+    /// the corner point, where NCX would keep it at the end of the corner (D58; D255).
     /// </summary>
     /// <param name="block">The block being read, a C or a CR.</param>
     /// <param name="main">The ARC block it reads into.</param>
@@ -357,9 +357,9 @@ internal static class HeidenhainCorners
             return null;
         }
 
-        // TODO(question): wave-2 question #88, heidenhain 2 names CHF 2 a chamfer without saying what its length
-        // measures, the way along each line from the corner point or the chamfer line itself; the reader takes the way
-        // along each line, as the Fanuc reader takes ,C.
+        // TODO(question): D255, heidenhain 2 names CHF 2 a chamfer without saying what its length measures, the way
+        // along each line from the corner point or the chamfer line itself; the reader takes the way along each line,
+        // as the Fanuc reader takes ,C, until D255 is answered.
         double reach = isChamfer ? (double)size : (double)size * Math.Tan(turn / 2);
         if (reach > before.Length || reach > after.Length)
         {
@@ -537,9 +537,9 @@ internal static class HeidenhainCorners
         {
             SourceWord word = corner.Words[index];
 
-            // TODO(question): wave-2 question #89, heidenhain 2 gives the F of an L as the feed that stays and does not
-            // say what an F in a CHF or RND block feeds, the corner alone or the lines after it as well; the reader
-            // keeps such a block RAW, the elements about it as the source writes them.
+            // TODO(question): D255, heidenhain 2 gives the F of an L as the feed that stays and does not say what an F
+            // in a CHF or RND block feeds, the corner alone or the lines after it as well; the reader keeps such a
+            // block RAW, the elements about it as the source writes them, until D255 is answered.
             if (word.Address == "F")
             {
                 return "a CHF or RND block with a feed F of its own is not expanded";

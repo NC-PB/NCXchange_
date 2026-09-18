@@ -47,6 +47,16 @@ public sealed class CommentTests
         Assert.DoesNotContain("; BAR", text, StringComparison.Ordinal);
     }
 
+    // The name is the comment after O as written, its spaces kept and its ends trimmed: the name the control shows
+    // (controllers fanuc.md 1), a string (language 4.1), as the acceptance of P3-02 reads O0001 (2.5D FRAESEN).
+    [Fact]
+    public void ProgramName_CommentWithSpacesAfterO_IsTheNameAsWritten()
+    {
+        string text = Text(Lines("O0003 ( SLOT ROW )", "M30"));
+
+        Assert.Contains("\nPROGRAM=BEGIN NAME=\"SLOT ROW\" NUMBER=3\n", text, StringComparison.Ordinal);
+    }
+
     // Blank lines of the source stay blank lines of the program (D92).
     [Fact]
     public void Trivia_BlankLinesBetweenBlocks_StayInPlace()

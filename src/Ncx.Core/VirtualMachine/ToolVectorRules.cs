@@ -43,7 +43,7 @@ internal static class ToolVectorRules
 
         // TODO(question): language 4.3 and virtual machine 3.1 write the vector form for a LINE, and the parser lets
         // the vector words stand under RAPID, ARC and CYCLE_CALL as well (Heidenhain LN with FMAX is a rapid move with
-        // a tool vector); what they mean there is not said. They are checked and stored as on a LINE until that is
+        // a tool vector); what they mean there is not said. They are checked and stored as on a LINE until D185 is
         // answered.
         if (!CheckWords(context, rotaryWord, surfaceNormalWritten))
         {

@@ -92,7 +92,7 @@ internal static class TraceCommand
         // program to run.
         // TODO(question): virtual machine 6 does not say what trace writes when an ERROR stops the run; it writes the
         // rows of the blocks executed before the ERROR, and nothing when the file, the machine file, the parser or the
-        // expander stopped the run before its first block, until that is answered.
+        // expander stopped the run before its first block, until D205 is answered.
         if (run.Program is not null)
         {
             output.Write(TraceTable.Write(trace.Rows, format));

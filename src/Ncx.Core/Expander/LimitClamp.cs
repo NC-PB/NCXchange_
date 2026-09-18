@@ -121,7 +121,7 @@ internal static class LimitClamp
     // TODO(question): max_feed is in mm/min (deg/min on a rotary axis), F is in the units and the feed mode of the
     // program, and only the axis words of its own block tell which axes move, while the expander never sees the state
     // (architecture 5.5); F is compared as written, which never rewrites a feed within the limit (an INCH or a PER_REV
-    // feed is smaller than its value in mm/min), until that is answered.
+    // feed is smaller than its value in mm/min), until D192 is answered.
     private static Word? ClampFeed(Word word, decimal feed, Block block, MachineConfig machine, List<string> findings)
     {
         decimal? limit = null;
@@ -147,13 +147,13 @@ internal static class LimitClamp
 
     // A target beyond the axis limits, compared in the MACHINE frame (virtual machine 5, D100): an absolute axis word
     // of a RAPID, LINE or ARC under FRAME=MACHINE is a machine coordinate, compared as written with the limits of its
-    // linear axis (an X of a diameter-programmed axis is wave-1 question #4).
+    // linear axis (an X of a diameter-programmed axis is D137).
     // TODO(question): virtual machine 5 compares every target with the limits in the MACHINE frame, whose position only
     // the virtual machine knows for a workpiece-frame target, and the expander never sees the state (architecture 5.5);
-    // only the targets of FRAME=MACHINE blocks are clamped, and the virtual machine reports the others, until that is
+    // only the targets of FRAME=MACHINE blocks are clamped, and the virtual machine reports the others, until D203 is
     // answered.
     // TODO(question): the limits of a rotary axis are travel limits on a swivel and the display range of a modulo axis
-    // (machine-config 4, D100), and no key tells the two apart; a rotary target is not clamped until that is answered.
+    // (machine-config 4, D100), and no key tells the two apart; a rotary target is not clamped until D193 is answered.
     private static Word? ClampTarget(Word word, decimal target, Block block, MachineConfig machine,
         List<string> findings)
     {

@@ -46,10 +46,10 @@ internal static class SpindleValidation
     /// default spindle when the holder has none (virtual machine 5). The current tool holder is the holder of the last
     /// TOOL (virtual machine 2.3), and the state words of the block take effect before its motion (language 5 rule 3).
     /// The rule depends on the caller's state and is suppressed inside a subprogram that no program of the file calls
-    /// (3.9, D99). Which spindle is the default one on the built-in default machine is wave-1 question #53.
+    /// (3.9, D99). Which spindle is the default one on the built-in default machine is D129.
     /// </summary>
     // TODO(question): virtual machine 5 names the spindle OFF "before a LINE", while ARC and CYCLE_CALL cut with the
-    // spindle as well (language 4.3, 4.7); only LINE is checked until that is answered, as for "LINE without feed".
+    // spindle as well (language 4.3, 4.7); only LINE is checked until D194 is answered, as for "LINE without feed".
     public static void CheckSpindleBeforeLine(BlockContext context)
     {
         if (context.Block.Verb?.Key != "LINE")

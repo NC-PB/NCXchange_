@@ -260,7 +260,7 @@ internal sealed class VariableStore
     // TODO(question): under DIAMETER=ON the program writes X as a diameter and the virtual machine stores the radius
     // (D60); whether $SYS_POS_X and $SYS_MPOS_X read the diameter, as the X words of the program are written, or the
     // radius the virtual machine holds is not said. They read the diameter, so that a value read back into an X word
-    // lands where it was, until that is answered.
+    // lands where it was, until D216 is answered.
     private VariableValue PositionOf(string axisName, PositionFrame frame)
     {
         if (AxisKey(axisName) is not string axis

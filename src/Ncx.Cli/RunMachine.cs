@@ -175,7 +175,7 @@ internal sealed record RunMachine
     // nowhere else: the path rules of --machine do not apply, so a file of that name in the working directory is never
     // the catalog, a value with a folder in it is a path from each cycle folder in turn, and a full path or a value
     // that climbs out with ".." names no file of them. One that is in none of them is an input that cannot be read
-    // (D97).
+    // (D97). This holds until D207 is answered.
     private static RunMachine WithCatalog(
         MachineConfig machine, FoundFile machineFile, ProjectFolders folders, Diagnostics diagnostics)
     {

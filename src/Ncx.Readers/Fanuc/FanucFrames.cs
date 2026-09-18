@@ -74,7 +74,8 @@ internal static class FanucFrames
     // G54 to G59 are the datums 1 to 6, G54.1 Pn the datum 6 + n (language 4.2, ORIGIN; controller-mapping 1). ORIGIN
     // starts an empty chain (language 4.2).
     // TODO(question): fanuc 4 does not say whether G54 ends an active G52 or G68 on the control, while ORIGIN empties
-    // the chain of NCX (language 4.2, D31); the reader writes ORIGIN and does not write the shift again.
+    // the chain of NCX (language 4.2, D31); the reader writes ORIGIN and does not write the shift again until D244 is
+    // answered.
     private static void ReadOrigin(FanucBlock block)
     {
         int? origin = null;
@@ -112,7 +113,7 @@ internal static class FanucFrames
     // virtual machine 3.4).
     // TODO(question): fanuc 4 says G28 "with a real distance" moves to the intermediate point first, and the documents
     // read G28 B0 of system A, where B is absolute, as HOME B; a value of 0 is no intermediate point in either mode and
-    // any other value is one, absolute under G90 and incremental under G91 or by U W, until that is answered.
+    // any other value is one, absolute under G90 and incremental under G91 or by U W, until D243 is answered.
     private static void ReadHome(FanucBlock block)
     {
         bool reference = block.TakeCode("G28");
@@ -217,11 +218,12 @@ internal static class FanucFrames
     // Z0 cancels (controllers fanuc.md 4, 9 rule 6; controller-mapping 1, SHIFT; language 4.2; D31). The axes the new
     // G52 does not name are 0. The control holds the new shift also where the reader keeps the block as RAW.
     // TODO(question): fanuc 4 does not say what an incremental word of G52 does, U2.75 of system A (controller-mapping
-    // 2, IX=); the reader adds it to that axis of the active shift, and the new G52 replaces the old one as a whole.
+    // 2, IX=); the reader adds it to that axis of the active shift, and the new G52 replaces the old one as a whole,
+    // until D244 is answered.
     // TODO(question): fanuc 4 does not say where the local coordinate system of a G52 stands against an active G68,
     // G68.2 or G51.1, whose entries stand in the chain of NCX (language 4.2): in front of them, behind them, or in the
     // place of the earlier G52; and the SHIFT=RESET of a G52 that replaces the earlier one would remove them. A G52
-    // while the chain holds such an entry stays RAW.
+    // while the chain holds such an entry stays RAW until D244 is answered.
     private static void ReadShift(FanucBlock block)
     {
         if (!block.TakeCode("G52"))
@@ -293,10 +295,10 @@ internal static class FanucFrames
     // controller-mapping 1, ROTATE and TILT).
     // TODO(question): ROTATE turns about the current origin (language 4.2) and G68 about the point X Y, and fanuc 4
     // does not say what G68 without X Y turns about; the reader writes ROTATE for G68 R without a centre or with X0 Y0
-    // and keeps a G68 about another point as RAW.
+    // and keeps a G68 about another point as RAW, until D245 is answered.
     // TODO(question): fanuc 4 does not say what a G68 does while a G68 is active, a new rotation or one added to it; a
     // second G68 before the G69 stays RAW. In a subprogram whose caller the reader does not know, a G68 is appended to
-    // the caller's chain.
+    // the caller's chain. This holds until D245 is answered.
     private static void ReadRotation(FanucBlock block)
     {
         if (block.TakeCode("G68"))
@@ -542,8 +544,9 @@ internal static class FanucFrames
 
     // G5.1 Q1 switches AI contour control on and Q0 off; the tolerance itself sits in a parameter, so NCX TOLERANCE
     // reaches Fanuc only as the on and off switch (controllers fanuc.md 4; controller-mapping 1, TOLERANCE; D85).
-    // TODO(question): the phase plan reads G5.1 Q1 as TOLERANCE, while controller-mapping 1 keeps its value RAW and
-    // TOLERANCE takes the tolerance as its value (language 4.1); G5.1 Q0 is TOLERANCE=OFF and G5.1 Q1 stays RAW.
+    // G5.1 Q0 is TOLERANCE=OFF, and G5.1 Q1 stays RAW, since TOLERANCE takes a number or OFF (language 4.1) and the
+    // [tolerance] ON of a Fanuc machine writes no {tol} (machine-config 5; controller-mapping 1, TOLERANCE: the value
+    // stays RAW). The specification wins over the phase plan (implementation README).
     private static void ReadTolerance(FanucBlock block)
     {
         if (!block.TakeCode("G5.1"))

@@ -268,7 +268,7 @@ public sealed partial class VirtualMachine
     // Returns the pc to continue at; null when an ERROR stopped the run.
     // TODO(question): language 4.9 repeats the blocks "TIMES more times" and virtual machine 3.6 speaks of "REPEAT with
     // TIMES"; neither says what a REPEAT without TIMES does. It repeats them once, as a Heidenhain CALL LBL without REP
-    // and a Siemens REPEAT without P do, until that is answered.
+    // and a Siemens REPEAT without P do, until D212 is answered.
     private int? FollowRepeat(Block block, Word repeat, int pc, Section section, int repeatsAtEntry)
     {
         Stack<RepeatFrame> repeats = _state.Flow.Repeats;
@@ -309,7 +309,7 @@ public sealed partial class VirtualMachine
     // ends the repeat.
     // TODO(question): virtual machine 3.6 does not say what becomes of a repeat whose blocks a JUMP leaves before its
     // passes are used (a Heidenhain FN 9 out of a CALL LBL REP section); the repeat ends, and a flow that reaches the
-    // REPEAT block again starts it anew, until that is answered.
+    // REPEAT block again starts it anew, until D213 is answered.
     private void EndRepeatsOutside(int targetPc, Section section, int repeatsAtEntry)
     {
         Stack<RepeatFrame> repeats = _state.Flow.Repeats;

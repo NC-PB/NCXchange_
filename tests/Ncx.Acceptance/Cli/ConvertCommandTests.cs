@@ -181,9 +181,9 @@ public sealed partial class ConvertCommandTests : IDisposable
         Assert.StartsWith($"{outputFile}(1): ERROR CLI004: ", _error, StringComparison.Ordinal);
     }
 
-    // D5, virtual machine 2.9 (and the TODO(question) of ConvertCommand.Run on an ERROR): an ERROR of the reader is
-    // reported, the whole program the reader produced is written with the bare TOOL of the M6, and the check does not
-    // run, as an ERROR of the parser stops a run before its first block; the exit code is 1 (D97).
+    // D5, virtual machine 2.9 (and the TODO(question) D205 of ConvertCommand.Run on an ERROR): an ERROR of the reader
+    // is reported, the whole program the reader produced is written with the bare TOOL of the M6, and the check does
+    // not run, as an ERROR of the parser stops a run before its first block; the exit code is 1 (D97).
     [Fact]
     public void Convert_ErrorOfTheReader_WritesTheTextAndStopsTheCheck()
     {

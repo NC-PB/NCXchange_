@@ -52,7 +52,7 @@ internal static class CycleRules
         // TODO(question): a cycle of the cycle catalog (CYCLE=RECT_POCKET, language 4.7.1) carries its own parameters
         // (virtual machine 5), and virtual machine 3.3 gives the sequence of the built-in family and of the native form
         // only; the VM does not know the sequence of a catalog cycle either and calls it like the native form until
-        // that is answered.
+        // D187 is answered.
         if (cycle.Controller is not null || !DrillingFamily.Names.Contains(name))
         {
             PositionTheHoleOnly(context, cycle);
@@ -63,7 +63,7 @@ internal static class CycleRules
         // suppressed inside a subprogram that no program of the file calls (3.9, D99).
         // TODO(question): virtual machine 3.3 requires "known DEPTH and CLEARANCE", and 5 names the ERROR "without
         // DEPTH/CLEARANCE"; a DEPTH or CLEARANCE from an expression, unknown in STATIC mode (virtual machine 1), is no
-        // ERROR here, and the positions that follow from it are unknown, until that is answered.
+        // ERROR here, and the positions that follow from it are unknown, until D188 is answered.
         if (ParameterOf(cycle, DepthKey) is null || ParameterOf(cycle, ClearanceKey) is null)
         {
             context.CallerRuleDiagnostics.Error(block, DiagnosticCodes.CycleCallWithoutDepthOrClearance,
@@ -107,13 +107,13 @@ internal static class CycleRules
         AxisPosition depth = PlaneAt(state, DepthKey, drillingAxis, frame);
 
         // TODO(question): CYCLE_RETRACT=SAFE retracts to SAFE, and SAFE is optional (language 4.7); without SAFE the
-        // retract plane is not given, and the drilling axis is unknown after the call until that is answered.
+        // retract plane is not given, and the drilling axis is unknown after the call until D188 is answered.
         bool toSafe = ParameterOf(cycle, CycleRetractKey) is Word retract && BlockContext.IdentOf(retract) == SafeKey;
         AxisPosition retractPlane = toSafe ? PlaneAt(state, SafeKey, drillingAxis, frame) : clearance;
 
         // TODO(question): the other axis words of the call block position the hole (virtual machine 3.3); what a word
         // on the drilling axis itself does in the call block is not said. It moves its axis with the rapid to the
-        // hole, before the sequence, until that is answered.
+        // hole, before the sequence, until D189 is answered.
         Dictionary<string, AxisPosition> hole = PositionTheHole(context);
         state.Motion.Position[drillingAxis] = retractPlane;
         if (!expandCycles)
@@ -129,7 +129,7 @@ internal static class CycleRules
         // it reached (PECK, the deep hole cycle with full retract, language 4.7), except for CHIP_BREAK, which feeds on
         // without leaving the hole (its chip-breaking retract is a setting of the control); the retract is a rapid,
         // except for TAP, which feeds out at CYCLE_F behind the spindle reversal; the dwell moves nothing. This holds
-        // until that is answered.
+        // until D190 is answered.
         decimal? feed = ParameterOf(cycle, CycleFeedKey) is Word feedWord ? MotionRules.NumberOf(feedWord) : null;
         var motions = new List<CycleMotion>();
         if (hole.Count > 0)

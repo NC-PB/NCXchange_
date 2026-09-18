@@ -105,7 +105,7 @@ public sealed partial class VirtualMachine
     // TODO(question): virtual machine 3.6 gives the external program its own PROGRAM frame without saying what its
     // PROGRAM=BEGIN and PROGRAM=END do in a call; they frame it as SUB=BEGIN and SUB=END frame a subprogram: the
     // program runs from the block after its PROGRAM=BEGIN, and its PROGRAM=END returns to the caller, without ending
-    // the channel and without the resets of virtual machine 4, until that is answered.
+    // the channel and without the resets of virtual machine 4, until D214 is answered.
     private IEnumerable<Block> CallExternalProgram(string name, Block callBlock, int callPc, SectionEnd end)
     {
         bool firstCall = !_externalFiles.TryGetValue(name, out NcxProgram? external);

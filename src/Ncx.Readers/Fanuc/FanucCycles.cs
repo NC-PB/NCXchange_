@@ -240,7 +240,7 @@ internal static class FanucCycles
     // TODO(question): a one-shot entry runs once where it stands (machine-config 6), while the virtual machine keeps a
     // CYCLE until CYCLE=OFF, the next CYCLE, TOOL (with a WARNING) or PROGRAM=END (virtual machine 2.6, 4); the
     // documents do not say whether a reader closes a one-shot cycle with CYCLE=OFF, so it writes none, as the direct
-    // Siemens call of controller-mapping 5 reads.
+    // Siemens call of controller-mapping 5 reads, until D224 is answered.
     private static void ReadContourCycle(FanucBlock block, CycleEntry entry, string contour)
     {
         block.Take(entry.Contour[0]);
@@ -360,7 +360,7 @@ internal static class FanucCycles
     // A cycle ends with G80; on a lathe, where the cycles belong to group 01, with the next code of that group
     // (controllers fanuc.md 3, 6).
     // TODO(question): fanuc 6 says G80 cancels, "or a G0/G1 on some controls"; the reader ends the cycle of a mill at a
-    // G0 to G3 as well, so that such a block moves and does not drill.
+    // G0 to G3 as well, so that such a block moves and does not drill, until D247 is answered.
     private static bool Ends(FanucBlock block, SourceWord? code)
     {
         if (block.Fanuc.Cycle is null || code is not null)
@@ -524,7 +524,8 @@ internal static class FanucCycles
     // the peck, P the dwell in milliseconds, F the feed of the cycle and also the modal F of the control, K the number
     // of repeats (controllers fanuc.md 6; controller-mapping 5; D29).
     // TODO(question): on a lathe the documents do not say whether R of a drilling cycle is a level or the distance from
-    // the initial level; system A has no G91, and R is read as the level, as on a mill under G90.
+    // the initial level; system A has no G91, and R is read as the level, as on a mill under G90, until D248 is
+    // answered.
     private static void ReadDrilling(FanucBlock block, FanucCycle cycle, bool defines)
     {
         // Under G90 or G91 of a caller the reader does not know (FanucCallerState), R, the depth and the positions of
@@ -757,9 +758,10 @@ internal static class FanucCycles
     // TODO(question): language 6 writes the call of a defining block without a position, G81 G99 Z-21.732 R5. F565, as
     // CYCLE_CALL X=10 Y=10, the point the tool stands at, while language 4.7 calls a CYCLE_CALL without axis words at
     // the current position; the reader writes the axis words the block has, none there, as the CYCL CALL of Klartext
-    // reads. A CYCLE_CALL at the position of the block, K times; under G91 each repeat moves by the incremental words
-    // (controllers fanuc.md 6; controller-mapping 5, CYCLE_CALL and repeats; language 4.7). The plane axes stand at the
-    // call point afterwards and the drilling axis at the level the cycle returns to (virtual machine 3.3).
+    // reads, until D220 is answered. A CYCLE_CALL at the position of the block, K times; under G91 each repeat moves by
+    // the incremental words (controllers fanuc.md 6; controller-mapping 5, CYCLE_CALL and repeats; language 4.7). The
+    // plane axes stand at the call point afterwards and the drilling axis at the level the cycle returns to (virtual
+    // machine 3.3).
     private static void Call(FanucBlock block, FanucCycle cycle, List<FanucAxisWord> positions, int count)
     {
         var values = new List<Value>();

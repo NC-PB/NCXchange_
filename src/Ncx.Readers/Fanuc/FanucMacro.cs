@@ -143,9 +143,10 @@ internal static class FanucMacro
             return null;
         }
 
-        // TODO(question): wave-2 question #69: controller-mapping 6 reads M98 P51002 as program 1002 five times, while
-        // fanuc 1 gives the O numbers eight digits on the 30i; the older form of M98 and M200 is read whenever P has
-        // more than four digits and no L. G65 and M198 have no older form (fanuc 1 and 7, controller-mapping 6).
+        // TODO(question): D249: controller-mapping 6 reads M98 P51002 as program 1002 five times, while fanuc 1 gives
+        // the O numbers eight digits on the 30i; the older form of M98 and M200 is read whenever P has more than four
+        // digits and no L. G65 and M198 have no older form (fanuc 1 and 7, controller-mapping 6). This holds until D249
+        // is answered.
         if (!long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out long whole))
         {
             return null;
@@ -212,7 +213,7 @@ internal static class FanucMacro
         {
             // M99 P returns to a block of the caller: RETURN plus JUMP, kept as the two words (controller-mapping 6).
             // TODO(question): a JUMP names a LABEL of its own section (language 4.9, virtual machine 3.6), and the
-            // block of the caller is none; the reader keeps M99 P as RAW until that is answered.
+            // block of the caller is none; the reader keeps M99 P as RAW until D221 is answered.
             if (block.HasCode("M99") && block.Find("P") is not null)
             {
                 block.Draft.KeepAsRaw("M99 P returns to a block of the caller, which no JUMP of NCX reaches");

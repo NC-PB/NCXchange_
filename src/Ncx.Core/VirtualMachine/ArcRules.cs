@@ -220,20 +220,21 @@ internal static class ArcRules
         else if (words.HasCenter && words.Radius is not null)
         {
             // TODO(question): language 4.3 gives ARC "CENTER or R", and neither it nor virtual machine 5 says what an
-            // ARC with both is; the block says two things of one arc and is an ERROR until that is answered.
+            // ARC with both is; the block says two things of one arc and is an ERROR until D186 is answered.
             diagnostics.Error(block, DiagnosticCodes.ArcCenterWithRadius,
                 "ARC goes to its target with CENTER or with R, and this one has both (language 4.3).");
             valid = false;
         }
 
-        // TODO(question): virtual machine 3.2 runs the arc only in the working plane and requires CENTER on both plane
-        // axes; what CENTER on another axis is (CENTER:Z in the XY plane) is not said. It is an ERROR until that is
-        // answered.
+        // CENTER takes a plane axis as its address (language 4.3, the rows CENTER:X and CENTER:IX), and the arc runs
+        // only in the working plane (virtual machine 3.2): CENTER on another axis, CENTER:Z in the XY plane, is an
+        // ERROR.
         if (words.OutsideCenter is Word outside)
         {
             diagnostics.Error(block, DiagnosticCodes.ArcCenterOutsideThePlane,
                 $"{outside.ToCanonical()} is no axis of the {plane.Name} plane of {plane.FirstAxis} and "
-                + $"{plane.SecondAxis}; the arc runs only in the working plane (virtual machine 3.2).");
+                + $"{plane.SecondAxis}; CENTER takes a plane axis and the arc runs only in the working plane "
+                + "(language 4.3, virtual machine 3.2).");
             valid = false;
         }
 
@@ -251,10 +252,9 @@ internal static class ArcRules
 
     // Start = current position, which must be known in the plane: ERROR (virtual machine 3.2). What an absolute word
     // gives is known afterwards all the same; every coordinate that follows from the unknown start is unknown (3.1).
-    // TODO(question): virtual machine 3.9 and 5 suppress an incremental word from an unknown position inside a
-    // subprogram that no program of the file calls, and do not name an ARC from an unknown start, which has the same
-    // reason: the start belongs to a caller that does not exist (D99). It is suppressed there as well until that is
-    // answered.
+    // Inside a subprogram that no program of the file calls, the ERROR is suppressed: D99 suppresses there the
+    // validations that depend on the caller's state and walks the subprogram with the position unknown, and the start
+    // of an ARC is the position the caller leaves (virtual machine 3.2, 3.9).
     private static void StartUnknown(BlockContext context, Plane plane, ArcWords words, string? firstAxis,
         string? secondAxis)
     {

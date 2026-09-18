@@ -36,7 +36,7 @@ internal static class RestoreRules
         // state variables the restore stack keeps. It keeps those that one word sets from one value of the state:
         // SPINDLE (with the speed, as 3.10 shows), RPM, SPINDLE_MODE, CSS, VC, RPM_MAX, COOLANT, FUNC, F, FEED_MODE,
         // COMP and DIAMETER. Any other key, a tool, a cycle, the frame chain, a variable or a synchronization, whose
-        // restore is more than one word written again, is an ERROR until that is answered.
+        // restore is more than one word written again, is an ERROR until D202 is answered.
         switch (key.Key)
         {
             case "SPINDLE" or "RPM" or "CSS" or "VC" or "RPM_MAX":

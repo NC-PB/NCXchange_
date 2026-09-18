@@ -24,7 +24,7 @@ internal static class ArcValidation
             ValidationRule.Error(DiagnosticCodes.ArcCenterWithoutBothPlaneAxes, "CENTER on one plane axis only.",
                 "VM 3.2"),
             ValidationRule.Error(DiagnosticCodes.ArcCenterOutsideThePlane,
-                "CENTER on an axis outside the working plane.", "VM 3.2"),
+                "CENTER on an axis outside the working plane.", "language 4.3; VM 3.2"),
             ValidationRule.Error(DiagnosticCodes.ArcCenterWithRadius, "ARC with both CENTER and R.", "language 4.3"),
             ValidationRule.Error(DiagnosticCodes.ArcAngleWithRadius, "ANGLE with R.", "language 4.3; VM 3.2, 5; D84"),
             ValidationRule.Error(DiagnosticCodes.ArcAngleWithPlaneEndPoint, "ANGLE with plane end-point words.",

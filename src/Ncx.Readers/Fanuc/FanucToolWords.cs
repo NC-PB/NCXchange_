@@ -151,8 +151,8 @@ internal static class FanucToolWords
     // offset change and no motion (controllers fanuc.md 5; controller-mapping 3; language 4.4).
     // TODO(question): on a lathe the T word is the turret form (fanuc 5), while the Mori Seiki tool spindle takes T9001
     // as PRELOAD=9001 (controller-mapping 3, D91); the documents do not say how the reader tells the two apart, so
-    // every T word of a lathe is the turret form. A T word shorter than four digits is padded, T101 as T0101 (wave-1
-    // question #45).
+    // every T word of a lathe is the turret form until D219 is answered. A T word shorter than four digits is padded,
+    // T101 as T0101 (D153).
     private static void Turret(FanucBlock block, string digits)
     {
         int width = digits.Length <= 4 ? 4 : 6;

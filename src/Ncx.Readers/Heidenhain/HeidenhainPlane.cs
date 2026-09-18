@@ -99,7 +99,7 @@ internal static class HeidenhainPlane
     // TODO(question): MOVE=TURN positions the rotary axes "tool retracted first" (language 4.2), and MB says by how
     // much; whether the MB of a PLANE is the RETRACT in front of the TILT, or a part of MOVE=TURN that the compiler's
     // move template writes, is not said; the reader writes the RETRACT, and a PLANE RESET that positions the axes back
-    // (TURN, MOVE) stays RAW.
+    // (TURN, MOVE) stays RAW, until D228 is answered.
     private static bool Options(HeidenhainBlock block, HeidenhainDraftBlock? entry, out HeidenhainDraftBlock? retract)
     {
         retract = null;

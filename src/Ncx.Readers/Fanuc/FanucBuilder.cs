@@ -165,7 +165,8 @@ internal static class FanucBuilder
         // The PHASE code of [spindle_sync] is named by a table, so no MFUNC (machine-config 5), and PHASE takes the
         // angle of the phase-synchronous run (language 4.5), which the code does not carry: the block stays RAW (D5).
         // TODO(question): Nakamura M92 runs the spindles phase-synchronous with the phase position that M93 set in the
-        // control (controller-mapping 4, SPINDLE_SYNC and PHASE); the documents do not say which PHASE an M92 is.
+        // control (controller-mapping 4, SPINDLE_SYNC and PHASE); the documents do not say which PHASE an M92 is (D154,
+        // whose recommendation names M92); the block stays RAW until D154 is answered.
         if (FanucFunctions.IsPhaseCode(block, word))
         {
             block.Draft.KeepAsRaw($"M{word.Text} is the PHASE of [spindle_sync], which NCX writes with its angle only");
@@ -198,7 +199,7 @@ internal static class FanucBuilder
     // 4, WORKPIECE; language 4.10; D40, D57).
     // TODO(question): [workpiece] writes the spindle's datum with the code, "G54 M428" (machine-config 5), and the
     // source writes them in separate blocks, N100 M428 and G54 G18 of the Nakamura program; the reader takes the M code
-    // of the template as WORKPIECE and reads the datum as ORIGIN where it stands.
+    // of the template as WORKPIECE and reads the datum as ORIGIN where it stands, until D222 is answered.
     private static string? WorkpieceOf(FanucBlock block, string code)
     {
         if (block.Machine.Workpiece is not WorkpieceConfig workpiece)

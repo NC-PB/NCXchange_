@@ -286,7 +286,7 @@ public abstract class ReaderBase : IReader
         // TODO(question): architecture 9 and virtual machine 7 give folding M5, M51, M3 S1500 back into
         // COOLANT:THROUGH=ON as the work of a reader rule, while the tables name each of the three codes and are
         // tried first (machine-config 5, D40); a rule is offered only the blocks the tables leave undecided, so it
-        // cannot fold a sequence of codes the tables know.
+        // cannot fold a sequence of codes the tables know, until D231 is answered.
         if (LeavesUndecided(block) && ClaimedByRule(block))
         {
             return;
@@ -298,7 +298,8 @@ public abstract class ReaderBase : IReader
     // The first rule that claims the block reads it, and its claim covers that one block (D40, D66).
     // TODO(question): how a rule claims a sequence of source blocks (D66, architecture 9) through the one method
     // Read(SourceBlock, SourceState, NcxBuilder): a block the tables decide is not offered to the rules and nothing is
-    // called after the last block, so a rule holding blocks back would see them reordered or lost (ISourceRule).
+    // called after the last block, so a rule holding blocks back would see them reordered or lost (ISourceRule), until
+    // D232 is answered.
     private bool ClaimedByRule(SourceBlock block)
     {
         foreach (ISourceRule rule in _rules)

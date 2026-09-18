@@ -77,7 +77,8 @@ public sealed class MotionValidationTests
         RuleAssert.Only(vm, DiagnosticCodes.FeedAboveMaxFeed);
     }
 
-    // VM 5, D64: a feed per revolution is not compared with a feed per minute (the TODO(question) of MotionValidation).
+    // VM 5, D64: a feed per revolution is not compared with a feed per minute (the TODO(question) D192 of
+    // MotionValidation).
     [Fact]
     public void Feed_PerRevolution_IsNotCompared()
     {

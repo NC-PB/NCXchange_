@@ -335,7 +335,7 @@ internal static class FanucMotion
     // G0 is RAPID, G1 LINE, G2 ARC=CW, G3 ARC=CCW (controller-mapping 2).
     // TODO(question): the documents do not give the code of group 01 that is active before the source writes one (a
     // parameter of the control); a block with axis words before any G0 to G3, G53 X#528 of the Nakamura program, moves
-    // at RAPID.
+    // at RAPID until D242 is answered.
     private static string? VerbOf(string? motion, out Value value)
     {
         value = motion switch
@@ -360,7 +360,8 @@ internal static class FanucMotion
     // CENTER:IX; language 6 and examples/2.5D_FRAESEN.ncx: G3 X70. Y50. I-.534 J-19.993 is CENTER:X=50 CENTER:Y=50).
     // TODO(question): controller-mapping 2 gives I J K two readings (CENTER:X computed from I J K and the start point,
     // CENTER:IX as I J K) and the phase plan names CENTER:IX; the reader computes the absolute centre under G90 from a
-    // known start point, and keeps CENTER:IX under G91, from an unknown start point and on a diameter X axis (D60).
+    // known start point, and keeps CENTER:IX under G91, from an unknown start point and on a diameter X axis (D60),
+    // until D208 is answered.
     private static void ReadArc(FanucBlock block, DraftBlock main, Dictionary<string, decimal> start,
         bool incremental)
     {
@@ -396,7 +397,7 @@ internal static class FanucMotion
         }
 
         // TODO(question): fanuc 4 does not say what an arc is whose I or J is left out, and the VM needs both axes of
-        // the centre (virtual machine 3.2); the reader takes a centre word left out as 0.
+        // the centre (virtual machine 3.2); the reader takes a centre word left out as 0 until D241 is answered.
         Value zero = new IntegerValue(0, "0");
         Value? firstValue = firstWord is null ? zero : FanucMacro.ValueOf(block, firstWord);
         Value? secondValue = secondWord is null ? zero : FanucMacro.ValueOf(block, secondWord);
@@ -452,7 +453,8 @@ internal static class FanucMotion
     // (controllers fanuc.md 2, 6; D29): a feed motion after such a block gets the F of the control, so that it moves
     // as the source does (language 2 rule 4, explicit where controllers are implicit).
     // TODO(question): the documents do not say where the F of a Fanuc cycle block, which is also the modal F of the
-    // control, stands in NCX besides CYCLE_F; the reader writes it on the next LINE or ARC that moves with it.
+    // control, stands in NCX besides CYCLE_F; the reader writes it on the next LINE or ARC that moves with it until
+    // D218 is answered.
     private static void AddModalFeed(FanucBlock block, DraftBlock main, string verb)
     {
         Value? feed = block.Fanuc.ControlFeed;

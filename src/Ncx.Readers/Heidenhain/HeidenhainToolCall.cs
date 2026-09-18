@@ -34,7 +34,8 @@ internal static class HeidenhainToolCall
     // offset words with the number of the tool (heidenhain 7 rule 2; language 2 rule 4).
     // TODO(question): heidenhain 4 names the F of TOOL CALL without saying what it does (the modal feed, or the feed
     // that F AUTO takes), and OFFSET:LEN and OFFSET:RAD take a register number (language 4.4) that a tool called by
-    // name has not; a TOOL CALL with F, or by name, is kept RAW.
+    // name has not; a TOOL CALL with F (D251), or by name (D239), is kept RAW until those are answered. The delta
+    // offsets DL, DR and DR2 have no NCX word (language 4.4) and keep the block RAW with a WARNING (D5).
     private static void ReadCall(HeidenhainBlock block)
     {
         SourceWord? number = NumberWord(block);

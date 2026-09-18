@@ -67,7 +67,7 @@ public static class ProjectSettingsLoader
     // TODO(question): machine-config 10 writes the plugin assemblies as plugins = ["MyShop.NcxPlugins.dll"] and D80 the
     // settings of a plugin as a [plugins.<name>] section of the same file, and TOML cannot hold both under the key
     // plugins. An array is read as the assemblies, a table as the sections of the plugins, one string dictionary per
-    // plugin, which then name no assembly; which form ncx.toml takes is open.
+    // plugin, which then name no assembly; which form ncx.toml takes is D238.
     private static Dictionary<string, IReadOnlyDictionary<string, string>> ReadPluginSettings(ConfigTable root)
     {
         var settings = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);

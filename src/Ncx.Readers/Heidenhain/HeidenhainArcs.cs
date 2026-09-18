@@ -61,9 +61,9 @@ internal static class HeidenhainArcs
             y = isFirst ? y : value;
         }
 
-        // TODO(question): wave-2 question #86, heidenhain 2 does not say what a CC with one axis of the plane leaves
-        // for the other, the coordinate of the earlier pole or of the current position; the pole is then not known, and
-        // the arcs about it stay RAW.
+        // TODO(question): D254, heidenhain 2 does not say what a CC with one axis of the plane leaves for the other,
+        // the coordinate of the earlier pole or of the current position; the pole is then not known, and the arcs about
+        // it stay RAW until D254 is answered.
         return x is decimal poleX && y is decimal poleY ? new HeidenhainPoint(poleX, poleY) : null;
     }
 

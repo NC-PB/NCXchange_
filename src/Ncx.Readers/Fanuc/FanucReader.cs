@@ -202,7 +202,7 @@ public sealed partial class FanucReader : ReaderBase
     // TODO(question): controller-mapping 7 takes the path "from the file name or a TOML rule", machine-config names no
     // such rule, and the documents give the file names of the builder nakamura only, whose path 1 carries no suffix;
     // the reader writes CHANNEL=n for a file named .P-n on a machine of the builder nakamura and no CHANNEL otherwise,
-    // where the job names the channel (language 4.14).
+    // where the job names the channel (language 4.14), until D223 is answered.
     private long? ChannelOfFile()
     {
         if (!FanucMacro.IsBuilderNakamura(Machine))
@@ -259,7 +259,7 @@ public sealed partial class FanucReader : ReaderBase
             // G52 or G69 acts on) where the callers leave different states or a call stands after the subprogram. The
             // reader takes what every call of the file agrees on, fact by fact (FanucCallerState); a fact the calls do
             // not agree on, or that a call the reader has not read yet leaves open, is unknown, and a block that
-            // depends on it stays RAW; a bare M6 is a bare TOOL.
+            // depends on it stays RAW; a bare M6 is a bare TOOL. This holds until D225 is answered.
             fanuc.Calls.EntryOf(SectionName(fanuc, begin), ConsultedGroups()).Restore(State, fanuc);
             Derive(fanuc);
             return;

@@ -55,8 +55,8 @@ public sealed partial class ConvertExampleTests : IDisposable
 
     // M4, P3-02 done when: ncx convert 2.5D_FRAESEN.fanuc.nc --machine fanuc-mill-30i equals examples/2.5D_FRAESEN.ncx,
     // compared as P3-02 compares it: comments and trivia stripped on both sides and the blocks in canonical form,
-    // except the blocks the example reads otherwise for Fanuc (FanucReaderTests, with its TODO(question)). The Fanuc
-    // source converts without a diagnostic of the reader or of the check.
+    // except the blocks the example reads otherwise for Fanuc (FanucReaderTests, with its TODO(question) D217). The
+    // Fanuc source converts without a diagnostic of the reader or of the check.
     [Fact]
     public void CommandLine_25DFraesenFanuc_EqualsTheBlocksOfTheExample()
     {
@@ -72,8 +72,8 @@ public sealed partial class ConvertExampleTests : IDisposable
 
     // M6, P3-05 done when: ncx convert 2.5D_FRAESEN.h --machine heidenhain-itnc530 equals examples/2.5D_FRAESEN.ncx as
     // P3-02 compares it, except the blocks the example reads otherwise for Klartext (HeidenhainReaderTests, with its
-    // TODO(question)), with the WARNING about the missing M30 (RDR010); the two BLK FORM blocks kept as RAW add their
-    // WARNINGs, the reader's (RDR001, D5) and the check's (VM400, virtual machine 5).
+    // TODO(question) D217), with the WARNING about the missing M30 (RDR010); the two BLK FORM blocks kept as RAW add
+    // their WARNINGs, the reader's (RDR001, D5) and the check's (VM400, virtual machine 5).
     [Fact]
     public void CommandLine_25DFraesenHeidenhain_EqualsTheBlocksOfTheExampleWithTheWarningAboutTheMissingM30()
     {

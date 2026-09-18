@@ -93,7 +93,8 @@ internal sealed class HeidenhainChain
     // shifts or the last shift (wave-1 question #95; language 4.2, virtual machine 2.1).
     // TODO(question): heidenhain 3 does not say where a new cycle 7, 8, 10 or PLANE stands against the transforms that
     // were programmed after the one it replaces (a cycle 10 after the cycle 7 that a new cycle 7 replaces), in the
-    // place of the old one or at the end of the chain (language 4.2, D31); the reader keeps such a block RAW.
+    // place of the old one or at the end of the chain (language 4.2, D31); the reader keeps such a block RAW until D253
+    // is answered.
 
     /// <summary>
     /// Replaces the entry of a kind with a new one, or removes it: writes the blocks of the change in order.

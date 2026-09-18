@@ -29,7 +29,7 @@ internal static class FanucTilt
 
         // TODO(question): controller-mapping 1 reads G68.1 with G53.1 as TILT_AXIS (D82), and G68.1 turns the
         // coordinate system about an axis (fanuc 4) while TILT_AXIS takes the rotary axis positions of the machine; the
-        // documents do not say how the words of G68.1 become the axis angles. G68.1 stays RAW.
+        // documents do not say how the words of G68.1 become the axis angles. G68.1 stays RAW until D246 is answered.
         if (block.TakeCode("G68.1"))
         {
             block.Draft.KeepAsRaw("G68.1, the 3D coordinate conversion, is kept as RAW");
@@ -56,7 +56,7 @@ internal static class FanucTilt
 
     // TODO(question): fanuc 4 does not say what a G68.2 does while a tilted plane is active, a new plane or one in the
     // active plane; a second G68.2 before the G69 stays RAW. In a subprogram whose caller the reader does not know, a
-    // G68.2 is appended to the caller's chain.
+    // G68.2 is appended to the caller's chain. This holds until D245 is answered.
     private static void ReadTilt(FanucBlock block)
     {
         if (block.Fanuc.Chain.Holds("G68.2"))

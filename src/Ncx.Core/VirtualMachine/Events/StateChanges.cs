@@ -37,7 +37,7 @@ internal sealed class StateChanges
     // their block and never differ between Before and After.
     // TODO(question): virtual machine 7 names "any modal change" and 6 "every changed state variable" without a list;
     // STATE_CHANGE covers the variables above, without the program rows, lastHolder and the flow and channel rows,
-    // until that is answered.
+    // until D197 is answered.
     public static List<StateChangeEvent> Between(Block block, ChannelSnapshot before, ChannelSnapshot after)
     {
         var changes = new StateChanges(block, before, after);

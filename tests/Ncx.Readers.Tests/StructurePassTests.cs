@@ -18,7 +18,7 @@ public sealed class StructurePassTests
     {
         NcxProgram program = Program(Lines(
             "%",
-            "O0003 (SLOT_ROW)",
+            "O0003 (SLOT ROW)",
             "G0 X0 Y0",
             "M98 P100 L4",
             "M5",
@@ -41,7 +41,7 @@ public sealed class StructurePassTests
         Assert.Equal(
             Lines(
                 "FILE=BEGIN NCX=1",
-                "PROGRAM=BEGIN NAME=\"SLOT_ROW\" NUMBER=3",
+                "PROGRAM=BEGIN NAME=\"SLOT ROW\" NUMBER=3",
                 "RAPID X=0 Y=0",
                 "CALL=100 TIMES=4",
                 "SPINDLE=OFF",

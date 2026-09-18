@@ -78,7 +78,7 @@ internal static class MotionRules
     public static void MoveStraight(BlockContext context)
     {
         // TODO(question): virtual machine 3.1 and 5 name "LINE without feed"; ARC moves at the active feed as well
-        // (language 4.3) and is not named, so only LINE is checked until that is answered.
+        // (language 4.3) and is not named, so only LINE is checked until D184 is answered.
         if (context.Block.Verb?.Key == "LINE" && context.State.Motion.Feed is null)
         {
             context.CallerRuleDiagnostics.Error(context.Block, DiagnosticCodes.LineWithoutFeed,
@@ -159,7 +159,7 @@ internal static class MotionRules
             // TODO(question): virtual machine 3.1 adds IX to "the current value" and D101 lets SETPOS accept an axis
             // known in some frame; whether IX may add to a value known in another frame than the one the block programs
             // in (after HOME the axis is known in the MACHINE frame only, D35) is not said. The current value is taken
-            // in the frame of the block, and a value unknown there is the ERROR, until that is answered.
+            // in the frame of the block, and a value unknown there is the ERROR, until D183 is answered.
             if (CoordinateIn(state, axis, frame) is not decimal current)
             {
                 context.CallerRuleDiagnostics.Error(context.Block, DiagnosticCodes.IncrementalFromUnknownPosition,

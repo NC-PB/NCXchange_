@@ -401,7 +401,7 @@ internal static partial class HeidenhainCycles
     // TODO(question): controller-mapping 5 does not say whether a definition whose Q204 puts SAFE on CLEARANCE,
     // BOHREN.h with Q200=5 and Q204=5 against G99 and R5. of the Fanuc source, or whose Q204 is 0, reads as
     // CYCLE_RETRACT=CLEARANCE; the reader writes SAFE and CYCLE_RETRACT=SAFE for every definition with Q204, which
-    // keeps Q204, and Expected/BOHREN.ncx keeps the Fanuc reading until the question is answered (phase 3, P3-05).
+    // keeps Q204, and Expected/BOHREN.ncx keeps the Fanuc reading until D226 is answered (phase 3, P3-05).
     private static void AddRetract(CycleEntry entry, List<SourceWord> parameters, List<Word> words, bool family)
     {
         string? safe = entry.NativeOf("SAFE");
@@ -415,10 +415,11 @@ internal static partial class HeidenhainCycles
     }
 
     // TODO(question): a Q parameter of a drilling definition that no word of its catalog entry carries (Q202 and Q210
-    // of cycle 200, Q208 of cycle 201, Q212, Q213, Q205, Q208 and Q256 of cycle 203) has no NCX word; the documents say
-    // which value the compiler writes for it (wave-1 question #21) but not what the reader does with it. The reader
-    // does not write it and reports it with a WARNING, so that the definition reads into the words of
-    // controller-mapping 5.
+    // of cycle 200, Q208 of cycle 201, Q212, Q213, Q205, Q208 and Q256 of cycle 203) has no NCX word, and the documents
+    // say neither which value the compiler writes for it nor what the reader does with it (D164, which repeats wave-1
+    // question #21 and whose recommendation is this reader side: the named entry only where the values equal what the
+    // compiler writes, CYCLE:HEIDENHAIN=n otherwise). The reader does not write it and reports it with a WARNING, so
+    // that the definition reads into the words of controller-mapping 5, until D164 is answered.
     private static void WarnUnmapped(HeidenhainBlock block, CycleEntry entry, string native, List<string> unmapped)
     {
         if (unmapped.Count == 0)
@@ -498,7 +499,8 @@ internal static partial class HeidenhainCycles
 
     // A point of a PATTERN DEF: the two axes of the plane, and on the tool axis 0 or nothing.
     // TODO(question): heidenhain 5 does not say what the tool-axis coordinate of a PATTERN DEF point does to the cycle
-    // (a surface for the point, or added to Q203); a point with one other than 0 keeps the pattern RAW.
+    // (a surface for the point, or added to Q203); a point with one other than 0 keeps the pattern RAW until D254 is
+    // answered.
     private static HeidenhainPoint? PointOf(string coordinates, string first, string second, string tool,
         out string? problem)
     {

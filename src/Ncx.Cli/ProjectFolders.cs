@@ -70,7 +70,7 @@ internal sealed class ProjectFolders
         // value is a name, looked up in the machine folders (implementation 12, P2-04).
         // TODO(question): the phase file resolves --machine "in machines/ ... or by path" without saying which wins
         // when there is a file at the path given and a machine of that name as well; the file at the path wins, which
-        // keeps every --machine that P1-07 read as a path.
+        // keeps every --machine that P1-07 read as a path, until D206 is answered.
         string atPath = Path.Combine(WorkingDirectory, value);
         if (File.Exists(atPath) || IsPath(value))
         {
@@ -90,7 +90,7 @@ internal sealed class ProjectFolders
     {
         // The catalog is a file of a cycle folder (machine-config 6, 10), and the path rules of --machine are none of
         // its rules: a file of that name in the working directory, the machine file itself among them, is never the
-        // catalog, and a value with a folder in it is a path from each cycle folder in turn (the TODO(question) of
+        // catalog, and a value with a folder in it is a path from each cycle folder in turn (the TODO(question) D207 of
         // RunMachine.WithCatalog).
         return FindInFolders(value, _cycleFolders);
     }

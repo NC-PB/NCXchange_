@@ -1,4 +1,5 @@
 using Ncx.Core.Model;
+using Ncx.Core.VirtualMachine.Validation;
 
 namespace Ncx.Core.Tests.VirtualMachine.Validation;
 
@@ -56,6 +57,28 @@ public sealed class ArcValidationTests
     public void Angle_NotGreaterThanZero_IsAnError()
     {
         RuleAssert.Only(FromOrigin("ARC=CW CENTER:X=5 CENTER:Y=0 ANGLE=0"), DiagnosticCodes.ArcAngleNotGreaterThanZero);
+    }
+
+    // Language 4.3 (the CENTER rows: the address is a plane axis) and VM 3.2 (the arc runs only in the working plane):
+    // CENTER on an axis outside the working plane is an ERROR.
+    [Fact]
+    public void Center_OnAnAxisOutsideTheWorkingPlane_IsAnError()
+    {
+        Diagnostic error = RuleAssert.Only(FromOrigin("ARC=CW X=10 Y=0 CENTER:X=5 CENTER:Y=0 CENTER:Z=0"),
+            DiagnosticCodes.ArcCenterOutsideThePlane);
+
+        Assert.EndsWith("(language 4.3, virtual machine 3.2).", error.Message, StringComparison.Ordinal);
+    }
+
+    // The row of the rule in the table of the validation, and so in generated/diagnostics.md, cites the CENTER rows of
+    // language 4.3 beside virtual machine 3.2.
+    [Fact]
+    public void CenterOutsideThePlane_RowOfTheTable_CitesLanguage43AndVm32()
+    {
+        ValidationRule rule = Assert.Single(ArcValidation.Family.Rules,
+            row => row.Code == DiagnosticCodes.ArcCenterOutsideThePlane);
+
+        Assert.Equal("language 4.3; VM 3.2", rule.Section);
     }
 
     // VM 5: a COMP change in an ARC block is an ERROR; the compensation changes in a straight move.

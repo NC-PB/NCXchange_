@@ -36,10 +36,9 @@ internal static class MotionEvents
             return motions;
         }
 
-        // MOTION at every RAPID, LINE, ARC and RETRACT (virtual machine 7).
-        // TODO(question): virtual machine 7 raises MOTION at "every RAPID, LINE, ARC, RETRACT" and does not name HOME,
-        // while architecture 5.1 raises MOTION for HOME with the other motion verbs and the runtime estimate charges
-        // HOME at the rapid rate like RAPID (virtual machine 8); HOME is raised as a MOTION until that is answered.
+        // MOTION at every RAPID, LINE, ARC and RETRACT (virtual machine 7), and at HOME, a motion verb whose axes move
+        // at rapid to the reference point (architecture 5.1; virtual machine 3 step 5; language 2 and 4.3, the HOME
+        // row), which the runtime estimate charges at the rapid rate (virtual machine 8; implementation 14, P4-02).
         if (VerbOf(block.Verb?.Key) is not Verb verb)
         {
             return motions;
