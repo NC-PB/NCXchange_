@@ -44,15 +44,15 @@ public sealed partial class CompileCommandTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(_project.WorkingDirectory, "out")));
     }
 
-    // Architecture 8, machine-config 1: the controller of the machine file chooses the compiler; ncx has none for
-    // Fanuc yet (P3-06), which is an ERROR on the file, and nothing is written; the inputs were read, so the exit code
-    // is 1 (D97).
+    // Architecture 8, machine-config 1: the controller of the machine file chooses the compiler; a registry without a
+    // compiler for Fanuc has none for the Fanuc mill, which is an ERROR on the file, and nothing is written; the inputs
+    // were read, so the exit code is 1 (D97).
     [Fact]
     public void Compile_MachineOfAControllerWithoutCompiler_ExitsOneWithCli401()
     {
         string file = _project.WriteInWorkingDirectory("part.ncx", Program);
 
-        int exitCode = RunCompile(file, "fanuc-mill-30i", Ncx.Cli.Program.Compilers());
+        int exitCode = RunCompile(file, "fanuc-mill-30i", Registry(new RecordingCompiler(Controller.Heidenhain)));
 
         Assert.Equal(1, exitCode);
         Assert.StartsWith($"{file}(1): ERROR CLI401: ", _error, StringComparison.Ordinal);

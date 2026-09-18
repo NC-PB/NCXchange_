@@ -179,7 +179,7 @@ public abstract partial class CompilerBase
 
     private OutputBuffer NewOutput()
     {
-        return new OutputBuffer(Machine.Format, BlockNumberPrefix, TakesBlockNumber);
+        return new OutputBuffer(Machine.Format, BlockNumberPrefix, TakesBlockNumber, OwnBlockNumber);
     }
 
     // TODO(question): under "file_per_program" the file of a program is named after the program, as Klartext names a

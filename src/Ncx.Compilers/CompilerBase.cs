@@ -203,6 +203,16 @@ public abstract partial class CompilerBase : ICompiler
     }
 
     /// <summary>
+    /// The block number a line carries itself, which block_numbers gives no other line of the file: the label N20 of
+    /// a Fanuc program; null for a line without one, the default (machine-config 2).
+    /// </summary>
+    /// <param name="line">The line without block number.</param>
+    protected virtual int? OwnBlockNumber(string line)
+    {
+        return null;
+    }
+
+    /// <summary>
     /// Writes one line of the block being written, or several where the text holds line breaks, since a template may
     /// span lines (machine-config 3).
     /// </summary>

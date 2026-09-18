@@ -28,6 +28,11 @@ sub_end = "M99"                    # written for SUB=END and RETURN
 program_layout = "one_file"        # the O programs of the NCX file in one file, subprograms after the end (fanuc 10 rule 3)
 max_line_length = 0                # 0 = unlimited
 comment_charset = "ASCII"          # comments in parentheses, transliterated to ASCII (fanuc 10 rule 5)
+header = "G0 G40\nG80 G90 G94 G98" # the start block of the sources (fanuc 1: N10 G0 G40, N20 G80 G90 G94 G98)
+plane_with_first_motion = true     # G17 with the first motion, N70 G0 G17 X50.4 of the sources
+motion_code_after_tool_change = true   # G0 G90 X10. after T2 M6 of BOHREN.fanuc.nc
+length_offset_with_tool_axis = true    # G43 Z2. H1: the length offset with the first move of the tool axis
+# TODO(question): the four keys above are the [format] options phase 3 asks for the habits of the sources (implementation 13, Risks); machine-config 2 does not name them yet.
 
 [tool_change]
 change = "T{tool} M6"              # TOOL=n and a bare TOOL ({tool} from the VM, D91): the Fanuc machining center form (machine-config 3)

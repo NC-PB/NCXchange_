@@ -30,6 +30,7 @@ internal sealed class OutputBuffer
     private readonly OutputFormat? _format;
     private readonly string _blockNumberPrefix;
     private readonly Func<string, bool> _takesBlockNumber;
+    private readonly Func<string, int?>? _ownBlockNumber;
 
     /// <summary>
     /// An empty output file.
@@ -38,11 +39,15 @@ internal sealed class OutputBuffer
     /// <param name="blockNumberPrefix">What stands before a block number, "N" on Fanuc, nothing on Heidenhain.</param>
     /// <param name="takesBlockNumber">Whether a line gets a block number: not the % and O lines of Fanuc, not the
     /// continuation lines of Klartext.</param>
-    public OutputBuffer(OutputFormat? format, string blockNumberPrefix, Func<string, bool> takesBlockNumber)
+    /// <param name="ownBlockNumber">The block number a line carries itself, the label N20 of a Fanuc program, which
+    /// the numbering gives no other line; null for none.</param>
+    public OutputBuffer(OutputFormat? format, string blockNumberPrefix, Func<string, bool> takesBlockNumber,
+        Func<string, int?>? ownBlockNumber = null)
     {
         _format = format;
         _blockNumberPrefix = blockNumberPrefix;
         _takesBlockNumber = takesBlockNumber;
+        _ownBlockNumber = ownBlockNumber;
     }
 
     /// <summary>
@@ -80,13 +85,20 @@ internal sealed class OutputBuffer
         int step = numbering?.Step ?? DefaultStep;
         int longest = _format?.MaxLineLength ?? 0;
         string lineEnding = _format?.LineEnding == LineEnding.CrLf ? CrLf : Lf;
+        HashSet<int> taken = OwnNumbers(numbering);
         var text = new StringBuilder();
         foreach (OutputLine line in _lines)
         {
-            // Block numbers per block_numbers, from start in steps of step, on the lines that take one.
+            // Block numbers per block_numbers, from start in steps of step, on the lines that take one; a number that
+            // a line of the file carries itself is passed over, so that it names one block.
             string written = line.Text;
             if (numbering is not null && _takesBlockNumber(line.Text))
             {
+                while (step > 0 && taken.Contains(number))
+                {
+                    number += step;
+                }
+
                 string blockNumber = _blockNumberPrefix + number.ToString(CultureInfo.InvariantCulture);
                 written = written.Length == 0 ? blockNumber : blockNumber + " " + written;
                 number += step;
@@ -105,5 +117,26 @@ internal sealed class OutputBuffer
         }
 
         return text.ToString();
+    }
+
+    // The block numbers the lines of the file carry themselves, which the numbering gives no other line; none without
+    // block_numbers (machine-config 2).
+    private HashSet<int> OwnNumbers(BlockNumbering? numbering)
+    {
+        var taken = new HashSet<int>();
+        if (numbering is null || _ownBlockNumber is null)
+        {
+            return taken;
+        }
+
+        foreach (OutputLine line in _lines)
+        {
+            if (!_takesBlockNumber(line.Text) && _ownBlockNumber(line.Text) is int own)
+            {
+                taken.Add(own);
+            }
+        }
+
+        return taken;
     }
 }

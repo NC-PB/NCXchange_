@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 
@@ -27,6 +28,22 @@ public sealed class OutputBufferTests
         output.Line("%", s_block);
 
         Assert.Equal("%\r\nN5 G0 X1.\r\nN10 X2.\r\n%\r\n", output.ToText(new Diagnostics("T.ncx")));
+    }
+
+    // Machine-config 2: a line that carries its own block number, the label N20 of a Fanuc program, keeps it for
+    // itself, and the numbering of block_numbers goes on past it.
+    [Fact]
+    public void ToText_LineWithItsOwnNumber_TheNumberingSkipsThatNumber()
+    {
+        var format = new OutputFormat { BlockNumbers = new BlockNumbering { Enabled = true, Start = 10, Step = 10 } };
+        var output = new OutputBuffer(format, "N", line => !line.StartsWith('N'),
+            line => line.StartsWith('N') ? int.Parse(line.AsSpan(1), CultureInfo.InvariantCulture) : null);
+        output.Line("G0 X1.", s_block);
+        output.Line("X2.", s_block);
+        output.Line("N20", s_block);
+        output.Line("X3.", s_block);
+
+        Assert.Equal("N10 G0 X1.\nN30 X2.\nN20\nN40 X3.\n", output.ToText(new Diagnostics("T.ncx")));
     }
 
     // Machine-config 2, controllers heidenhain.md 8 rule 1: Heidenhain numbers its blocks from 0 without a letter.

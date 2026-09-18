@@ -58,4 +58,38 @@ public sealed record OutputFormat
     /// comment_charset: the characters comments are written in, "ASCII"; null when the file leaves it out.
     /// </summary>
     public string? CommentCharset { get; init; }
+
+    // TODO(question): the four keys below are the [format] options that phase 3 asks for the habits of the Fanuc
+    // sources ("add the option, not a special case", implementation 13, Risks); machine-config 2 does not name them,
+    // and their names and values wait for an answer, with them where the offset of length_offset_with_tool_axis
+    // stands around a canned cycle, HOME, G53, SETPOS, a jump, a call and the end.
+
+    /// <summary>
+    /// header: the start block of the machine, the lines a compiler writes after the beginning of every program, "G0
+    /// G40\nG80 G90 G94 G98" on the Fanuc mill of the sources; null when the file leaves it out.
+    /// </summary>
+    public string? Header { get; init; }
+
+    /// <summary>
+    /// plane_with_first_motion: the code of the working plane stands in the first motion block after it changes, G0
+    /// G17 X50.4 of the sources, not in a block of its own; false when the file leaves it out.
+    /// </summary>
+    public bool PlaneWithFirstMotion { get; init; }
+
+    /// <summary>
+    /// motion_code_after_tool_change: the first motion after a tool change writes its motion code although the control
+    /// has it active, G0 G90 X10. after T2 M6 of the sources; false when the file leaves it out.
+    /// </summary>
+    public bool MotionCodeAfterToolChange { get; init; }
+
+    /// <summary>
+    /// length_offset_with_tool_axis: the tool length offset stands in the first block after it that moves the tool
+    /// axis in the workpiece frame, a RAPID, LINE or ARC with a word of the tool axis or a CYCLE_CALL, G43 Z2. H1 of
+    /// the sources, and not where the OFFSET:LEN word stands. A HOME and a G53 move, which end at machine positions,
+    /// leave it waiting; it stands in a line of its own before a LABEL, JUMP, CALL or RAW block, before a skipped block
+    /// that moves the tool axis and before the end of the program or subprogram, so that no path runs without it, and
+    /// before the line of a SETPOS with a word of the tool axis, which declares that position with the offset active.
+    /// False when the file leaves it out.
+    /// </summary>
+    public bool LengthOffsetWithToolAxis { get; init; }
 }
