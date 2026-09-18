@@ -317,8 +317,7 @@ internal static class HeidenhainToolCall
     private static string? ParameterSpeed(HeidenhainBlock writing, BlockStep step, string spindle)
     {
         MachineConfig machine = writing.Machine;
-        if (HeidenhainParameters.SourceOf(writing, step.Index, SpeedKey + spindle,
-                block => SpeedWord(machine, block, spindle)) is not int source)
+        if (SpeedSource(writing, step, spindle) is not int source)
         {
             writing.Error(DiagnosticCodes.HeidenhainValueWithoutKlartext,
                 "The speed of the spindle comes from an expression that no RPM word before this block states, so "
@@ -337,23 +336,36 @@ internal static class HeidenhainToolCall
         return HeidenhainParameters.Keeps(writing, word, parameter, source, afterVariables: false) ? parameter : null;
     }
 
-    // What the control has active once S wrote the speed of a step: the number, or the Q parameter with the step that
-    // read it (HeidenhainParameters.Active).
+    // The step of the RPM word that set a speed the virtual machine keeps UNKNOWN (HeidenhainParameters.SourceOf).
+    private static int? SpeedSource(HeidenhainBlock writing, BlockStep step, string spindle)
+    {
+        MachineConfig machine = writing.Machine;
+        return HeidenhainParameters.SourceOf(writing, step.Index, SpeedKey + spindle,
+            block => SpeedWord(machine, block, spindle));
+    }
+
+    // What the control has active once S wrote the speed of a step: the number, or the Q parameter with the step of the
+    // RPM word it was read for (HeidenhainParameters.Active).
     private static string ActiveSpeed(HeidenhainBlock writing, BlockStep step, string spindle, string speed)
     {
-        return step.After.Unknown.Contains(SpeedKey + spindle)
-            ? HeidenhainParameters.Active(speed, writing.Step.Index)
+        return step.After.Unknown.Contains(SpeedKey + spindle) && SpeedSource(writing, step, spindle) is int source
+            ? HeidenhainParameters.Active(speed, source)
             : speed;
     }
 
     // Whether the control has the speed of the block active already, and the RPM template writes nothing: the same
-    // number, or the same Q parameter read before with the value it has kept (HeidenhainParameters.Holds).
+    // number, or the Q parameter read for the same RPM word, or for an earlier one while the parameter kept its value
+    // (HeidenhainParameters.Holds).
     private static bool HasSpeedActive(HeidenhainBlock writing, string spindle, string speed)
     {
         string? active = writing.Target.ActiveOf(SpeedKey + spindle);
-        return writing.After.Unknown.Contains(SpeedKey + spindle)
-            ? HeidenhainParameters.Holds(writing, active, speed, afterVariables: false)
-            : active == speed;
+        if (!writing.After.Unknown.Contains(SpeedKey + spindle))
+        {
+            return active == speed;
+        }
+
+        return SpeedSource(writing, writing.Step, spindle) is int source
+            && HeidenhainParameters.Holds(writing, active, speed, source);
     }
 
     // The spindle of a holder, or the default spindle for a holder without one (virtual machine 3.8 rule 2).

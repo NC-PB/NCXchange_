@@ -1,4 +1,5 @@
 using Ncx.Core.Model;
+using Ncx.Core.VirtualMachine.State;
 
 namespace Ncx.Compilers.Heidenhain;
 
@@ -42,4 +43,17 @@ internal sealed record HeidenhainArrival
     /// (language 2 rule 2, 4.3).
     /// </summary>
     public required int FeedStep { get; init; }
+
+    /// <summary>
+    /// The state of the program at the jump, whose frame and positions the chain words and SETPOS after the label are
+    /// checked against (HeidenhainChainArrivals); null on the way a later label takes over, which that check has
+    /// followed already from the label of the jump.
+    /// </summary>
+    public ChannelSnapshot? Program { get; init; }
+
+    /// <summary>
+    /// The place of the cycle 7 of SETPOS the control has at the jump (HeidenhainSetpos.PlaceKey); null where the
+    /// target state does not know it.
+    /// </summary>
+    public string? SetposPlace { get; init; }
 }

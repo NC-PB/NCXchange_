@@ -134,4 +134,14 @@ public static partial class DiagnosticCodes
     /// (language 2 rule 2, 4.9), and Klartext has one text for all of them (controllers heidenhain.md 2, 8 rule 2).
     /// </summary>
     public const string HeidenhainLabelWaysDiffer = "CMP118";
+
+    /// <summary>
+    /// CMP119: a JUMP or REPEAT reaches its label with another frame than the way the text runs into the label, and a
+    /// block after the label is written for the frame of that way: ORIGIN or a RESET that cancels other transforms than
+    /// the program removes on the way of the jump, a transform whose cycle would replace one of its kind that the jump
+    /// brings, or a SETPOS whose cycle 7 declares another setpos shift than the program does there. Every way runs the
+    /// blocks after the label with the frame it brings (language 4.2, 4.9; virtual machine 3.4), and Klartext has one
+    /// text for all of them (controllers heidenhain.md 3; D31).
+    /// </summary>
+    public const string HeidenhainLabelChainsDiffer = "CMP119";
 }

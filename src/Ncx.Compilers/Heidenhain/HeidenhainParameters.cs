@@ -10,12 +10,13 @@ namespace Ncx.Compilers.Heidenhain;
 /// stands, before the words of its block act (virtual machine 3.6), and the control reads it where Klartext writes the
 /// F or the S, which for the F of a block without a motion is the next motion, and for the RPM of the block after a
 /// TOOL the TOOL CALL (heidenhain 8 rules 2 and 3); the virtual machine keeps the value UNKNOWN in STATIC mode (virtual
-/// machine 1). The parameter is written only where it has the value NCX read, and the control keeps the value it read
-/// until the next F or S, so what the control has active is the parameter with the step that read it, Q1@12.
+/// machine 1). The parameter is written only where it has the value NCX read at the word, and the control keeps the
+/// value it read until the next F or S, so what the control has active is the parameter with the step of the word it
+/// was read for, Q1@12: the value NCX read at that word.
 /// </summary>
 internal static class HeidenhainParameters
 {
-    // Between the parameter and the step that read it in what the target state keeps: Q1@12.
+    // Between the parameter and the step of the word it was read for in what the target state keeps: Q1@12.
     private const string Place = "@";
 
     /// <summary>
@@ -60,37 +61,26 @@ internal static class HeidenhainParameters
     }
 
     /// <summary>
-    /// What the control has active once the step being written reads the parameter: Q1@12.
+    /// What the control has active once an F or S read the parameter where it had the value NCX read at the word of a
+    /// step: Q1@12, the parameter with the step of that word.
     /// </summary>
-    public static string Active(string parameter, int index)
-    {
-        return parameter + Place + index.ToString(CultureInfo.InvariantCulture);
-    }
-
-    /// <summary>
-    /// Tells whether the control has the value of the parameter active already: an earlier F or S read the parameter,
-    /// and it has kept its value up to the F or S of the block being written.
-    /// </summary>
-    /// <param name="writing">The block being written.</param>
-    /// <param name="active">What the target state keeps under the F or the speed of the spindle.</param>
-    /// <param name="parameter">The parameter the block would write: Q1.</param>
-    /// <param name="afterVariables">True where the F or S stands after the VAR lines of its block, the F of a motion;
-    /// false for the S of TOOL CALL and of the RPM template, which stand before them.</param>
-    public static bool Holds(HeidenhainBlock writing, string? active, string parameter, bool afterVariables)
-    {
-        return Holds(writing, active, parameter, afterVariables, writing.Step.Index);
-    }
-
-    /// <summary>
-    /// Tells whether the control has the value of the parameter active up to a step: an earlier F or S read the
-    /// parameter, and it has kept its value up to the F or S of that step.
-    /// </summary>
-    /// <param name="writing">The block being written.</param>
-    /// <param name="active">What the target state keeps under the F or the speed of the spindle.</param>
     /// <param name="parameter">The parameter: Q1.</param>
-    /// <param name="afterVariables">True where the F or S stands after the VAR lines of its block.</param>
-    /// <param name="to">The step up to which the parameter keeps its value.</param>
-    public static bool Holds(HeidenhainBlock writing, string? active, string parameter, bool afterVariables, int to)
+    /// <param name="source">The step of the word that set the feed or the speed with the parameter.</param>
+    public static string Active(string parameter, int source)
+    {
+        return parameter + Place + source.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Tells whether the control has active the feed or speed NCX has from the word of a step with the parameter: the
+    /// last F or S read the parameter for that same word, or for an earlier word while the parameter kept its value
+    /// from that word to this one.
+    /// </summary>
+    /// <param name="writing">The block being written.</param>
+    /// <param name="active">What the target state keeps under the F or the speed of the spindle.</param>
+    /// <param name="parameter">The parameter of the word: Q1.</param>
+    /// <param name="source">The step of the word that set the feed or the speed NCX has.</param>
+    public static bool Holds(HeidenhainBlock writing, string? active, string parameter, int source)
     {
         string[] parts = active?.Split(Place) ?? [];
         if (parts.Length != 2 || parts[0] != parameter
@@ -99,7 +89,11 @@ internal static class HeidenhainParameters
             return false;
         }
 
-        return KeepsValue(writing, parameter, read, afterVariables, to, afterVariables, labels: true);
+        // The control keeps the value it read until the next F or S (controllers heidenhain.md 2, 4), and it read the
+        // parameter where it had the value NCX read at the word it was read for (Keeps). NCX reads the parameter where
+        // its word stands, before the words of its block act (virtual machine 3.6), so an assignment after the word
+        // of the feed NCX has changes neither that feed nor the control's.
+        return read == source || KeepsValue(writing, parameter, read, false, source, false, labels: true);
     }
 
     /// <summary>

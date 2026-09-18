@@ -161,6 +161,34 @@ internal static class HeidenhainSetpos
     }
 
     /// <summary>
+    /// Tells whether the same setpos shifts stand in two states: the same axes, each with the same known value and
+    /// recorded against the machine position in both or in neither (virtual machine 1, 3.4, D101); an unknown shift
+    /// is the same as no other.
+    /// </summary>
+    public static bool SameShifts(ChannelSnapshot one, ChannelSnapshot other)
+    {
+        List<string> axes = StandingAxes(one);
+        if (axes.Count != StandingAxes(other).Count)
+        {
+            return false;
+        }
+
+        foreach (string axis in axes)
+        {
+            bool known = !ShiftUnknown(one, axis) && !ShiftUnknown(other, axis);
+            bool sameRecord = one.Frame.SetposAgainstMachine.ContainsKey(axis)
+                == other.Frame.SetposAgainstMachine.ContainsKey(axis);
+            if (!known || !sameRecord || !other.Frame.SetposShift.TryGetValue(axis, out decimal shift)
+                || shift != one.Frame.SetposShift[axis])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// The coordinate of an axis in the workpiece frame of the program, where the Klartext coordinates stand: the
     /// position store keeps the physical value, and the workpiece coordinate is read through the setpos shift, the
     /// stored value itself where that shift is unknown (virtual machine 3.4, D101); null while the axis is not known in

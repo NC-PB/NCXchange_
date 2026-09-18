@@ -105,6 +105,15 @@ internal static class HeidenhainChain
         return sorted;
     }
 
+    /// <summary>
+    /// The kind of transform a Klartext cycle replaces: SHIFT, MIRROR and ROTATE each replace their own kind on the
+    /// control, and PLANE replaces both kinds of tilt (controllers heidenhain.md 3).
+    /// </summary>
+    public static TransformKind FamilyOf(TransformKind kind)
+    {
+        return kind == TransformKind.TiltAxis ? TransformKind.Tilt : kind;
+    }
+
     // CYCL DEF 247 INIT. REF.PKT Q339=n activates the preset n, ORIGIN=n (controllers heidenhain.md 3;
     // controller-mapping 1, ORIGIN).
     private static void WriteOrigin(HeidenhainBlock writing, Word origin)
@@ -364,11 +373,5 @@ internal static class HeidenhainChain
         }
 
         return string.Join("\n", lines);
-    }
-
-    // SHIFT, MIRROR and ROTATE each replace their own kind on the control; PLANE replaces both kinds of tilt.
-    private static TransformKind FamilyOf(TransformKind kind)
-    {
-        return kind == TransformKind.TiltAxis ? TransformKind.Tilt : kind;
     }
 }

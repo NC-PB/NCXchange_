@@ -122,6 +122,48 @@ public sealed class HeidenhainSetposTests
         Assert.Equal(8, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainTransformReplacesAnother).Line);
     }
 
+    // Virtual machine 3.4; language 4.9: the setpos shift is the position before the SETPOS minus the declared value,
+    // X 10 - 0 on the way the text runs, and the REPEAT reaches the label at X 15, where the program declares a shift
+    // of 15 and the cycle 7 of the text writes 10, CMP119 on the REPEAT.
+    [Fact]
+    public void Setpos_AfterALabelThatARepeatReachesAtAnotherPosition_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "RAPID X=10 Y=0 Z=5", "SETPOS X=0", "LABEL=1", "SETPOS X=0", "RAPID IX=5", "REPEAT=1 TIMES=2"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(9, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Virtual machine 3.4; language 4.9: the REPEAT brings the setpos shift of the loop's own SETPOS, and the program
+    // declares the next one from the position that shift gives, X 20 - 0, where the cycle 7 of the text writes 10,
+    // CMP119 on the REPEAT.
+    [Fact]
+    public void Setpos_AfterALabelThatARepeatReachesWithAnotherSetposShift_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "RAPID X=10 Y=0 Z=5", "LABEL=1", "RAPID X=10", "SETPOS X=0", "RAPID X=5", "REPEAT=1 TIMES=2"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(9, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Virtual machine 3.4; language 4.9: the REPEAT brings the frame the text brings to the label, and the RAPID X=0
+    // after it puts X at the same place on both ways, so the SETPOS declares the same shift on both and the loop runs
+    // as the program does.
+    [Fact]
+    public void Setpos_AfterALabelAndAnAbsoluteMoveOfItsAxis_WritesTheLoop()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "RAPID X=10 Y=0 Z=5", "SETPOS X=0", "LABEL=1", "RAPID X=0", "SETPOS X=0", "RAPID IX=5",
+            "REPEAT=1 TIMES=2"));
+
+        Assert.Equal(
+            "L X+10 Y+0 Z+5 R0 FMAX\nCYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+10\nLBL 1\nL X+0 FMAX\n"
+            + "CYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+10\nL IX+5 FMAX\nCALL LBL 1 REP 2",
+            HeidenhainCompile.Body(result));
+    }
+
     // The TODO(question) of HeidenhainSetpos.NamedAxes: after HOME the axis is known in the MACHINE frame only (D35,
     // D101), and the shift of cycle 7 against the active preset is not known.
     [Fact]

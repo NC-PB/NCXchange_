@@ -19,7 +19,8 @@ internal static class HeidenhainFlow
     // What the target state keeps at a label: the tool axis of the last TOOL CALL and the compensation the control has
     // on the way the text runs, which no word after the label can write again and which the jumps check
     // (HeidenhainArrivals), the compensation and the feed written last, which the label marks itself
-    // (HeidenhainArrivals.EnterLabel), and the place of the cycle 7 of SETPOS in the chain of transforms.
+    // (HeidenhainArrivals.EnterLabel), and the place of the cycle 7 of SETPOS in the chain of transforms, for which the
+    // chain words after the label are written and which the jumps check with the chain (HeidenhainChainArrivals).
     private static readonly string[] s_keptAtLabels =
     [
         HeidenhainToolCall.PlaneKey, HeidenhainCompensation.ActiveKey, HeidenhainCompensation.WrittenKey,
@@ -59,14 +60,16 @@ internal static class HeidenhainFlow
         // A JUMP or a CALL LBL REP reaches the label with what the control has active at the jump, which the STATIC
         // walk records and does not follow (virtual machine 1), and the blocks from the label on run on every way with
         // the modal state that way brings, as on every controller (language 1, 2 rule 2; 4.9: REPEAT runs the blocks
-        // from the label again). A word a block after the label states is written whatever the text before the label
-        // left (heidenhain 8 rule 2; language 4.9): the M functions, the speed and the modes, which are written where
-        // their block states them, stand again at their next word.
+        // from the label again). The M functions, the speed and the modes, which Klartext writes where their block
+        // states them, are written at their next word whatever the text before the label left (heidenhain 8 rule 2;
+        // language 4.9).
         writing.MakeUnknownExcept(s_keptAtLabels);
 
         // R0, RL or RR and F, which Klartext writes with the motion whether or not its block states them, are written
         // after the label only where a block from the label on states them, and each jump is followed to them
-        // (HeidenhainArrivals).
+        // (HeidenhainArrivals). The chain words and SETPOS after the label are written for the frame of the way the
+        // text runs into it, and each jump is followed with the frame it brings to the first of them that would act
+        // otherwise on its way (language 4.2, 4.9; HeidenhainChainArrivals, CMP119).
         HeidenhainArrivals.EnterLabel(writing);
     }
 

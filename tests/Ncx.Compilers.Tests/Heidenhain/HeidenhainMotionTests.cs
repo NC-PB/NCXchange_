@@ -123,6 +123,43 @@ public sealed class HeidenhainMotionTests
         Assert.Equal("Q1 = 250\nL X+0 Y+0 R0 FMAX\nL X+10 FQ1\nQ1 = 300\nL X+20 FQ1", HeidenhainCompile.Body(result));
     }
 
+    // Controllers heidenhain.md 2, 6; virtual machine 3.6: the next line runs with the feed NCX read at F={$Q1}, 250,
+    // and the control keeps the 250 FQ1 read for that word until the next F, so Q1 = 300 changes neither and the line
+    // writes no F.
+    [Fact]
+    public void Rule2_FeedOfAQParameterAssignedAfterItsMotion_IsKeptByTheNextLine()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "VAR:Q1=250", "RAPID X=0 Y=0", "LINE X=10 F={$Q1}", "VAR:Q1=300", "LINE X=20", "LINE X=30 VAR:Q1=350"));
+
+        Assert.Equal("Q1 = 250\nL X+0 Y+0 R0 FMAX\nL X+10 FQ1\nQ1 = 300\nL X+20\nQ1 = 350\nL X+30",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Virtual machine 3.6: NCX reads the second F={$Q1} before the VAR of its block acts, 250 as at the first one, so
+    // the control has that feed from the FQ1 of the line before, and the line writes no F.
+    [Fact]
+    public void Rule2_FeedOfAQParameterStatedAgainBeforeItsBlockAssignsIt_IsKept()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "VAR:Q1=250", "RAPID X=0 Y=0", "LINE X=10 F={$Q1}", "LINE X=20 F={$Q1} VAR:Q1=300"));
+
+        Assert.Equal("Q1 = 250\nL X+0 Y+0 R0 FMAX\nL X+10 FQ1\nQ1 = 300\nL X+20", HeidenhainCompile.Body(result));
+    }
+
+    // Language 2 rule 2 and 4.9: the control keeps the FQ1 it read before the label, and the text and the REPEAT both
+    // bring the feed NCX read there, which Q1 = 300 does not change, so the line after the label writes no F.
+    [Fact]
+    public void Rule2_FeedOfAQParameterAssignedBeforeALabel_IsKeptAfterIt()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "VAR:Q1=250", "RAPID X=0 Y=0", "LINE X=10 F={$Q1}", "VAR:Q1=300", "LABEL=1", "LINE X=20",
+            "REPEAT=1 TIMES=2"));
+
+        Assert.Equal("Q1 = 250\nL X+0 Y+0 R0 FMAX\nL X+10 FQ1\nQ1 = 300\nLBL 1\nL X+20\nCALL LBL 1 REP 2",
+            HeidenhainCompile.Body(result));
+    }
+
     // Controllers heidenhain.md 2, 6: the F of a block without a motion waits for the next motion, which writes FQ1
     // where Q1 still has the value NCX read.
     [Fact]

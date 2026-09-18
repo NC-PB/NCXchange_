@@ -14,7 +14,8 @@ namespace Ncx.Compilers.Heidenhain;
 /// the values of the program on the way the text runs; where it has not, they write the values of that way. Each way of
 /// a jump is followed to them and reported where Klartext would run it with other values than the program (CMP115,
 /// CMP118); the tool axis of a WORKPLANE after the label, which only a TOOL CALL gives, is checked at the jump
-/// (CMP110).
+/// (CMP110), and the chain words and SETPOS after the label with the frame the jump brings (HeidenhainChainArrivals,
+/// CMP119).
 /// </summary>
 internal static class HeidenhainArrivals
 {
@@ -30,7 +31,8 @@ internal static class HeidenhainArrivals
     {
         bool compensation = HeidenhainCompensation.EnterLabel(writing);
         bool feed = HeidenhainMotion.EnterLabel(writing);
-        writing.Labels.Record(writing.Step, new HeidenhainLabelWay(compensation, feed));
+        string? setposPlace = writing.Target.ActiveOf(HeidenhainSetpos.PlaceKey);
+        writing.Labels.Record(writing.Step, new HeidenhainLabelWay(compensation, feed, setposPlace));
         foreach (HeidenhainArrival arrival in writing.Labels.TakeWaiting(writing.Step))
         {
             Follow(writing, arrival, writing.Step.Index);
@@ -39,8 +41,8 @@ internal static class HeidenhainArrivals
 
     /// <summary>
     /// Checks what the jump of the block brings to the blocks after its label: the tool axis at the jump
-    /// (HeidenhainToolCall.CheckArrival, CMP110), and the compensation and the feed where both the jump and the label
-    /// are written, now for a jump back and at the label for a jump forward (CMP115, CMP118).
+    /// (HeidenhainToolCall.CheckArrival, CMP110), and the compensation, the feed and the frame where both the jump and
+    /// the label are written, now for a jump back and at the label for a jump forward (CMP115, CMP118, CMP119).
     /// </summary>
     /// <param name="writing">The block being written, with the JUMP or REPEAT.</param>
     /// <param name="jump">The JUMP or REPEAT word, whose value names the label.</param>
@@ -63,6 +65,8 @@ internal static class HeidenhainArrivals
             FeedInStep = HeidenhainMotion.InStep(writing, writing.Target.ActiveOf(HeidenhainMotion.FeedKey),
                 writing.Step.Index),
             FeedStep = writing.Step.Index,
+            Program = writing.After,
+            SetposPlace = writing.Target.ActiveOf(HeidenhainSetpos.PlaceKey),
         };
         Arrive(writing, arrival, label);
     }
@@ -74,7 +78,7 @@ internal static class HeidenhainArrivals
     public static bool EndsTheRun(BlockStep step)
     {
         return step.Block.Has("PROGRAM", null, "END")
-            || (step.Block.Has("SUB", null, "END") && step.Before.Flow.Calls.Count == 0);
+            || (step.Block.Has("SUB", null, "END") && CallDepth(step) == 0);
     }
 
     /// <summary>
@@ -143,6 +147,11 @@ internal static class HeidenhainArrivals
         IReadOnlyList<BlockStep> steps = writing.LookAhead.Steps;
         HeidenhainLabelWay way = writing.Labels.WayOf(steps[label])
             ?? throw new InvalidOperationException("A way is followed from a label not written yet.");
+
+        // The chain words and SETPOS after the label are written for the frame of the way the text runs, and the way of
+        // the jump is followed from its own label with the frame it brings (language 4.2, 4.9; CMP119).
+        HeidenhainChainArrivals.Check(writing, arrival, way, label);
+
         string? control = arrival.ControlCompensation;
         string program = arrival.ProgramCompensation;
         bool? feedInStep = arrival.FeedInStep;
@@ -175,6 +184,7 @@ internal static class HeidenhainArrivals
                         ProgramCompensation = program,
                         FeedInStep = feedInStep is bool kept ? kept && !feedStated : null,
                         FeedStep = feedStep,
+                        Program = null,
                     }, index);
                     return;
                 }
@@ -345,6 +355,16 @@ internal static class HeidenhainArrivals
     // 3.9).
     private static bool InWalkOf(BlockStep step, BlockStep jump)
     {
-        return step.Section == jump.Section && step.Before.Flow.Calls.Count == jump.Before.Flow.Calls.Count;
+        return step.Section == jump.Section && CallDepth(step) == CallDepth(jump);
+    }
+
+    // The call depth a step runs at (virtual machine 3.6, 3.9): CALL pushes its frame once its block is done, before
+    // the SUB=BEGIN of the callee, and SUB=END pops it once its block is done, before the block after the CALL; the
+    // Before of a step is the After of the step before it (virtual machine 7), so it holds the depth of the callee for
+    // the block directly after a return, and that of the caller for SUB=BEGIN. The After of every step holds the depth
+    // of its own walk.
+    private static int CallDepth(BlockStep step)
+    {
+        return step.After.Flow.Calls.Count;
     }
 }

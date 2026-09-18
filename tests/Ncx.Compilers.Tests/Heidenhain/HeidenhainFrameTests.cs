@@ -115,6 +115,203 @@ public sealed class HeidenhainFrameTests
         Assert.Equal(5, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainTransformReplacesAnother).Line);
     }
 
+    // Language 4.2 and 4.9: the REPEAT runs the blocks from the label again with the rotation of the first pass, and
+    // the ROTATE=30 after the label appends a second one, 60 degrees in all, where the cycle 10 written for the way the
+    // text runs replaces the rotation on the control (controllers heidenhain.md 3), CMP119 on the REPEAT.
+    [Fact]
+    public void Repeat_ReachingARotationWithTheOneItAppended_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "LABEL=1", "ROTATE=30", "RAPID X=10 Y=0", "REPEAT=1 TIMES=2"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(7, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9: the SHIFT=RESET after the label removes nothing on the way the text runs, so nothing is
+    // written for it, and on the second pass it removes the shift of the first, whose cycle 7 stays on the control,
+    // CMP119 on the REPEAT.
+    [Fact]
+    public void Repeat_ReachingAResetOfTheShiftItBrings_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "LABEL=1", "SHIFT=RESET", "RAPID X=0 Y=0", "SHIFT X=10", "RAPID X=5", "REPEAT=1 TIMES=2"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(9, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9; the TODO(question) D253 of HeidenhainChainArrivals: ORIGIN after the label cancels the
+    // entries of the chain of the way the text runs, none, before cycle 247, and the jump brings the rotation, which
+    // ORIGIN removes in the program and cycle 247 does not end on the control as far as the documents say, CMP119 on
+    // the JUMP.
+    [Fact]
+    public void Jump_ReachingAnOriginWithAnotherChain_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "ROTATE=30", "JUMP=1 IF={$Q1 > 0}", "ROTATE=RESET", "LABEL=1", "ORIGIN=1", "RAPID X=0 Y=0"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(5, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9; controllers heidenhain.md 3: on the second pass the SHIFT=RESET removes the shift of the
+    // first, which the text does not cancel, and the SHIFT X=10 after it writes the cycle 7 that replaces that shift on
+    // the control before anything moves, so every pass runs with the shift of the program.
+    [Fact]
+    public void Repeat_ReachingAResetAndANewShiftBeforeAMotion_WritesTheLoop()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "LABEL=1", "SHIFT=RESET", "SHIFT X=10", "RAPID X=0 Y=0", "REPEAT=1 TIMES=2"));
+
+        Assert.Equal(
+            "LBL 1\nCYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+10\nL X+0 Y+0 R0 FMAX\nCALL LBL 1 REP 2",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Language 4.2 and 4.9: the jump brings a rotation of 30 degrees and the text one of 15, which the ORIGIN after the
+    // label cancels with cycle 10 at ROT+0 before cycle 247, so the control ends the rotation of either way, as the
+    // program does.
+    [Fact]
+    public void Jump_ReachingAnOriginThatCancelsTheTransformOfItsKind_WritesTheJump()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "ROTATE=30", "JUMP=1 IF={$Q1 > 0}", "ROTATE=RESET", "ROTATE=15", "LABEL=1", "ORIGIN=1", "RAPID X=0 Y=0"));
+
+        Assert.Equal(
+            "CYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+30\nFN 11: IF +Q1 GT +0 GOTO LBL 1\n"
+            + "CYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+0\nCYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+15\nLBL 1\n"
+            + "CYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+0\nCYCL DEF 247 INIT. REF.PKT ~\n    Q339=+1\n"
+            + "L X+0 Y+0 R0 FMAX",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Language 4.2 and 4.9; D253: the jump brings a rotation that a shift follows, and the cycle 10 of the ROTATE=45
+    // after the label replaces that rotation on the control, where it acts then is not given, while the program applies
+    // both rotations, CMP119 on the JUMP.
+    [Fact]
+    public void Jump_ReachingARotationWhereTheJumpBringsOneThatAShiftFollows_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "ROTATE=30", "SHIFT X=5", "JUMP=1 IF={$Q1 > 0}", "SHIFT=RESET", "ROTATE=RESET", "LABEL=1", "ROTATE=45",
+            "RAPID X=0 Y=0"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(6, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9: the loop removes the shift it appends, so the REPEAT brings the chain the text brings to
+    // the label, and the loop runs as the program does.
+    [Fact]
+    public void Repeat_ThatLeavesTheChainAsItFoundIt_WritesTheLoop()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "LABEL=1", "SHIFT X=10", "RAPID X=0 Y=0", "SHIFT=RESET", "REPEAT=1 TIMES=2"));
+
+        Assert.Equal(
+            "LBL 1\nCYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+10\nL X+0 Y+0 R0 FMAX\n"
+            + "CYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+0\nCALL LBL 1 REP 2",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Language 4.2, D31: the jump brings the rotation to the label, and the SHIFT after it is appended after the
+    // rotation on both ways, cycle 7 after cycle 10 on the control, so the text runs both as the program does.
+    [Fact]
+    public void Jump_WithAnotherChainToAShiftAfterTheLabel_WritesTheJump()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "ROTATE=15", "JUMP=1 IF={$Q1 > 0}", "ROTATE=RESET", "LABEL=1", "SHIFT X=10", "RAPID X=0 Y=0"));
+
+        Assert.Equal(
+            "CYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+15\nFN 11: IF +Q1 GT +0 GOTO LBL 1\n"
+            + "CYCL DEF 10.0 DREHUNG\nCYCL DEF 10.1 ROT+0\nLBL 1\nCYCL DEF 7.0 NULLPUNKT\nCYCL DEF 7.1 X+10\n"
+            + "L X+0 Y+0 R0 FMAX",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Language 4.2 and 4.9; virtual machine 3.9: the REPEAT directly after the CALL stands in the walk of the program
+    // as its label does, once the subprogram has returned, and brings the rotation of the first pass to the ROTATE=30
+    // after the label, 60 degrees in all, where the cycle 10 written for the way the text runs replaces the rotation on
+    // the control (controllers heidenhain.md 3), CMP119 on the REPEAT.
+    [Fact]
+    public void Repeat_DirectlyAfterACallReachingARotationWithTheOneItAppended_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\"",
+            "UNITS=MM WORKPLANE=XY",
+            "LABEL=1",
+            "ROTATE=30",
+            "RAPID X=10 Y=0",
+            "CALL=5",
+            "REPEAT=1 TIMES=2",
+            "PROGRAM=END",
+            "SUB=BEGIN NAME=5",
+            "RAPID Z=1",
+            "SUB=END",
+            "FILE=END"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(8, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9; virtual machine 3.9: the LABEL directly after the CALL stands in the walk of the program,
+    // and the REPEAT brings the rotation of the first pass to the ROTATE=30 after it, 60 degrees in all, where the
+    // cycle 10 written for the way the text runs replaces the rotation on the control, CMP119 on the REPEAT.
+    [Fact]
+    public void Repeat_ToALabelDirectlyAfterACallReachingARotationWithTheOneItAppended_IsTheErrorCmp119()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\"",
+            "UNITS=MM WORKPLANE=XY",
+            "RAPID X=0 Y=0",
+            "CALL=5",
+            "LABEL=1",
+            "ROTATE=30",
+            "RAPID X=10 Y=0",
+            "REPEAT=1 TIMES=2",
+            "PROGRAM=END",
+            "SUB=BEGIN NAME=5",
+            "RAPID Z=1",
+            "SUB=END",
+            "FILE=END"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(9, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainLabelChainsDiffer).Line);
+    }
+
+    // Language 4.2 and 4.9; virtual machine 3.9: the label and the REPEAT each stand directly after a CALL, in the
+    // walk of the program, and the loop removes the shift it appends, so the REPEAT brings the chain the text brings to
+    // the label, and the loop runs as the program does.
+    [Fact]
+    public void Repeat_DirectlyAfterACallToALabelDirectlyAfterACallThatLeavesTheChainAsItFoundIt_WritesTheLoop()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\"",
+            "UNITS=MM WORKPLANE=XY",
+            "RAPID X=0 Y=0",
+            "CALL=5",
+            "LABEL=1",
+            "SHIFT X=10",
+            "RAPID X=0 Y=0",
+            "SHIFT=RESET",
+            "CALL=5",
+            "REPEAT=1 TIMES=2",
+            "PROGRAM=END",
+            "SUB=BEGIN NAME=5",
+            "RAPID Z=1",
+            "SUB=END",
+            "FILE=END"));
+
+        Assert.Equal(
+            ["BEGIN PGM T MM", "L X+0 Y+0 R0 FMAX", "CALL LBL 5", "LBL 1", "CYCL DEF 7.0 NULLPUNKT",
+                "CYCL DEF 7.1 X+10", "L X+0 Y+0 FMAX", "CYCL DEF 7.0 NULLPUNKT", "CYCL DEF 7.1 X+0", "CALL LBL 5",
+                "CALL LBL 1 REP 2", "M30", "LBL 5", "L Z+1 R0 FMAX", "LBL 0", "END PGM T MM"],
+            HeidenhainCompile.LinesOf(HeidenhainCompile.TextOf(result)));
+    }
+
     // Controller-mapping 1, TILT and MOVE; machine-config 5, [transform]: PLANE SPATIAL through TILT_ON with the angles
     // and the {move} of MOVE, PLANE RESET through TILT_OFF.
     [Fact]
