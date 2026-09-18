@@ -252,3 +252,30 @@ Gate:
 - Mutation checks, one at a time, with `FrameRules.cs` restored afterwards:
   - The branch before this fix, with the MACHINE-frame coupling, fails 7 tests of `TurnedFrameMotionTests`.
   - No coupling on the record path fails 3 tests of `SetposMotionTests`: a motion of Y under ROTATE, the same after a change of the WORKPLANE, and a motion of Z under TILT.
+
+Claude (agent), 2026-09-14, second review fixes of the residual review of motion and frames (RR-P1-03, branch `rr-p1-03`). The branch of the entries above was squashed onto main (77035c1); this round starts from main. The review of the review fixes above found one blocking finding. Decisions implemented: VM 3.4 ("A motion that names some axes leaves the others as they were"; after SETPOS "the position store keeps its physical value"), D35 and D101; D230 cited. The specification is unchanged.
+
+- Verified on main: the finding held. `FollowMotion` still made the machine position that the record of a setpos shift derives (`SetposRecord.MachinePositionKnown`) unknown for an axis the block did not move, whenever a ROTATE, TILT or TILT_AXIS coupled it with a moved axis (`FrameRules.Couples`). All four of the reviewer's probes reproduced on the mill-turn machine, as the failing twins below:
+  - `HOME X`, `ROTATE=30`, `SETPOS X=100`, `LINE Y=5`, `ROTATE=RESET`, then `SETPOS X=0` raised VM050, and `RAPID IX=5 FRAME=MACHINE` raised VM202.
+  - `HOME Z`, `TILT B=45`, `SETPOS Z=100`, `LINE X=10`, `TILT=RESET`, then `SETPOS Z=0` raised VM050, and `RAPID IZ=5 FRAME=MACHINE` raised VM202.
+  - `SPINDLE_MODE:MAIN=AXIS`, `HOME Z`, `WORKPLANE=ZX ROTATE=30`, `SETPOS Z=100`, `WORKPLANE=XY`, `POLAR=ON`, `LINE C=5`, `POLAR=OFF`, `ROTATE=RESET`, `SETPOS Z=0` raised VM050.
+- VM 3.4 settles both paths, so no question stays open. After SETPOS the store keeps the physical value, and D101 records the shift against the machine position. The store of an axis the block did not move is therefore the machine position the record derives, as it is for an axis known in the MACHINE frame, and VM 3.4 leaves it as it was.
+- Fixed: `FollowMotion` looks only at the axes the block moved (`MovedAxes`). For such an axis, `MovesAsItsWorkpieceCoordinate` decides as before (the holder, the unknown shifts, `Turns`, `SetposRecord.Turned`). `Couples`, `SpaceAxes` and their `TODO(question)` are gone, and the record path and the MACHINE path now agree after a motion that does not name the axis.
+- Tests:
+  - `SetposMotionTests`: `Reset_AfterAMotionOfAnotherAxisInATurnedFrame_ReturnsTheAxisToItsMachinePosition` and `Tilt_AMotionOfAnotherLinearAxis_KeepsTheMachinePosition` are renamed from `..._LeavesTheAxisUnknown` and `..._LeavesTheMachinePositionUnknown`, and both now expect X back in the MACHINE frame at 300.
+  - `SetposMotionTests`: `Rotate_AfterAChangeOfTheWorkplane_StillTurnsThePlaneWhereItStood` expects X at 300 and checks that the entry keeps XY. Without the coupling, only a moved axis tells which plane a ROTATE turns. The new `Rotate_AfterAChangeOfTheWorkplane_AMotionOfAnAxisOutsideItsPlaneKeepsTheMachinePosition` does that: after `WORKPLANE=ZX` a motion of Z keeps its machine position (445).
+  - `SetposMotionTests`: the comments of the ZX, rotary and Z2 cases cite VM 3.4 in place of the workaround.
+  - `TurnedFrameMotionTests` gets the record-path twins of its three probes, each with no diagnostic. The ROTATE twin and the TILT twin each end in `SETPOS` or in an incremental `FRAME=MACHINE` move. The POLAR twin checks Z's workpiece coordinate 100 and machine position 450 under POLAR=ON. The class summary and the line of the VM tests README cover both paths.
+- Marker: the tilt marker in `FrameRules.Turns` now names D230, the entry wave-2 question #12 became. Its recommendation ("Keep what the code does") is what the code does. The marker of `SelectOrigin` names D123 (still open). `TransformEntry.cs` has no marker.
+- Wave-1 question #100: checked on main, nothing to change. `TransformEntry` holds a value from an expression as null (UNKNOWN), and `CutAt` leaves the axes of a removed unknown shift unknown outside the MACHINE frame. The reproducer `HOME X`, `SHIFT X={$Q1}`, `SETPOS X=100`, `SHIFT=RESET` (and the same with `ORIGIN=1`) leaves X unknown in the workpiece frame and known in the MACHINE frame at 300 (`SetposTests.Reset_OfAShiftFromAnExpressionBeforeTheSetpos_LeavesTheAxisUnknownOutsideTheMachineFrame`).
+- Shared files: the doc comment of `MachinePositionKnown` in `State/SetposRecord.cs`, and the `TurnedFrameMotionTests` line of the VM tests README.
+
+Done when: unchanged; all four criteria hold, as recorded for part two.
+
+Gate:
+- `dotnet build -warnaserror`: 0 warnings.
+- `dotnet test`: 3929 tests passing (6 skipped), 1943 of them in `Ncx.Core.Tests`. 6 of those are new: the 5 cases of the twins and the Z case after a change of the WORKPLANE. 3 cases of `SetposMotionTests` now expect the axis back in the MACHINE frame.
+- `dotnet format --verify-no-changes`: clean.
+- Mutation checks, one at a time, with `FrameRules.cs` restored afterwards:
+  - With the coupling of main, 8 tests fail: the 5 cases of the twins and the 3 changed cases of `SetposMotionTests`.
+  - A ROTATE that turns the plane of the current WORKPLANE instead of its own fails the new Z case.

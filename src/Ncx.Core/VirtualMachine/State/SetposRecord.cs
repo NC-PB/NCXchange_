@@ -23,9 +23,9 @@ namespace Ncx.Core.VirtualMachine.State;
 /// position unknown; while nothing moves, ORIGIN and a change of the frame still find it (virtual machine 3.4, 10,
 /// D101).</param>
 /// <param name="MachinePositionKnown">True while the machine position of the axis follows from the store through the
-/// record. A motion that can have moved the axis in the machine frame by another amount than its workpiece coordinate
-/// makes it false; the next motion of the axis that moves it by as much makes it true again (virtual machine 3.4, 10,
-/// D57, D101).</param>
+/// record. A motion of the axis that can have moved it in the machine frame by another amount than its workpiece
+/// coordinate makes it false; the next motion of the axis that moves it by as much makes it true again. A motion that
+/// does not move the axis leaves it as it was (virtual machine 3.4, 10, D57, D101).</param>
 public readonly record struct SetposRecord(
     decimal ChainShift,
     IReadOnlyList<TransformEntry> UnknownShifts,

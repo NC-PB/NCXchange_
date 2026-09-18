@@ -178,8 +178,8 @@ internal static class FrameRules
         // known. The record keeps the known shifts of the chain on the axis, which the store never took in, so that
         // ORIGIN and a change of the frame find the machine position again (ReturnToMachineFrame). It also keeps what
         // the frame of the declared value holds besides known shifts: the shifts from an expression on the axis, the
-        // workpiece holder, and whether a ROTATE, MIRROR, TILT or TILT_AXIS turns the axis, so that a later motion
-        // tells whether it moved the machine by as much as the workpiece coordinate (FollowMotion).
+        // workpiece holder, and whether a ROTATE, MIRROR, TILT or TILT_AXIS turns the axis, so that a later motion of
+        // the axis tells whether it moved the machine by as much as the workpiece coordinate (FollowMotion).
         if (position.Known)
         {
             state.Frame.SetposShift[axis] = position.Value - value;
@@ -276,16 +276,14 @@ internal static class FrameRules
 
     /// <summary>
     /// After a motion block that moves in the workpiece frame (virtual machine 3.1 to 3.3), while a setpos shift
-    /// recorded against the machine position stands. A motion that names some axes leaves the others as they were
-    /// (3.4): nothing here changes a stored position, so an axis known in the MACHINE frame keeps its position through
-    /// every motion that does not move it, in a turned frame as well. Only the machine position that the record of a
-    /// setpos shift gives for an axis known in the workpiece frame is looked at, for an axis the block moved
-    /// (MovedAxes) and for one the frame couples with such an axis (Couples). For a moved axis it stays known when the
-    /// block moved the machine by as much as the workpiece coordinate of the axis alone
+    /// recorded against the machine position stands. "A motion that names some axes leaves the others as they were"
+    /// (3.4), and after SETPOS "the position store keeps its physical value" (3.4, D101): the store of an axis the
+    /// block did not move is the machine position its record derives, in a turned frame as well, as for an axis known
+    /// in the MACHINE frame. So only an axis the block moved (MovedAxes) is looked at. Its machine position stays known
+    /// when the block moved the machine by as much as the workpiece coordinate of the axis
     /// (MovesAsItsWorkpieceCoordinate); otherwise the amount is one that only the kinematics module or the machine's
     /// convention for another holder gives, or that comes from an expression, and the machine position is unknown
-    /// until a motion of the axis that moves it by as much (virtual machine 1, 3.4, 10, D57, D101). For a coupled axis
-    /// it is unknown as well, a workaround the documents do not settle (the TODO(question) above Couples).
+    /// until a motion of the axis that moves it by as much (virtual machine 1, 3.4, 10, D57, D101).
     /// </summary>
     /// <param name="context">The motion block, after its verb moved the axes.</param>
     /// <param name="before">The position store before the block moved anything.</param>
@@ -295,16 +293,10 @@ internal static class FrameRules
         List<string> moved = MovedAxes(context, before);
         foreach (string axis in new List<string>(state.Frame.SetposAgainstMachine.Keys))
         {
-            if (!state.Motion.Position.TryGetValue(axis, out AxisPosition position)
+            if (!moved.Contains(axis)
+                || !state.Motion.Position.TryGetValue(axis, out AxisPosition position)
                 || !position.Known
                 || position.Frame != PositionFrame.Workpiece)
-            {
-                continue;
-            }
-
-            bool changed = moved.Contains(axis);
-            bool coupled = Couples(context, axis, moved);
-            if (!changed && !coupled)
             {
                 continue;
             }
@@ -312,7 +304,7 @@ internal static class FrameRules
             SetposRecord record = state.Frame.SetposAgainstMachine[axis];
             state.Frame.SetposAgainstMachine[axis] = record with
             {
-                MachinePositionKnown = !coupled && MovesAsItsWorkpieceCoordinate(context, axis, record),
+                MachinePositionKnown = MovesAsItsWorkpieceCoordinate(context, axis, record),
             };
         }
     }
@@ -479,8 +471,8 @@ internal static class FrameRules
     {
         // TODO(question): language 4.2 tilts the frame by spatial angles about its axes and says nothing of a rotary
         // axis, or of a linear axis other than X, Y and Z, under a TILT or TILT_AXIS; whether a word of such an axis
-        // moves it in the machine frame by as much as in the tilted frame is not said (wave-2 question #12 asks it for
-        // the rotary axes), so a tilt turns every axis until that is answered.
+        // moves it in the machine frame by as much as in the tilted frame is not said, so a tilt turns every axis, as
+        // D230 recommends, until D230 is answered.
         return entry.Kind switch
         {
             TransformKind.Rotate => PlaneAxes(context, entry.Workplane).Contains(axis),
@@ -488,37 +480,6 @@ internal static class FrameRules
             TransformKind.Tilt or TransformKind.TiltAxis => true,
             _ => false,
         };
-    }
-
-    // Whether the frame couples the axis with another one the block moved: the two axes of the working plane where a
-    // ROTATE stood, which it turns about its tool axis, or two of X, Y and Z under a TILT or TILT_AXIS, which tilts the
-    // frame about its axes (language 4.2). A MIRROR and a SHIFT act on each axis by itself, and a rotary axis, or a
-    // linear axis other than X, Y and Z, is coupled with none.
-    // TODO(question): no document says whether a motion in a frame that a ROTATE, TILT or TILT_AXIS turns changes the
-    // machine position of an axis the block does not name; none of D121 to D127 covers it. Virtual machine 3.4 says
-    // "A motion that names some axes leaves the others as they were", so every stored position stays as it was, and an
-    // axis known in the MACHINE frame keeps its position (FollowMotion). On a controller the turned frame moves such an
-    // axis with the named ones, by an amount only the kinematics module knows (virtual machine 10). Until it is
-    // answered, only the machine position that the record of a setpos shift derives for a coupled axis (D101) is taken
-    // as unknown, so that the record claims no machine position the VM may not know; the same axis known in the
-    // MACHINE frame keeps its position, and the two paths differ after such a motion.
-    private static bool Couples(BlockContext context, string axis, List<string> moved)
-    {
-        foreach (TransformEntry entry in context.State.Frame.Chain)
-        {
-            string[] turned = entry.Kind switch
-            {
-                TransformKind.Rotate => PlaneAxes(context, entry.Workplane),
-                TransformKind.Tilt or TransformKind.TiltAxis => SpaceAxes(context),
-                _ => [],
-            };
-            if (turned.Contains(axis) && moved.Exists(other => other != axis && turned.Contains(other)))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     // The axes the block moved: every axis whose stored position it changed, and every axis it names that it left
@@ -551,13 +512,6 @@ internal static class FrameRules
             _ => Plane.XY,
         };
         return [KeyOf(context, plane.FirstAxis), KeyOf(context, plane.SecondAxis)];
-    }
-
-    // The keys of X, Y and Z, the axes a TILT or TILT_AXIS turns in space (language 4.2, virtual machine 3.8 rule 3).
-    private static string[] SpaceAxes(BlockContext context)
-    {
-        Plane space = Plane.XY;
-        return [KeyOf(context, space.FirstAxis), KeyOf(context, space.SecondAxis), KeyOf(context, space.ToolAxis)];
     }
 
     // A MIRROR names the axis among the axes it mirrors (language 4.2).

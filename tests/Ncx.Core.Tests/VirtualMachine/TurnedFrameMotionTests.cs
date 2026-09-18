@@ -4,10 +4,11 @@ using Ncx.Core.VirtualMachine.State;
 namespace Ncx.Core.Tests.VirtualMachine;
 
 /// <summary>
-/// Motions in a frame that a ROTATE, TILT or TILT_AXIS turns against the machine frame, and the axes known in the
-/// MACHINE frame that such a motion does not name: "A motion that names some axes leaves the others as they were"
-/// (virtual machine 3.4). What the same motions do to the machine position that the record of a setpos shift gives
-/// (D101) is in SetposMotionTests.
+/// Motions in a frame that a ROTATE, TILT or TILT_AXIS turns against the machine frame, and the axes such a motion does
+/// not name: "A motion that names some axes leaves the others as they were" (virtual machine 3.4). That holds for an
+/// axis known in the MACHINE frame and for one whose setpos shift was recorded against its machine position alike,
+/// because after SETPOS "the position store keeps its physical value" (3.4, D101). The rest of what the motions do to
+/// the record of a setpos shift is in SetposMotionTests.
 /// </summary>
 public sealed class TurnedFrameMotionTests
 {
@@ -129,6 +130,62 @@ public sealed class TurnedFrameMotionTests
             .Execute("SPINDLE_MODE:MAIN=AXIS", "WORKPLANE=ZX ROTATE=30", "WORKPLANE=XY", "POLAR=ON", "LINE C=5");
 
         Assert.Equal(new AxisPosition(450m, PositionFrame.Machine, Known: true), vm.Position("Z"));
+    }
+
+    // Review of the RR-P1-03 review fixes, the record-path twin of probe 1 (VM 3.4, D35, D101): SETPOS X=100 under the
+    // ROTATE records against the machine position 300, which the store keeps. The motion of Y does not name X and
+    // leaves it as it was, so the reset returns X to 300 in the MACHINE frame; SETPOS X=0 records against it without
+    // the ERROR VM050, and an incremental word of X in a FRAME=MACHINE block adds to it without the ERROR VM202.
+    [Theory]
+    [InlineData("SETPOS X=0", 300)]
+    [InlineData("RAPID IX=5 FRAME=MACHINE", 305)]
+    public void Rotate_AMotionOfYAfterSetposOfX_TheResetReturnsXToItsMachinePosition(string next, int machine)
+    {
+        VmHarness vm = MillTurn().Execute("HOME X", "ROTATE=30", "SETPOS X=100", "LINE Y=5", "ROTATE=RESET");
+
+        Assert.Equal(new AxisPosition(300m, PositionFrame.Machine, Known: true), vm.Position("X"));
+
+        vm.Execute(next);
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal((decimal?)machine, FrameRules.MachineCoordinate(vm.State, "X"));
+    }
+
+    // Review of the RR-P1-03 review fixes, the record-path twin of probe 2 (VM 3.4, D35, D101): SETPOS Z=100 under the
+    // TILT records against the machine position 450; the motion of X does not name Z, so the reset returns Z to 450 in
+    // the MACHINE frame, and SETPOS Z=0 or an incremental machine-frame move of Z uses it without an ERROR.
+    [Theory]
+    [InlineData("SETPOS Z=0", 450)]
+    [InlineData("RAPID IZ=5 FRAME=MACHINE", 455)]
+    public void Tilt_AMotionOfXAfterSetposOfZ_TheResetReturnsZToItsMachinePosition(string next, int machine)
+    {
+        VmHarness vm = MillTurn().Execute("HOME Z", "TILT B=45", "SETPOS Z=100", "LINE X=10", "TILT=RESET");
+
+        Assert.Equal(new AxisPosition(450m, PositionFrame.Machine, Known: true), vm.Position("Z"));
+
+        vm.Execute(next);
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal((decimal?)machine, FrameRules.MachineCoordinate(vm.State, "Z"));
+    }
+
+    // Review of the RR-P1-03 review fixes, the record-path twin of probe 3 (VM 3.4, D101, D102): SETPOS Z=100 under a
+    // ROTATE of the ZX plane records against the machine position 450. The first motion under POLAR=ON does not name
+    // Z, so Z keeps its workpiece coordinate and its machine position; after POLAR=OFF the reset returns Z to 450 in
+    // the MACHINE frame, and SETPOS Z=0 records against it without the ERROR VM050.
+    [Fact]
+    public void Polar_AFirstMotionUnderARotateOfTheZxPlane_KeepsTheMachinePositionOfZThroughItsRecord()
+    {
+        VmHarness vm = MillTurn().Execute("SPINDLE_MODE:MAIN=AXIS", "HOME Z", "WORKPLANE=ZX ROTATE=30",
+            "SETPOS Z=100", "WORKPLANE=XY", "POLAR=ON", "LINE C=5");
+
+        Assert.Equal(100m, FrameRules.WorkpieceCoordinate(vm.State, "Z"));
+        Assert.Equal(450m, FrameRules.MachineCoordinate(vm.State, "Z"));
+
+        vm.Execute("POLAR=OFF", "ROTATE=RESET", "SETPOS Z=0");
+
+        vm.AssertNoDiagnostics();
+        Assert.Equal(450m, vm.State.Frame.SetposShift["Z"]);
     }
 
     // The mill-turn machine file, whose X (home 300), Z (home 450), B (home 0), C (home 90) and Z2 (home 0) start known
