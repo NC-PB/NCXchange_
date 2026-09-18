@@ -21,12 +21,13 @@ public static partial class MachineConfigLoader
     [
         "decimal_separator", "decimals", "trailing_zeros", "block_numbers", "line_ending", "program_end", "sub_end",
         "program_layout", "max_line_length", "comment_charset", "header", "plane_with_first_motion",
-        "motion_code_after_tool_change", "length_offset_with_tool_axis",
+        "motion_code_after_tool_change", "length_offset_with_tool_axis", "channel_files",
     ];
 
     private static readonly string[] s_blockNumberKeys = ["enabled", "start", "step"];
     private static readonly string[] s_lineEndings = ["CRLF", "LF"];
     private static readonly string[] s_programLayouts = ["one_file", "file_per_program"];
+    private static readonly string[] s_channelFiles = ["path_suffix", "channel_suffix", "program_name"];
 
     private static readonly string[] s_toolChangeKeys =
     [
@@ -126,6 +127,16 @@ public static partial class MachineConfigLoader
             PlaneWithFirstMotion = table.Flag("plane_with_first_motion"),
             MotionCodeAfterToolChange = table.Flag("motion_code_after_tool_change"),
             LengthOffsetWithToolAxis = table.Flag("length_offset_with_tool_axis"),
+
+            // TODO(question): the naming of the files of a job's channels, which implementation 16 (P6-02) gives a
+            // [format] key that machine-config 2 does not name.
+            ChannelFiles = table.Choice("channel_files", s_channelFiles) switch
+            {
+                "path_suffix" => ChannelFiles.PathSuffix,
+                "channel_suffix" => ChannelFiles.ChannelSuffix,
+                "program_name" => ChannelFiles.ProgramName,
+                _ => null,
+            },
         };
     }
 

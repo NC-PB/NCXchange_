@@ -59,6 +59,17 @@ public sealed record OutputFormat
     /// </summary>
     public string? CommentCharset { get; init; }
 
+    // TODO(question): implementation 16 (P6-02) names the output files of a job "from [machine] channels and a
+    // [format] key", and machine-config 2 names no such key; channel_files and its three values stand for it until
+    // that is answered.
+
+    /// <summary>
+    /// channel_files: how the job compiler names the file of each channel, O1000 and O1000.P-2, _C1 and _C2, or after
+    /// the program NAME; null when the file leaves it out, and then each channel keeps the name the compiler gives the
+    /// file of its program.
+    /// </summary>
+    public ChannelFiles? ChannelFiles { get; init; }
+
     // TODO(question): the four keys below are the [format] options that phase 3 asks for the habits of the Fanuc
     // sources ("add the option, not a special case", implementation 13, Risks); machine-config 2 does not name them,
     // and their names and values wait for an answer, with them where the offset of length_offset_with_tool_axis

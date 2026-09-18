@@ -135,9 +135,10 @@ public sealed partial class VirtualMachine
         }
     }
 
-    // The validation of a run, which knows whether the run is a channel of a job (virtual machine 3.7, 5).
+    // The validation of a run, which knows whether the run is a channel of a job (virtual machine 3.7, 5): a channel of
+    // the job scheduler, or the channel program a job compile writes (VmOptions.JobChannels).
     private RunValidation NewValidation(Diagnostics diagnostics)
     {
-        return new RunValidation(Machine, diagnostics, Mode, JobChannels);
+        return new RunValidation(Machine, diagnostics, Mode, JobChannels ?? Options.JobChannels);
     }
 }

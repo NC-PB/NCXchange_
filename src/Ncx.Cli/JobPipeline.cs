@@ -14,7 +14,8 @@ namespace Ncx.Cli;
 /// The stages of ncx check --job and ncx analyze --job (architecture 10; virtual machine 3.7; machine-config 8): read
 /// the job manifest, the machine it names unless --machine names another, and the file of every channel with its vars
 /// file; parse and expand each file once; run the channel programs as one job in rounds, STATIC for check and
-/// INTERPRETED for analyze; collect the diagnostics of the manifest, the machine, the job and every file.
+/// INTERPRETED for analyze; collect the diagnostics of the manifest, the machine, the job and every file. ncx compile
+/// --job finds the machine and reads the files of the channels with MachineOf and ReadFiles as well.
 /// </summary>
 internal static class JobPipeline
 {
@@ -141,7 +142,7 @@ internal static class JobPipeline
     // TODO(question): machine-config 8 names the machine of a job ("nakamura-ntjx.toml") without saying where ncx looks
     // for its file, next to the manifest like the files of the channels or where --machine looks; a file next to the
     // manifest is taken first, then the value as --machine takes it, until that is answered.
-    private static string MachineOf(JobManifest job, string folder, string workingDirectory)
+    internal static string MachineOf(JobManifest job, string folder, string workingDirectory)
     {
         string nextToManifest = Path.Combine(folder, job.Machine);
         return File.Exists(Path.Combine(workingDirectory, nextToManifest)) ? nextToManifest : job.Machine;
@@ -151,7 +152,7 @@ internal static class JobPipeline
     // file (language 4.14), and in an INTERPRETED run the vars file next to each (virtual machine 3.6; machine-config
     // 10). Null when one of them cannot be read, which decides exit code 2 (D97); every one is read, so that all are
     // reported.
-    private static ChannelFiles? ReadFiles(JobManifest job, string folder, bool interpreted, Diagnostics diagnostics)
+    internal static ChannelFiles? ReadFiles(JobManifest job, string folder, bool interpreted, Diagnostics diagnostics)
     {
         var files = new ChannelFiles();
         var seen = new HashSet<string>(StringComparer.Ordinal);

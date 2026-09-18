@@ -39,4 +39,11 @@ public sealed record CompileOptions
     /// expected file; null when the machine names none.
     /// </summary>
     public string? ToolTableFile { get; init; }
+
+    /// <summary>
+    /// The job of a channel program the job compiler gives the compiler (implementation 16, P6-02), whose program comes
+    /// expanded and with its channel-bound words placed, so that the compiler neither expands nor checks it again; null
+    /// for the compile of one file, which is a single-channel compile (virtual machine 3.8 rule 2a, D56).
+    /// </summary>
+    public JobView? Job { get; init; }
 }

@@ -671,6 +671,26 @@ public sealed class MachineConfigLoaderTests
         Assert.Equal(new MarkRange(800, 849), sync.Groups[1].Range);
     }
 
+    // Implementation 16, P6-02: [format] channel_files names how the job compiler names the file of each channel
+    // (the TODO(question) of OutputFormat.ChannelFiles).
+    [Theory]
+    [InlineData("path_suffix", ChannelFiles.PathSuffix)]
+    [InlineData("channel_suffix", ChannelFiles.ChannelSuffix)]
+    [InlineData("program_name", ChannelFiles.ProgramName)]
+    public void ChannelFiles_EachValue_LoadsItsNaming(string value, ChannelFiles expected)
+    {
+        MachineConfig machine = LoadClean($"""
+            [machine]
+            name = "Test lathe"
+            controller = "fanuc"
+
+            [format]
+            channel_files = "{value}"
+            """);
+
+        Assert.Equal(expected, machine.Format?.ChannelFiles);
+    }
+
     // Machine-config 5: transform, retract and tolerance templates, with the value maps of {move} and {mode}.
     [Fact]
     public void TransformRetractTolerance_TemplatesAndValueMaps_Load()

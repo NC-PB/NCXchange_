@@ -104,9 +104,11 @@ public abstract partial class CompilerBase : ICompiler
     public CompileResult Compile(NcxProgram program, MachineConfig machine, CompileOptions options)
     {
         // 1. Expand: the expansion rules of the machine and the rewriters of the plugins become generated NCX blocks,
-        // which the compiler writes like the rest (language 4.15; virtual machine 1; architecture 8). An ERROR of the
-        // parser or the expander stops the run before its first block (virtual machine 2.9).
-        NcxProgram expanded = Expander.Expand(program, machine, options.Rewriters);
+        // which the compiler writes like the rest (language 4.15; virtual machine 1; architecture 8). A channel program
+        // of a job comes expanded from the job compiler, which binds the words the expansion generates as well as those
+        // of the file (virtual machine 3.8 rule 2a, D56), and is not expanded twice. An ERROR of the parser or the
+        // expander stops the run before its first block (virtual machine 2.9).
+        NcxProgram expanded = options.Job is null ? Expander.Expand(program, machine, options.Rewriters) : program;
         Diagnostics diagnostics = expanded.Diagnostics;
         if (diagnostics.HasErrors)
         {
@@ -117,6 +119,15 @@ public abstract partial class CompilerBase : ICompiler
         // compile time, every one reported before anything is written (language 4.1, 4.7.1; controller-mapping 9;
         // D5, D94).
         CheckNativeText(expanded, machine, diagnostics);
+
+        // A word of a table that the machine accepts only from another channel, or needs in every channel program, is
+        // an ERROR of a single-channel compile; in a channel program of a job the job compiler has moved or duplicated
+        // every such word, or reported why it could not (virtual machine 3.8 rule 2a, D56).
+        if (options.Job is null)
+        {
+            ChannelBinding.Check(expanded, machine, diagnostics);
+        }
+
         if (diagnostics.HasErrors)
         {
             return Stopped(diagnostics);
@@ -126,10 +137,14 @@ public abstract partial class CompilerBase : ICompiler
         // line is written, which is the look-ahead of {next}, {b}, {c} and auto_preload (virtual machine 1, D91;
         // architecture 8; D52). The listeners of the options, the plugins' ones, read every event of the run after the
         // compiler, as a listener reads every event of any run (virtual machine 7; architecture 9; code-guidelines 5,
-        // Observer).
+        // Observer). The run of a channel program of a job knows the channels of the job (virtual machine 3.7).
         var recorder = new StepRecorder();
-        var vm = new VirtualMachine(machine, VmOptions.ForMachine(machine) with { RaiseBlockWrite = true },
-            diagnostics);
+        VmOptions vmOptions = VmOptions.ForMachine(machine) with
+        {
+            RaiseBlockWrite = true,
+            JobChannels = options.Job?.Channels.Count,
+        };
+        var vm = new VirtualMachine(machine, vmOptions, diagnostics);
         vm.Subscribe(recorder);
         foreach (IVmListener listener in options.Listeners)
         {

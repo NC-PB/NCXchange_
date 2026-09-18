@@ -50,6 +50,13 @@ public sealed record VmOptions
     public UnassignedVariable Unassigned { get; init; } = UnassignedVariable.Error;
 
     /// <summary>
+    /// The number of channels of the job whose channel program the run compiles; null outside a job. SYNC in a
+    /// single-channel job is a WARNING (virtual machine 3.7, 5), and the compile of one channel of a job with several
+    /// channels is none (implementation 16, P6-02). The job scheduler tells its own virtual machines.
+    /// </summary>
+    public int? JobChannels { get; init; }
+
+    /// <summary>
     /// The options a machine file gives: the block cap, the call depth and unassigned of [variables] (machine-config 7,
     /// virtual machine 3.6); everything else at its default.
     /// </summary>

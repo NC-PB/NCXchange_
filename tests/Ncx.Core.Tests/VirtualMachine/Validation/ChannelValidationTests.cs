@@ -1,4 +1,5 @@
 using Ncx.Core.Model;
+using Ncx.Core.VirtualMachine;
 
 namespace Ncx.Core.Tests.VirtualMachine.Validation;
 
@@ -15,6 +16,17 @@ public sealed class ChannelValidationTests
         VmHarness vm = VmHarness.Run(VmHarness.File("SYNC=100", "PROGRAM=END"), VmMachines.Default());
 
         RuleAssert.Only(vm, DiagnosticCodes.SyncInSingleChannelJob);
+    }
+
+    // VM 3.7, implementation 16 (P6-02): the run of one channel program of a job with two channels, which the job
+    // compiler writes, is no single-channel job, so its SYNC does not warn.
+    [Fact]
+    public void Sync_InTheRunOfAChannelOfATwoChannelJob_DoesNotWarn()
+    {
+        var options = VmOptions.ForMachine(VmMachines.Default()) with { JobChannels = 2 };
+
+        VmHarness.Run(VmHarness.File("SYNC=100", "PROGRAM=END"), VmMachines.Default(), options)
+            .AssertNoDiagnostics();
     }
 
     // VM 3.7: a file whose programs run on two channels is a job for the scheduler, and its SYNC marks pair there.

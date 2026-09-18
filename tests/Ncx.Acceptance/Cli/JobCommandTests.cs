@@ -138,6 +138,8 @@ public sealed class JobCommandTests : IDisposable
     [InlineData("check", "neither")]
     [InlineData("analyze", "both")]
     [InlineData("analyze", "neither")]
+    [InlineData("compile", "both")]
+    [InlineData("compile", "neither")]
     public void Job_FileAndJobTogetherOrNeither_IsUsageError(string command, string form)
     {
         string file = _cli.WriteFile("one.ncx", CliHarness.OneProgram());
@@ -149,6 +151,60 @@ public sealed class JobCommandTests : IDisposable
         Assert.Contains("ERROR CLI001: ", _cli.Error, StringComparison.Ordinal);
         Assert.Contains(form == "both" ? "takes a file or --job, not both" : "needs a file or --job", _cli.Error,
             StringComparison.Ordinal);
+    }
+
+    // Architecture 10, implementation 16 (P6-02): ncx compile --job writes one NC file per channel of the job into the
+    // folder of --output, on the machine the manifest names, whose start_mark M199 is the first block of both programs
+    // (machine-config 5).
+    [Fact]
+    public void CompileJob_TwoChannels_WritesOneFilePerChannel()
+    {
+        string manifest = SmallJob(NumberedProgram("SYNC=110"), NumberedProgram("SYNC=110"));
+        string folder = _cli.PathOf("out");
+
+        int exitCode = _cli.Run("compile", "--job", manifest, "--output", folder);
+
+        Assert.True(exitCode == 0, _cli.Error);
+        Assert.Equal("%\r\nO1000 (T)\r\nM199\r\nM110\r\nM30\r\n%\r\n",
+            File.ReadAllText(Path.Combine(folder, "one.nc")));
+        Assert.Equal("%\r\nO1000 (T)\r\nM199\r\nM110\r\nM30\r\n%\r\n",
+            File.ReadAllText(Path.Combine(folder, "two.nc")));
+    }
+
+    // Virtual machine 3.8 rule 2a, D56: on the Nakamura the spindle synchronization is accepted only from path 2
+    // ([spindle_sync] channel = 2); the job compiler moves M96 from the program of path 1 into that of path 2 at the
+    // same mark.
+    [Fact]
+    public void CompileJob_SpindleSyncInPath1_StandsInThePathThatOwnsIt()
+    {
+        string manifest = SmallJob(NumberedProgram("SYNC=110", "SPINDLE_SYNC=MAIN,SUB", "SYNC=111"),
+            NumberedProgram("SYNC=110", "SYNC=111"));
+        string folder = _cli.PathOf("out");
+
+        int exitCode = _cli.Run("compile", "--job", manifest, "--output", folder);
+
+        Assert.True(exitCode == 0, _cli.Error);
+        Assert.Equal("%\r\nO1000 (T)\r\nM199\r\nM110\r\nM111\r\nM30\r\n%\r\n",
+            File.ReadAllText(Path.Combine(folder, "one.nc")));
+        Assert.Equal("%\r\nO1000 (T)\r\nM199\r\nM110\r\nM96\r\nM111\r\nM30\r\n%\r\n",
+            File.ReadAllText(Path.Combine(folder, "two.nc")));
+    }
+
+    // Virtual machine 3.8 rule 2a, D56: the same program of path 1 compiled alone is the ERROR of a single-channel
+    // compile, exit code 1, and no file is written.
+    [Fact]
+    public void Compile_SpindleSyncInAProgramOfPath1_IsCmp700()
+    {
+        string machine = _cli.CopyExample("machines/nakamura-ntjx.toml");
+        string file = _cli.WriteFile("one.ncx", NumberedProgram("SYNC=110", "SPINDLE_SYNC=MAIN,SUB"));
+        string folder = _cli.PathOf("out");
+
+        int exitCode = _cli.Run("compile", file, "--machine", machine, "--output", folder);
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains(file + "(5): ERROR CMP700: SPINDLE_SYNC=MAIN,SUB: the machine accepts [spindle_sync] only "
+            + "from channel 2", _cli.Error, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(folder));
     }
 
     // Virtual machine 3.6, machine-config 8: --vars names the start values of one file and does not go with --job.
@@ -176,6 +232,17 @@ public sealed class JobCommandTests : IDisposable
         }
 
         return _cli.WriteFile(JobFixture.NakamuraJob, JobFixture.ReadText(JobFixture.NakamuraJob));
+    }
+
+    // A file of one program "T" with the program number 1000, which a Fanuc program needs (controllers fanuc.md 1),
+    // in millimetres, and the given blocks from line 4 on.
+    private static string NumberedProgram(params string[] blocks)
+    {
+        var lines = new List<string> { "FILE=BEGIN NCX=1", "PROGRAM=BEGIN NAME=\"T\" NUMBER=1000", "UNITS=MM" };
+        lines.AddRange(blocks);
+        lines.Add("PROGRAM=END");
+        lines.Add("FILE=END");
+        return CliHarness.Lines(lines.ToArray());
     }
 
     // A job of two channels, one.ncx and two.ncx, on nakamura-ntjx.toml next to its manifest unless the test names

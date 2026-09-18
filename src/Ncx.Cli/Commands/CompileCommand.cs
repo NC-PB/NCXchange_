@@ -17,7 +17,8 @@ namespace Ncx.Cli.Commands;
 /// default machine (D77,
 /// D103). The diagnostics go to the standard error (D98). Exit code 0 without an ERROR, 1 with one or with a WARNING
 /// under --strict, 2 when the file, the machine file or its tool table cannot be read or no machine file is named
-/// (D97).
+/// (D97). With --job &lt;name.ncxjob.toml&gt; in place of the file the job compiler writes one file per channel of
+/// the job (CompileJob).
 /// </summary>
 internal static class CompileCommand
 {
@@ -39,7 +40,8 @@ internal static class CompileCommand
         var machineOption = new Option<string>("--machine")
         {
             Description = "The machine to compile for, by name in machines/ or by path; its controller chooses the "
-                + "compiler. Without it: the machine that ncx.toml names. compile needs one of the two.",
+                + "compiler. Without it: the machine of the job manifest with --job, else the machine that ncx.toml "
+                + "names. compile needs one of them.",
             HelpName = "toml",
         };
         var outputOption = new Option<string>("--output")
@@ -53,8 +55,9 @@ internal static class CompileCommand
         var strictOption = RunOptions.StrictOption();
         var command = new Command(
             "compile",
-            "Compile an NCX file for one machine with the compiler of its controller, into out/<machine>/. Needs the "
-            + "machine file, by --machine or by ncx.toml.")
+            "Compile an NCX file for one machine with the compiler of its controller, into out/<machine>/, or the "
+            + "channel programs of a job with --job, one file per channel. Needs the machine file, by --machine, by "
+            + "ncx.toml or by the job manifest.")
         {
             fileArgument,
             machineOption,
@@ -62,16 +65,22 @@ internal static class CompileCommand
             strictOption,
         };
 
-        command.SetAction(parseResult => Run(
-            new RunSettings
+        // --job in place of the file: the channel programs of a job manifest, compiled by the job compiler
+        // (architecture 10; implementation 16, P6-02).
+        Option<string> jobOption = JobOption.AddTo(command, fileArgument);
+        command.SetAction(parseResult =>
+        {
+            var settings = new RunSettings
             {
-                File = parseResult.GetRequiredValue(fileArgument),
+                File = parseResult.GetValue(fileArgument) ?? "",
                 MachineFile = parseResult.GetValue(machineOption),
                 Strict = parseResult.GetValue(strictOption),
-            },
-            parseResult.GetValue(outputOption),
-            compilers,
-            error));
+            };
+            string? output = parseResult.GetValue(outputOption);
+            return parseResult.GetValue(jobOption) is string job
+                ? CompileJob.Run(job, settings, output, compilers, error)
+                : Run(settings, output, compilers, error);
+        });
         return command;
     }
 
@@ -164,13 +173,9 @@ internal static class CompileCommand
         // TODO(question): architecture 10 writes the NC file "under out/<machine>/" and names no --output for compile,
         // while format and convert take --output as a file; a compile under file_per_program writes several files. The
         // --output of compile names the folder the files go into, until that is answered.
-        string folder = outputFolder is not null
-            ? Path.Combine(settings.WorkingDirectory, outputFolder)
-            : Path.Combine(settings.WorkingDirectory, runMachine.Project?.Out ?? ProjectSettings.OutFolder,
-                MachineFolderOf(runMachine.MachineFile));
         if (!diagnostics.HasErrors)
         {
-            WriteFiles(result.Files, folder, diagnostics);
+            WriteFiles(result.Files, OutputFolderOf(settings, outputFolder, runMachine), diagnostics);
         }
 
         error.Write(diagnostics.ToText());
@@ -193,10 +198,22 @@ internal static class CompileCommand
         });
     }
 
+    /// <summary>
+    /// The folder the files go into: out/&lt;machine&gt;/ of the working directory, or the folder of --output
+    /// (architecture 10, machine-config 10).
+    /// </summary>
+    internal static string OutputFolderOf(RunSettings settings, string? outputFolder, RunMachine runMachine)
+    {
+        return outputFolder is not null
+            ? Path.Combine(settings.WorkingDirectory, outputFolder)
+            : Path.Combine(settings.WorkingDirectory, runMachine.Project?.Out ?? ProjectSettings.OutFolder,
+                MachineFolderOf(runMachine.MachineFile));
+    }
+
     // The controller of the machine file chooses the compiler, one per controller family, from the registry
     // (architecture 8; machine-config 1; code-guidelines 5, Strategy and Registry). A family without a compiler is an
     // ERROR on the file, which is then not compiled.
-    private static ICompiler? CompilerOf(MachineConfig machine, CompilerRegistry compilers, Diagnostics diagnostics)
+    internal static ICompiler? CompilerOf(MachineConfig machine, CompilerRegistry compilers, Diagnostics diagnostics)
     {
         if (machine.Machine.Controller is Controller controller && compilers.Create(controller) is ICompiler compiler)
         {
@@ -212,7 +229,7 @@ internal static class CompileCommand
 
     // The tool table that [machine] tool_table names lies next to the machine file (D10), and the warning block of D10
     // names it as the user finds it. Null when it is there and cannot be read.
-    private static CompileOptions? OptionsWithToolTable(MachineConfig machine, FoundFile? machineFile,
+    internal static CompileOptions? OptionsWithToolTable(MachineConfig machine, FoundFile? machineFile,
         Diagnostics diagnostics)
     {
         if (machine.ToolTable is not string toolTable || machineFile is null)
@@ -252,7 +269,7 @@ internal static class CompileCommand
 
     // Every output file into the folder, which is created when it is not there; a file that cannot be written is an
     // ERROR of the run, which has started, so the exit code is 1 (D97, architecture 10; code-guidelines 6).
-    private static void WriteFiles(IReadOnlyList<CompiledFile> files, string folder, Diagnostics diagnostics)
+    internal static void WriteFiles(IReadOnlyList<CompiledFile> files, string folder, Diagnostics diagnostics)
     {
         foreach (CompiledFile file in files)
         {
