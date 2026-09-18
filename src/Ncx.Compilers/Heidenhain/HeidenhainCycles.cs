@@ -119,7 +119,7 @@ internal static class HeidenhainCycles
         {
             // CYCL CALL runs with the compensation of the program, which only an L block switches (language 4.4;
             // controllers heidenhain.md 2).
-            HeidenhainMotion.CheckCompensation(writing, "The CYCLE_CALL, written as CYCL CALL,");
+            HeidenhainCompensation.Check(writing, "The CYCLE_CALL, written as CYCL CALL,");
             writing.Line("CYCL CALL");
             return;
         }

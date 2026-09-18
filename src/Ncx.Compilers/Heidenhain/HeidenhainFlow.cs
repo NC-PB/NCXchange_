@@ -16,6 +16,16 @@ internal static class HeidenhainFlow
     // The jump whose condition always holds, FN 9 with two equal values (controllers heidenhain.md 6).
     private const string AlwaysTrue = "FN 9: IF +0 EQU +0";
 
+    // What the target state keeps at a label: the tool axis of the last TOOL CALL and the compensation the control has
+    // on the way the text runs, which no word after the label can write again and which the jumps check
+    // (HeidenhainArrivals), the compensation and the feed written last, which the label marks itself
+    // (HeidenhainArrivals.EnterLabel), and the place of the cycle 7 of SETPOS in the chain of transforms.
+    private static readonly string[] s_keptAtLabels =
+    [
+        HeidenhainToolCall.PlaneKey, HeidenhainCompensation.ActiveKey, HeidenhainCompensation.WrittenKey,
+        HeidenhainMotion.FeedKey, HeidenhainSetpos.PlaceKey,
+    ];
+
     // TODO(question): heidenhain.md 1 gives LBL "NAME" for newer controls without saying whether the iTNC 530 is one;
     // a label or subprogram NAME that is no number is written in that form.
 
@@ -39,10 +49,25 @@ internal static class HeidenhainFlow
     /// </summary>
     public static void WriteLabel(HeidenhainBlock writing)
     {
-        if (writing.Take("LABEL") is Word label)
+        if (writing.Take("LABEL") is not Word label)
         {
-            writing.Line("LBL " + Label(label.Value));
+            return;
         }
+
+        writing.Line("LBL " + Label(label.Value));
+
+        // A JUMP or a CALL LBL REP reaches the label with what the control has active at the jump, which the STATIC
+        // walk records and does not follow (virtual machine 1), and the blocks from the label on run on every way with
+        // the modal state that way brings, as on every controller (language 1, 2 rule 2; 4.9: REPEAT runs the blocks
+        // from the label again). A word a block after the label states is written whatever the text before the label
+        // left (heidenhain 8 rule 2; language 4.9): the M functions, the speed and the modes, which are written where
+        // their block states them, stand again at their next word.
+        writing.MakeUnknownExcept(s_keptAtLabels);
+
+        // R0, RL or RR and F, which Klartext writes with the motion whether or not its block states them, are written
+        // after the label only where a block from the label on states them, and each jump is followed to them
+        // (HeidenhainArrivals).
+        HeidenhainArrivals.EnterLabel(writing);
     }
 
     /// <summary>
@@ -85,12 +110,17 @@ internal static class HeidenhainFlow
         }
 
         // JUMP=END continues at the end of the program: FN 9 to FN 12 to an LBL that ends with M30 (controller-mapping
-        // 1, JUMP=END), the label the end of the program writes before its M30 (HeidenhainProgramFrame.WriteEnd).
+        // 1, JUMP=END), the label the end of the program writes before its M30 (HeidenhainProgramFrame.WriteEnd). A
+        // jump to a label brings what the control has at the jump to the blocks after the label (HeidenhainArrivals);
+        // one after a return is never reached.
         if (writing.Take("JUMP") is Word jump)
         {
-            labels.Add(jump.Value is IdentValue { Name: "END" }
-                ? EndLabel(writing).ToString(CultureInfo.InvariantCulture)
-                : Label(jump.Value));
+            bool toTheEnd = jump.Value is IdentValue { Name: "END" };
+            labels.Add(toTheEnd ? EndLabel(writing).ToString(CultureInfo.InvariantCulture) : Label(jump.Value));
+            if (!toTheEnd && !writing.Block.Has("RETURN"))
+            {
+                HeidenhainArrivals.Check(writing, jump);
+            }
         }
 
         if (labels.Count == 0)
@@ -240,6 +270,9 @@ internal static class HeidenhainFlow
         }
 
         writing.Line("CALL LBL " + Label(repeat.Value) + " REP " + count);
+
+        // The repeat brings what the control has at the call to the blocks after the label (HeidenhainArrivals).
+        HeidenhainArrivals.Check(writing, repeat);
     }
 
     // RETURN returns to the caller before SUB=END is reached (language 4.9, 4.13), and sub_end is "written for SUB=END

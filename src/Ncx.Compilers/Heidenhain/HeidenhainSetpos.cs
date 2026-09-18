@@ -14,9 +14,12 @@ namespace Ncx.Compilers.Heidenhain;
 /// </summary>
 internal static class HeidenhainSetpos
 {
-    // What the control has active: the place of the cycle 7 of the setpos shifts, the number of chain entries it stands
-    // after. Unknown at the start of a program and of every walk of a subprogram (TargetState).
-    private const string PlaceKey = "SETPOS";
+    /// <summary>
+    /// What the control has active under this key of the target state: the place of the cycle 7 of the setpos shifts,
+    /// the number of chain entries it stands after. Unknown at the start of a program and of every walk of a
+    /// subprogram.
+    /// </summary>
+    public const string PlaceKey = "SETPOS";
 
     // The state key of a setpos shift that is UNKNOWN, SETPOS:C (ChannelSnapshot.Unknown; virtual machine 1, D101).
     private const string UnknownShiftKey = "SETPOS:";

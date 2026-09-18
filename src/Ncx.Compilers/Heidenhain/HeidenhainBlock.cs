@@ -17,6 +17,11 @@ internal sealed class HeidenhainBlock
     // SKIP).
     private const string SkipMark = "/";
 
+    // A value of the target state that the control may not have: the next value under its key is written whatever it
+    // is. A key removed instead would be taken over after the return of a subprogram as the caller left it
+    // (TargetState.TakeOver; virtual machine 3.9, D99), so the unknown stands as a value.
+    private const string UnknownValue = "?";
+
     private readonly HashSet<Word> _written = [];
 
     /// <summary>
@@ -53,6 +58,12 @@ internal sealed class HeidenhainBlock
     /// The templates of the machine, each parsed once (architecture 6).
     /// </summary>
     public required TemplateSet Templates { get; init; }
+
+    /// <summary>
+    /// The labels of the program being written and the jumps forward that wait for them (language 4.9;
+    /// HeidenhainArrivals).
+    /// </summary>
+    public required HeidenhainLabelWays Labels { get; init; }
 
     /// <summary>
     /// Writes one line of the block (CompilerBase.Line).
@@ -172,6 +183,41 @@ internal sealed class HeidenhainBlock
         }
 
         return words;
+    }
+
+    /// <summary>
+    /// Tells whether the target state knows what the control has under the key: a value written, not unknown.
+    /// </summary>
+    /// <param name="key">The key: "COMP".</param>
+    public bool Knows(string key)
+    {
+        return Target.ActiveOf(key) is string value && value != UnknownValue;
+    }
+
+    /// <summary>
+    /// Makes the value under the key unknown, so that the next value under it is written whatever it is.
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    public void MakeUnknown(string key)
+    {
+        Target.Set(key, UnknownValue);
+    }
+
+    /// <summary>
+    /// Makes every value of the target state unknown except those under the keys given, so that the next value under
+    /// each is written whatever it is.
+    /// </summary>
+    /// <param name="kept">The keys whose values stay as they are.</param>
+    public void MakeUnknownExcept(IReadOnlyCollection<string> kept)
+    {
+        var keys = new List<string>(Target.Active.Keys);
+        foreach (string key in keys)
+        {
+            if (!kept.Contains(key))
+            {
+                MakeUnknown(key);
+            }
+        }
     }
 
     /// <summary>

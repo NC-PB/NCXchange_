@@ -8,13 +8,18 @@ namespace Ncx.Compilers.Heidenhain;
 /// <summary>
 /// TOOL CALL and TOOL DEF (controllers heidenhain.md 4; 8 rule 3; controller-mapping 1 WORKPLANE, 3; machine-config 3;
 /// virtual machine 3.5): TOOL CALL n axis S assembled from TOOL, WORKPLANE and the RPM of the same or the following
-/// block, TOOL DEF n for PRELOAD, the offsets implicit in the call (offsets_with_change), and a speed without a tool
-/// through the RPM template of the spindle.
+/// block, S1592 or SQ2 of a Q parameter (controllers heidenhain.md 6), TOOL DEF n for PRELOAD, the offsets implicit in
+/// the call (offsets_with_change), and a speed without a tool through the RPM template of the spindle.
 /// </summary>
 internal static class HeidenhainToolCall
 {
-    // What the control has active: the tool axis of the last TOOL CALL and the speed of each spindle (TargetState).
-    private const string PlaneKey = "PLANE";
+    /// <summary>
+    /// What the control has active under this key of the target state: the tool axis of the last TOOL CALL, which only
+    /// a TOOL CALL writes; a jump that reaches a label with another one is checked where it stands (CheckArrival).
+    /// </summary>
+    public const string PlaneKey = "PLANE";
+
+    // What the control has active: the speed of each spindle (TargetState).
     private const string SpeedKey = "RPM:";
 
     /// <summary>
@@ -78,7 +83,7 @@ internal static class HeidenhainToolCall
         if (!emptied && spindle is not null)
         {
             writing.Target.Set(PlaneKey, axis);
-            writing.Target.Set(SpeedKey + spindle, speed);
+            writing.Target.Set(SpeedKey + spindle, ActiveSpeed(writing, speedStep, spindle, speed));
         }
     }
 
@@ -113,10 +118,12 @@ internal static class HeidenhainToolCall
         {
             string? spindle = word.Addr is string role ? machine.ResolveRole(role)?.Id : SpindleOf(machine, null);
             if (spindle is null || SpeedOf(writing, writing.Step, spindle) is not string speed
-                || !writing.Target.Changes(SpeedKey + spindle, speed))
+                || HasSpeedActive(writing, spindle, speed))
             {
                 continue;
             }
+
+            writing.Target.Set(SpeedKey + spindle, ActiveSpeed(writing, writing.Step, spindle, speed));
 
             string? tableRole = word.Addr ?? HeidenhainFunctions.RoleOf(machine, spindle);
             string? template = null;
@@ -151,6 +158,50 @@ internal static class HeidenhainToolCall
                 $"{plane.ToCanonical()} changes the tool axis {active} of the last TOOL CALL to {axis} without a TOOL "
                 + "in its block; Klartext gives the working plane with the tool axis of TOOL CALL (controllers "
                 + "heidenhain.md 8 rule 3; controller-mapping 1, WORKPLANE).");
+        }
+    }
+
+    /// <summary>
+    /// A JUMP or a REPEAT brings the control to its label with the tool axis of the last TOOL CALL before the jump, and
+    /// a WORKPLANE after the label writes nothing up to the next TOOL CALL, since Klartext gives the working plane with
+    /// the tool axis of TOOL CALL (controller-mapping 1, WORKPLANE; heidenhain 8 rule 3; language 4.9): one that names
+    /// another tool axis is reported at the jump (CMP110), as CheckWorkplane reports it on the way the text runs.
+    /// </summary>
+    /// <param name="writing">The block being written, with the JUMP or REPEAT.</param>
+    /// <param name="jump">The JUMP or REPEAT word.</param>
+    /// <param name="label">The step of the label in the walk order of the look-ahead.</param>
+    public static void CheckArrival(HeidenhainBlock writing, Word jump, int label)
+    {
+        if (writing.Target.ActiveOf(PlaneKey) is not string active)
+        {
+            return;
+        }
+
+        IReadOnlyList<BlockStep> steps = writing.LookAhead.Steps;
+        for (int index = label; index < steps.Count && !HeidenhainArrivals.EndsTheRun(steps[index]); index++)
+        {
+            Block block = steps[index].Block;
+            if (block.Has("TOOL"))
+            {
+                return;
+            }
+
+            if (block.Find("WORKPLANE") is not Word plane)
+            {
+                continue;
+            }
+
+            string axis = HeidenhainAxes.LetterOf(writing, HeidenhainAxes.ToolAxis(steps[index].After.Frame.Workplane));
+            if (axis != active)
+            {
+                writing.Error(DiagnosticCodes.HeidenhainWorkplaneWithoutToolCall,
+                    $"{jump.ToCanonical()} reaches LBL {HeidenhainFlow.Label(jump.Value)} with the tool axis {active} "
+                    + $"of the last TOOL CALL before it, and the {plane.ToCanonical()} on line {block.Line} after the "
+                    + $"label names the tool axis {axis} without a TOOL in its block; Klartext gives the working plane "
+                    + "with the tool axis of TOOL CALL (controllers heidenhain.md 8 rule 3; controller-mapping 1, "
+                    + "WORKPLANE; language 4.9).");
+                return;
+            }
         }
     }
 
@@ -201,9 +252,15 @@ internal static class HeidenhainToolCall
         return block.Words.Count > 0;
     }
 
-    // Whether a block sets the speed of the spindle: RPM without an address for the default spindle, RPM:role for
-    // the spindle of the role (language 4.5, virtual machine 3.8 rules 1 and 2).
+    // Whether a block sets the speed of the spindle (SpeedWord).
     private static bool HasSpeed(MachineConfig machine, Block block, string? spindle)
+    {
+        return SpeedWord(machine, block, spindle) is not null;
+    }
+
+    // The word of a block that sets the speed of the spindle: RPM without an address for the default spindle, RPM:role
+    // for the spindle of the role (language 4.5, virtual machine 3.8 rules 1 and 2); null where it has none.
+    private static Word? SpeedWord(MachineConfig machine, Block block, string? spindle)
     {
         foreach (Word word in block.Words)
         {
@@ -215,11 +272,11 @@ internal static class HeidenhainToolCall
             string? target = word.Addr is string role ? machine.ResolveRole(role)?.Id : SpindleOf(machine, null);
             if (target == spindle)
             {
-                return true;
+                return word;
             }
         }
 
-        return false;
+        return null;
     }
 
     private static void TakeSpeeds(HeidenhainBlock writing, string? spindle)
@@ -236,7 +293,8 @@ internal static class HeidenhainToolCall
         }
     }
 
-    // The speed of the spindle after a step as S writes it; null when an expression set it, which is reported.
+    // The speed of the spindle after a step as S writes it, 1592, or the Q parameter that set it, Q2; null when it has
+    // no Klartext form, which is reported.
     private static string? SpeedOf(HeidenhainBlock writing, BlockStep step, string? spindle)
     {
         if (spindle is null || !step.After.Spindles.TryGetValue(spindle, out SpindleSnapshot? state))
@@ -246,13 +304,56 @@ internal static class HeidenhainToolCall
 
         if (step.After.Unknown.Contains(SpeedKey + spindle))
         {
-            writing.Error(DiagnosticCodes.HeidenhainValueWithoutKlartext,
-                "The speed of the spindle comes from an expression, which S of TOOL CALL does not take (controllers "
-                + "heidenhain.md 4, 6).");
-            return null;
+            return ParameterSpeed(writing, step, spindle);
         }
 
         return writing.Numbers.FormatSpeed(state.Rpm, writing.Block);
+    }
+
+    // A speed that the virtual machine keeps UNKNOWN comes from an expression (virtual machine 1), and a Q parameter
+    // may stand wherever a number stands (controllers heidenhain.md 6), so S takes the parameter, SQ2: the one of the
+    // RPM of the step, or of the earlier block that set the speed, where it still has the value NCX read at that word
+    // (HeidenhainParameters). S of TOOL CALL and of the RPM template stands before the VAR lines of its block.
+    private static string? ParameterSpeed(HeidenhainBlock writing, BlockStep step, string spindle)
+    {
+        MachineConfig machine = writing.Machine;
+        if (HeidenhainParameters.SourceOf(writing, step.Index, SpeedKey + spindle,
+                block => SpeedWord(machine, block, spindle)) is not int source)
+        {
+            writing.Error(DiagnosticCodes.HeidenhainValueWithoutKlartext,
+                "The speed of the spindle comes from an expression that no RPM word before this block states, so "
+                + "Klartext has no S for it (virtual machine 1, 3.10; controllers heidenhain.md 6).");
+            return null;
+        }
+
+        Word word = SpeedWord(machine, writing.LookAhead.Steps[source].Block, spindle)
+            ?? throw new InvalidOperationException("The source of the speed has no RPM.");
+        if (HeidenhainParameters.Of(word.Value) is not string parameter)
+        {
+            HeidenhainParameters.ReportValue(writing, word);
+            return null;
+        }
+
+        return HeidenhainParameters.Keeps(writing, word, parameter, source, afterVariables: false) ? parameter : null;
+    }
+
+    // What the control has active once S wrote the speed of a step: the number, or the Q parameter with the step that
+    // read it (HeidenhainParameters.Active).
+    private static string ActiveSpeed(HeidenhainBlock writing, BlockStep step, string spindle, string speed)
+    {
+        return step.After.Unknown.Contains(SpeedKey + spindle)
+            ? HeidenhainParameters.Active(speed, writing.Step.Index)
+            : speed;
+    }
+
+    // Whether the control has the speed of the block active already, and the RPM template writes nothing: the same
+    // number, or the same Q parameter read before with the value it has kept (HeidenhainParameters.Holds).
+    private static bool HasSpeedActive(HeidenhainBlock writing, string spindle, string speed)
+    {
+        string? active = writing.Target.ActiveOf(SpeedKey + spindle);
+        return writing.After.Unknown.Contains(SpeedKey + spindle)
+            ? HeidenhainParameters.Holds(writing, active, speed, afterVariables: false)
+            : active == speed;
     }
 
     // The spindle of a holder, or the default spindle for a holder without one (virtual machine 3.8 rule 2).

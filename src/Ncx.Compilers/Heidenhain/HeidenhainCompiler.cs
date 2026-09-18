@@ -13,6 +13,14 @@ namespace Ncx.Compilers.Heidenhain;
 /// </summary>
 public sealed class HeidenhainCompiler : CompilerBase
 {
+    // The labels of the program being written and the jumps forward that wait for them (language 4.9).
+    private readonly HeidenhainLabelWays _labels = new();
+
+    // The target state the last block was written with. The step before the SUB=BEGIN of a walk is its CALL, or the
+    // SUB=END of the walk before it where a CALL with TIMES walks the section again, so this is what the control has
+    // where the walk begins (virtual machine 1, 3.9, D99).
+    private TargetState? _lastTarget;
+
     /// <summary>
     /// Heidenhain, the controller of the machine files whose programs this compiler writes (machine-config 1).
     /// </summary>
@@ -51,6 +59,7 @@ public sealed class HeidenhainCompiler : CompilerBase
     /// </summary>
     protected override void WriteHeader(Section program, ChannelSnapshot state)
     {
+        _labels.Clear();
         HeidenhainBlock writing = NewBlock();
         HeidenhainProgramFrame.WriteBegin(writing, program, state);
         HeidenhainLabels.Check(writing);
@@ -78,6 +87,10 @@ public sealed class HeidenhainCompiler : CompilerBase
         HeidenhainProgramFrame.WriteStart(writing);
         HeidenhainFlow.WriteLabel(writing);
 
+        // The walk of a subprogram runs with the caller's state (virtual machine 3.9, D99), the radius compensation the
+        // caller left the control included.
+        HeidenhainCompensation.EnterWalk(writing, _lastTarget);
+
         // The state words of a block act before its motion (language 5 rule 3): the frame, the tool, the modes and the
         // functions, the variables and the cycle definition, each in a Klartext block of its own.
         HeidenhainChain.Write(writing);
@@ -98,7 +111,9 @@ public sealed class HeidenhainCompiler : CompilerBase
         HeidenhainFlow.WriteJump(writing);
         HeidenhainProgramFrame.WriteEnd(writing);
         HeidenhainMotion.KeepPending(writing);
+        HeidenhainCompensation.KeepPending(writing);
         ReportUnwritten(writing);
+        _lastTarget = Target;
     }
 
     // The verb of the block: RAPID and LINE as L or LN, ARC as CR, CC plus C or CC plus CP, HOME as the M91 move,
@@ -157,6 +172,7 @@ public sealed class HeidenhainCompiler : CompilerBase
             Diagnostics = Diagnostics,
             LookAhead = LookAhead,
             Templates = Templates,
+            Labels = _labels,
             WriteLine = Line,
             WriteToolChange = values => WriteToolChange(values),
             WritePreload = () => WritePreload(),

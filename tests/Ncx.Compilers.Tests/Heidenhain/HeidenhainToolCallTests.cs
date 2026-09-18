@@ -98,6 +98,53 @@ public sealed class HeidenhainToolCallTests
         Assert.Equal("TOOL CALL 1 Z S500\nL X+0 Y+0 R0 FMAX\nTOOL CALL S2000", HeidenhainCompile.Body(result));
     }
 
+    // Controllers heidenhain.md 6: a Q parameter may stand wherever a number stands, so a speed of a Q parameter is S
+    // with the parameter: in the TOOL CALL of the same block, of the following block (heidenhain 8 rule 3), of an
+    // earlier block while Q2 keeps its value, and in the RPM template of a speed without a tool (D180).
+    [Fact]
+    public void Rule3_SpeedOfAQParameter_IsSWithTheParameter()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "VAR:Q2=1500",
+            "VAR:Q3=2000",
+            "TOOL=1 RPM={$Q2}",
+            "RAPID X=0 Y=0",
+            "TOOL=2",
+            "TOOL=3",
+            "SPINDLE=CW RPM={$Q3}",
+            "RPM={$Q2}",
+            "RPM={$Q2}"));
+
+        Assert.Equal(
+            "Q2 = 1500\nQ3 = 2000\nTOOL CALL 1 Z SQ2\nL X+0 Y+0 R0 FMAX\nTOOL CALL 2 Z SQ2\nTOOL CALL 3 Z SQ3\nM3\n"
+            + "TOOL CALL SQ2",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Heidenhain 8 rule 3; language 4.9: the TOOL CALL takes the RPM of the following block, and a jump to the label on
+    // that block does not pass the TOOL CALL, so the speed stands again after the label, as every modal word does.
+    [Fact]
+    public void Rule3_RpmOfTheFollowingBlockWithALabel_IsWrittenAgainAfterTheLabel()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "TOOL=1", "LABEL=1 SPINDLE=CW RPM=10000", "REPEAT=1 TIMES=2"));
+
+        Assert.Equal("TOOL CALL 1 Z S10000\nLBL 1\nTOOL CALL S10000\nM3\nCALL LBL 1 REP 2",
+            HeidenhainCompile.Body(result));
+    }
+
+    // Heidenhain 8 rule 3; virtual machine 3.6: the TOOL CALL reads Q2 for the RPM of the following block before the
+    // Q2 = 5 of the TOOL block, which NCX runs first, CMP117.
+    [Fact]
+    public void Rule3_SpeedOfTheFollowingBlockFromAParameterTheToolBlockAssigns_IsTheErrorCmp117()
+    {
+        CompileResult result = HeidenhainCompile.Run(HeidenhainCompile.Program(
+            "VAR:Q2=1500", "TOOL=1 VAR:Q2=5", "RPM={$Q2}"));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(5, HeidenhainCompile.Single(result, DiagnosticCodes.HeidenhainParameterReadElsewhere).Line);
+    }
+
     // Heidenhain 8 rule 3: the WORKPLANE of the block that follows the TOOL block is folded into the TOOL CALL.
     [Fact]
     public void Rule3_WorkplaneOfTheFollowingBlock_IsTheToolAxisOfTheCall()

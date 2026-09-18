@@ -70,7 +70,7 @@ internal static class HeidenhainFrames
 
         // COMP applies from the motion of its block on (language 4.4), and the L block of HOME is where Klartext
         // switches it (controllers heidenhain.md 2).
-        if (HeidenhainMotion.CompensationWord(writing) is string compensation)
+        if (HeidenhainCompensation.Word(writing) is string compensation)
         {
             words.Add(compensation);
         }
@@ -91,7 +91,7 @@ internal static class HeidenhainFrames
 
         // M140 runs with the compensation of the program, which only an L block switches (language 4.4; controllers
         // heidenhain.md 2).
-        HeidenhainMotion.CheckCompensation(writing, "The RETRACT, written as M140,");
+        HeidenhainCompensation.Check(writing, "The RETRACT, written as M140,");
         RetractTable? table = writing.Machine.Retract;
         var values = new TemplateValues();
         string? template = table?.Max;

@@ -19,8 +19,9 @@ public static partial class DiagnosticCodes
     public const string HeidenhainWordWithoutKlartext = "CMP101";
 
     /// <summary>
-    /// CMP102: the value of a word, an expression, has no Klartext form: a coordinate takes a number or a Q parameter,
-    /// a formula the functions and operators of controllers heidenhain.md 6.
+    /// CMP102: the value of a word, an expression, has no Klartext form: a coordinate, F and S take a number or a Q
+    /// parameter, a formula the functions and operators of controllers heidenhain.md 6, and a word the compiler writes
+    /// from its number takes a number.
     /// </summary>
     public const string HeidenhainValueWithoutKlartext = "CMP102";
 
@@ -67,8 +68,10 @@ public static partial class DiagnosticCodes
     public const string HeidenhainMFunctionNotNamed = "CMP109";
 
     /// <summary>
-    /// CMP110: WORKPLANE changes the plane of the last TOOL CALL in a block without TOOL; Klartext gives the working
-    /// plane with the tool axis of TOOL CALL (controllers heidenhain.md 8 rule 3; controller-mapping 1, WORKPLANE).
+    /// CMP110: WORKPLANE changes the plane of the last TOOL CALL in a block without TOOL, or a jump reaches a label
+    /// with the tool axis of another TOOL CALL than a WORKPLANE after the label names; Klartext gives the working plane
+    /// with the tool axis of TOOL CALL (controllers heidenhain.md 8 rule 3; controller-mapping 1, WORKPLANE; language
+    /// 4.9).
     /// </summary>
     public const string HeidenhainWorkplaneWithoutToolCall = "CMP110";
 
@@ -101,8 +104,10 @@ public static partial class DiagnosticCodes
 
     /// <summary>
     /// CMP115: an arc, a CYCL CALL at the current position or M140 would run with another radius compensation than the
-    /// program has after a COMP that no L block has written yet; Klartext writes R0, RL and RR at the end of an L block
-    /// only (language 4.4; controllers heidenhain.md 2; differences.md, radius compensation).
+    /// program has: after a COMP that no L block has written yet, in the caller as well where it stands at the start of
+    /// a subprogram (virtual machine 3.9, D99), or after a label that a jump reaches with another one (language 4.9);
+    /// Klartext writes R0, RL and RR at the end of an L block only (language 4.4; controllers heidenhain.md 2;
+    /// differences.md, radius compensation).
     /// </summary>
     public const string HeidenhainCompensationWithoutLine = "CMP115";
 
@@ -112,4 +117,21 @@ public static partial class DiagnosticCodes
     /// 1; language 4.9, 4.13).
     /// </summary>
     public const string HeidenhainLabelNotUnique = "CMP116";
+
+    /// <summary>
+    /// CMP117: a feed or a speed of a Q parameter, FQ1 or SQ1, would be read by the control where the parameter may
+    /// have another value than where NCX reads it: an assignment of it, a label, RAW or a call of another file stands
+    /// between the word and the F or S that Klartext writes for it (controllers heidenhain.md 6; virtual machine 3.6;
+    /// language 4.9).
+    /// </summary>
+    public const string HeidenhainParameterReadElsewhere = "CMP117";
+
+    /// <summary>
+    /// CMP118: a JUMP or REPEAT reaches its label with another radius compensation or feed than the first L block or
+    /// feed motion after the label runs with in Klartext: the program's values differ from those of the way the text
+    /// runs into the label, which that motion writes, or the control has not taken over a COMP or F of the program at
+    /// the jump, and that motion writes none. Every way runs the blocks after the label with the modal state it brings
+    /// (language 2 rule 2, 4.9), and Klartext has one text for all of them (controllers heidenhain.md 2, 8 rule 2).
+    /// </summary>
+    public const string HeidenhainLabelWaysDiffer = "CMP118";
 }

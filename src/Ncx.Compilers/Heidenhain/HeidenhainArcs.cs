@@ -23,7 +23,7 @@ internal static class HeidenhainArcs
 
         // The arc runs with the compensation of the program, which only an L block switches (language 4.4;
         // controllers heidenhain.md 2).
-        HeidenhainMotion.CheckCompensation(writing, "The ARC");
+        HeidenhainCompensation.Check(writing, "The ARC");
         bool counterclockwise = verb.Value is IdentValue { Name: "CCW" };
         string direction = counterclockwise ? Counterclockwise : Clockwise;
 
