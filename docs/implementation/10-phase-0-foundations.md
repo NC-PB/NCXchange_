@@ -1,6 +1,6 @@
 # Phase 0: foundations
 
-Status: 2026-09-11, not started. Milestone M1. Tasks P0-01 to P0-07 of `../plan/tasks/inbox/`. Closed when the five `.ncx` examples parse and format to themselves byte for byte, the analyzers are quiet and CI runs the tests on every push (`../plan/phases.md`).
+Status: written 2026-09-11; closed 2026-09-18 except the CI criterion of P0-01, which waits for the maintainer's push (Log). Milestone M1. Tasks P0-01 to P0-07 of `../plan/tasks/inbox/`. Closed when the five `.ncx` examples parse and format to themselves byte for byte, the analyzers are quiet and CI runs the tests on every push (`../plan/phases.md`).
 
 ## Entry state
 
@@ -154,4 +154,39 @@ The folder READMEs are written now (one per `src/` and `tests/` project: what li
 
 ## Log
 
-(filled when the phase starts and when it closes)
+2026-09-18, the phase closes except the CI criterion of P0-01. Claude (agent), phase bookkeeping BK-01, on `main` at c2b683f, with .NET SDK 10.0.400 on macOS. The tasks did not run in the order of `20-schedule.md` 1 but in parallel waves of agents from 2026-09-13 on (the entry state of phase 1 says how the phases overlapped).
+
+Built, by task; what was decided in each is in its log in `../plan/tasks/done/`:
+
+- P0-01 Repository skeleton and solution: 858ddae, eebc2e9. The file stays in `inbox/` because its criterion "the CI badge is green on the main branch" waits for the push.
+- P0-02 Core model: 002b29a. P0-03 Word catalog: 69babf0. P0-04 Lexer and parser: 49833f7. P0-05 Expression parser: ecbd94e.
+- P0-06 Canonical writer and `ncx format`: c35d5d6, which closed M1.
+- P0-07 Folder READMEs and `reading-the-code.md`: 4483a6e (the READMEs), fda949a (the tour, after P1-07, as D78 allows).
+- Since then: REPO-01 (ecf04e7) added the line-length test of code-guidelines 3.3 while D109 is open, and FU-06 (e7456a3) applied the answered questions of wave 1 to the catalog, the parser, the expressions and the writer.
+
+Decisions implemented: D90 to D98 (batch 1), D106 for the project references and D107 for the place of the machine records. The questions the tasks recorded are listed in `03-open-questions.md`. Those that need an answer are the open entries D108 to D114, D116 to D119, D142, D143 and D165 to D167 of `../decisions/rationale.md`. Until they are answered the code keeps their `TODO(question)` workarounds (`20-schedule.md` 4, "if unanswered").
+
+Exit checklist (`20-schedule.md` 6):
+
+1. The row of `../plan/phases.md`, run as the commands below. The five examples parse and format to themselves byte for byte: holds. The analyzers are quiet: holds. The CI runs the tests on every push: `.github/workflows/ci.yml` is set to run on every push and pull request, but it has never run (item 2).
+2. CI green on `main` on both operating systems: cannot be checked, because nothing is pushed. The remote `origin` exists. By the local tracking ref, `origin/main` is still the initial commit 6be8356, 52 commits behind c2b683f. The four steps of the workflow pass on macOS (below); Ubuntu and Windows were not tried. This criterion waits for the maintainer's push (`20-schedule.md` 5, task 1).
+3. Task files: P0-02 to P0-07 are in `done/` with their logs. P0-01 is in `inbox/` with its log, held back by item 2 alone.
+4. Decisions: D90 to D98, D106 and D107 have their rows in `decisions.md` and their answers in `rationale.md`. The language sections and the examples were amended when the batch was applied (2026-09-11), before the first commit of the repository, and have not changed since. The phase took no other decision; the open entries above are unanswered.
+5. The five examples pass `ncx format --check`: holds.
+6. `docs/spec/generated/word-catalog.md` equals the catalog: holds. `WordCatalogTableTests` passes and leaves `docs/spec/generated/` unchanged.
+7. `01-findings.md`: F1 to F11 are resolved by D90 to D98 (2026-09-11).
+8. The entry state of phase 1, and of P2-01 and P2-02, which ran before phase 1, was checked against the commits and corrected in `11-phase-1-virtual-machine.md` and `12-phase-2-configuration.md`.
+
+Commands and results:
+
+```sh
+dotnet build NCXchange.sln -warnaserror             # 0 warnings, 0 errors
+dotnet format NCXchange.sln --verify-no-changes     # exit 0
+dotnet test NCXchange.sln                           # 4390 tests: 4383 passed, 7 skipped (NCX_CORPUS not set), 0 failed
+for f in 2.5D_FRAESEN INCREMENTAL_SUB MILLTURN_TRANSFER PATTERN_LOOP POLAR_FACE; do
+  dotnet run --no-build --project src/Ncx.Cli -- format docs/spec/examples/$f.ncx --check   # exit 0 and no diagnostic, each
+  dotnet run --no-build --project src/Ncx.Cli -- format docs/spec/examples/$f.ncx > $f.out
+  cmp docs/spec/examples/$f.ncx $f.out                                                     # equal, each
+done
+git status --short docs/spec/generated              # empty after the test run
+```

@@ -1,10 +1,12 @@
 # Phase 3: readers and compilers, first pair
 
-Status: 2026-09-11, not started. Milestones M4, M5, M6. Tasks P3-01 to P3-07. Closed when `2.5D_FRAESEN` reads from both sources to the same canonical text and compiles back to both without loss, `BOHREN` and `3D_FRAESEN` round-trip, and the corpus programs of both families never crash the readers (`../plan/phases.md`).
+Status: written 2026-09-11; open on 2026-09-18. P3-01 to P3-06 are in `../plan/tasks/done/`; P3-07 is on `main` (3ffc1bc) and waits for the maintainer's corpus report. Milestones M4, M5, M6. Tasks P3-01 to P3-07. Closed when `2.5D_FRAESEN` reads from both sources to the same canonical text and compiles back to both without loss, `BOHREN` and `3D_FRAESEN` round-trip, and the corpus programs of both families never crash the readers (`../plan/phases.md`).
 
 ## Entry state
 
 Phases 0, 1 and 2 closed. The maintainer's corpus is requested at the start of this phase (`20-schedule.md`); the tests that need it read `NCX_CORPUS` and skip without it.
+
+Checked 2026-09-18, at the close of phase 2: the phase did not start from closed phases. P3-01 (3c5e011, 2026-09-13) was merged while phase 1 was under way, after P1-02 and before the rest of phase 1 (P1-03 part two to P1-07), and before P2-04 part two; its task file names P1-07 and P2-04 as its dependencies. P3-02 part one (ef48cd5) came after P1-07 and before P2-04 part two; P3-02 part two and P3-03 to P3-06 came after both. Phases 1 and 2 closed on 2026-09-18, and phase 0 except its CI criterion, when P3-01 to P3-06 were already on `main`. The corpus stays with the maintainer (`00-method.md` 4): `NCX_CORPUS` is not set where the gate runs, the batch reports of P3-07 wait for the maintainer's run, and the seven tests that need the corpus skip with their message (the Fanuc, Heidenhain and Siemens corpus runs, the Hermle and Burkhardt+Weber programs, the 5-axis pair).
 
 ## Decisions needed first
 

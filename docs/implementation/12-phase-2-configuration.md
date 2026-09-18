@@ -1,10 +1,12 @@
 # Phase 2: machine configuration
 
-Status: 2026-09-11, not started. Milestone M3. Tasks P2-01 to P2-04. Closed when the five example machine files (with `millturn1.toml`, D104) load, the five examples check with no ERROR with their machine files (D103), a template renders from an NCX block and matches back to the same words, and a bad file reports the line (`../plan/phases.md`).
+Status: written 2026-09-11; closed 2026-09-18 (Log). Milestone M3. Tasks P2-01 to P2-04. Closed when the five example machine files (with `millturn1.toml`, D104) load, the five examples check with no ERROR with their machine files (D103), a template renders from an NCX block and matches back to the same words, and a bad file reports the line (`../plan/phases.md`).
 
 ## Entry state
 
 Split in two (`20-schedule.md`): P2-01 and P2-02 start right after phase 0 and finish before P1-01, because the VM reads the configuration from its first task (F16, F27). P2-03 and P2-04 follow phase 1, because P2-04's acceptance runs `ncx check` (P1-07). The phase closes after P2-04.
+
+Checked 2026-09-18, at the close of phases 0 and 1. P2-01 (aee9b21) was on `main` before P1-01, as planned, but before phase 0 closed, since P0-04 and P0-06 came later the same day. P2-02 came in two parts: a1703a0 before P1-01 and 83f0207 right after it. The data parts of P2-03 and P2-04 did not wait for phase 1: the cycle catalogs (d4442ce) and the D100 machine data (54ffdbe) landed on 2026-09-13 before P1-01, and the catalog code (6ba04e4) right after P1-01. P2-04 part two (789ab3d, 2026-09-14) followed P1-07 (0c81e4e), as its acceptance needs `ncx check`. Phase 1 closed formally on 2026-09-18 (`11-phase-1-virtual-machine.md`, Log).
 
 ## Decisions needed first
 
@@ -74,4 +76,63 @@ dotnet run --project src/Ncx.Cli -- check docs/spec/examples/POLAR_FACE.ncx --ma
 
 ## Log
 
-(filled when the phase starts and when it closes)
+2026-09-18, the phase closes. Claude (agent), phase bookkeeping BK-01, on `main` at c2b683f, with .NET SDK 10.0.400 on macOS.
+
+Built, by task; what was decided in each is in its log in `../plan/tasks/done/`:
+
+- P2-01 TOML schema and loading: aee9b21.
+- P2-02 Templates both ways: a1703a0 (parse, render, match), 83f0207 (`TemplateSet`).
+- P2-03 Cycle catalogs: d4442ce (the three catalogs), 6ba04e4 (the code).
+- P2-04 Example machines and `machines/`: 54ffdbe (the D100 data and the three mills), 789ab3d, which closed M3.
+- Since then: FU-06 (e7456a3) applied the answered questions of wave 1 to the loader, the templates, the default machine and the four builder machine files. FU-07 (c2b683f) applied those of wave 2 to the loader of `ncx.toml`.
+
+Decisions implemented: D100, D103, D104, D105 and D107, together with the earlier decisions that each task log names. The questions the tasks recorded are listed in `03-open-questions.md`. Those that need an answer are the open entries D115, D128, D129, D137 to D141, D144, D147, D150 to D164, D172 to D182, D194, D206, D207 and D238 of `../decisions/rationale.md`. Until they are answered the code and the machine files keep their `TODO(question)` workarounds (`20-schedule.md` 4, "if unanswered").
+
+Exit checklist (`20-schedule.md` 6):
+
+1. The row of `../plan/phases.md`, as amended to eight machine files, run as the commands below:
+   - The machine files load: holds. Each of the eight files in `machines/` loads through `ncx check` of a five-line program, with exit 0 and no diagnostic. The five example machine files there equal those of `docs/spec/examples/machines/` byte for byte.
+   - The five examples check with no ERROR with their machine files: holds for the eight pairs of P2-04. Each exits 0 and equals its expected file. The only WARNINGs are one `VM540` for `PATTERN_LOOP` on both mills and two `VM500` for `MILLTURN_TRANSFER` on `millturn1`.
+   - A template renders from NCX words and matches back to the same words: holds. `RoundTrip_EveryTemplateOfTheMachineFiles_MatchesBackToItsSampleValues` passes with 447 rows over the eight files. On the command line, a program of `PRELOAD=4`, `TOOL=4`, `SPINDLE=CW RPM=1200`, `COOLANT=ON`, `COOLANT=OFF` and `SPINDLE=OFF` compiles for `fanuc-mill-30i` through its templates (`T4`, `T4 M6`, `S1200 M3`, `M8`, `M9`, `M5`) and converts back to the same text byte for byte.
+   - A bad file reports the line: holds. An unknown table gives a WARNING on its line with the nearest known table, and a wrong value type gives an ERROR on its line with exit 1 (output below).
+2. CI green on `main` on both operating systems: cannot be checked, because nothing is pushed (`10-phase-0-foundations.md`, Log, item 2).
+3. Task files: P2-01 to P2-04 are in `done/` with their logs.
+4. Decisions: D100, D103, D104, D105 and D107 have their rows in `decisions.md` and their answers in `rationale.md`. Machine-config 4, 5, 8 and 11 were amended when D100, D104 and D105 were applied, and by the document fixes F23 and F24 of P2-01. `../plan/tasks/README.md` and `../plan/phases.md` carry the corrected dependencies (F27). The phase took no other decision; the open entries above are unanswered.
+5. The five examples: `ncx format --check` and `ncx check` without a machine file pass (phases 0 and 1), and `ncx check` with their machine files reports no ERROR (item 1).
+6. The generated tables equal the code (phase 1, item 6). The `CFG` codes of this phase are not part of `diagnostics.md`.
+7. `01-findings.md`: F16, F17, F22 and F27 were already resolved. This bookkeeping completed F13 (the machine data, 54ffdbe) and F25 (`CycleEntry.Contour`, 6ba04e4), and filled in F23 and F24 with their commits.
+8. The entry state of phase 3 was checked against the commits and corrected.
+
+Commands and results (the build, the formatting and the test run of the gate as in phase 0):
+
+```sh
+for m in dmg-ctx-840d doosan-puma-2600sy millturn1 mori-ntx1000-mapps nakamura-ntjx; do
+  cmp docs/spec/examples/machines/$m.toml machines/$m.toml                          # equal, each
+done
+# load.ncx: FILE=BEGIN NCX=1, PROGRAM=BEGIN NAME="LOAD", UNITS=MM, PROGRAM=END, FILE=END
+for m in machines/*.toml; do
+  dotnet run --no-build --project src/Ncx.Cli -- check load.ncx --machine $m        # exit 0, no diagnostic, each of the eight
+done
+for pair in 2.5D_FRAESEN:heidenhain-itnc530 2.5D_FRAESEN:fanuc-mill-30i PATTERN_LOOP:heidenhain-itnc530 \
+    PATTERN_LOOP:fanuc-mill-30i INCREMENTAL_SUB:heidenhain-itnc530 INCREMENTAL_SUB:fanuc-mill-30i \
+    MILLTURN_TRANSFER:millturn1 POLAR_FACE:nakamura-ntjx; do
+  f=${pair%%:*}; m=${pair##*:}
+  dotnet run --no-build --project src/Ncx.Cli -- check docs/spec/examples/$f.ncx --machine $m   # exit 0, = Expected/$f.$m.check.txt
+done
+dotnet test tests/Ncx.Config.Tests --no-build \
+  --filter "FullyQualifiedName~RoundTrip_EveryTemplateOfTheMachineFiles_MatchesBackToItsSampleValues"   # 447 passed
+# tpl.ncx: one program with NUMBER=1234, the header block, PRELOAD=4, TOOL=4, SPINDLE=CW RPM=1200, COOLANT=ON,
+# COOLANT=OFF, SPINDLE=OFF
+dotnet run --no-build --project src/Ncx.Cli -- compile tpl.ncx --machine fanuc-mill-30i --output out   # exit 0
+dotnet run --no-build --project src/Ncx.Cli -- convert out/tpl.nc --machine fanuc-mill-30i > back.ncx  # exit 0
+cmp tpl.ncx back.ncx                                                                                   # equal
+# bad-typo.toml: fanuc-mill-30i.toml with [format] written as [formt] on line 20
+# bad-type.toml: fanuc-mill-30i.toml with decimals = "3" on line 22
+dotnet run --no-build --project src/Ncx.Cli -- check load.ncx --machine bad-typo.toml   # exit 0
+dotnet run --no-build --project src/Ncx.Cli -- check load.ncx --machine bad-type.toml   # exit 1
+```
+
+```text
+bad-typo.toml(20): WARNING CFG002: Unknown table [formt]; the nearest known table is [format] (machine-config).
+bad-type.toml(22): ERROR CFG003: decimals in [format] must be a table, not the string "3" (machine-config 2).
+```

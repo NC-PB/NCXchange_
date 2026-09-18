@@ -1,10 +1,12 @@
 # Phase 1: virtual machine
 
-Status: 2026-09-11, not started. Milestone M2. Tasks P1-01 to P1-07. Closed when the five examples check with no ERROR without a machine file (D103), every validation rule has a test, the coolant clutch rule expands and restores, and trace and annotate output exists for `2.5D_FRAESEN.ncx` (`../plan/phases.md`).
+Status: written 2026-09-11; closed 2026-09-18 (Log). Milestone M2. Tasks P1-01 to P1-07. Closed when the five examples check with no ERROR without a machine file (D103), every validation rule has a test, the coolant clutch rule expands and restores, and trace and annotate output exists for `2.5D_FRAESEN.ncx` (`../plan/phases.md`).
 
 ## Entry state
 
 Phase 0 closed. **In addition, P2-01 (TOML schema and loading) and P2-02 (templates) are done before P1-01 starts** (`20-schedule.md`, reason 1): the VM reads the machine configuration from its first task (roles, defaults, axes, tolerance, reference points, limits), so it gets the real `MachineConfig` and the built-in default machine of D103 instead of a throwaway "default configuration object". The definition of done (code-guidelines 12) applies in full from here (D78).
+
+Checked 2026-09-18, at the close of phase 0: phase 1 did not start from a closed phase 0. P1-01 (9727661, 2026-09-13) was merged on top of P0-01, P0-02, P0-03 and P0-05, P2-01 with `DefaultMachine` (aee9b21), the first part of P2-02 (a1703a0) and the geometry of P1-03 (0443f6f). P0-04 (lexer and parser, 49833f7), the second part of P2-02 (83f0207) and P0-06 (writer, c35d5d6) landed after it the same afternoon, before P1-02 (d9db2a6), the first task that executes parsed blocks. What the plan asked for held: the VM took the real `MachineConfig` and the D103 default machine from its first task. Phase 0 closed formally on 2026-09-18, after phase 1, with its CI criterion still open (`10-phase-0-foundations.md`, Log).
 
 ## Decisions needed first
 
@@ -125,4 +127,56 @@ Then `docs/reading-the-code.md` (P0-07 tour) is written from `Program.cs` throug
 
 ## Log
 
-(filled when the phase starts and when it closes)
+2026-09-18, the phase closes. Claude (agent), phase bookkeeping BK-01, on `main` at c2b683f, with .NET SDK 10.0.400 on macOS.
+
+Built, by task; what was decided in each is in its log in `../plan/tasks/done/`:
+
+- P1-01 VM state classes and snapshots: 9727661.
+- P1-02 Block execution, state words, frames, tool change: d9db2a6, with `HomeRules`, which it took over from P1-03.
+- P1-03 Block execution, motion, arcs, retract, cycles: 0443f6f (the geometry), c228dcb; the residual review RR-P1-03: 77035c1, ee3e8de.
+- P1-04 Validation rules and diagnostics: aaded8b. P1-05 Events with Before and After: d9654c3. P1-06 Expander and generated blocks: 3f38e73.
+- P1-07 `ncx check`, `ncx trace`, `ncx annotate`: 0c81e4e, which closed M2; the tour of P0-07 followed (fda949a).
+- Since then: FU-06 (e7456a3) and FU-07 (c2b683f) applied the answered questions of waves 1 and 2 to the virtual machine and the expander.
+
+Decisions implemented: D99 to D103 and D106 (batch 2), together with the earlier decisions that each task log names. The questions the tasks recorded are listed in `03-open-questions.md`. Those that need an answer are the open entries D117, D121 to D127, D130 to D136, D139, D143, D146, D148, D149, D170, D171, D183 to D205, D230 and D233 to D237 of `../decisions/rationale.md`. Until they are answered the code keeps their `TODO(question)` workarounds (`20-schedule.md` 4, "if unanswered").
+
+Exit checklist (`20-schedule.md` 6):
+
+1. The row of `../plan/phases.md`, run as the commands below:
+   - The examples check clean, with no ERROR without a machine file (D103): holds. `ncx check` exits 0 for each of the five. Its output equals `tests/Ncx.Acceptance/Expected/<name>.check.txt`: none for `2.5D_FRAESEN`, three `VM060` (`HOME` without a reference point) for `INCREMENTAL_SUB`, five `VM003` (D103) and two `VM500` (spindle OFF before a `LINE`) for `MILLTURN_TRANSFER`, one `VM540` (expressions in STATIC) for `PATTERN_LOOP`, one `VM060` for `POLAR_FACE`, all WARNINGs.
+   - Every validation rule has a test: holds. A script outside the repository looked up each of the 147 codes of `docs/spec/generated/diagnostics.md` (100 `VM`, 47 `PAR`) in `tests/`, by its `DiagnosticCodes` constant or its text, and found every one. The one row without a code, `RAW` or a native cycle compiled for another family, is `CMP001` of the compilers, tested in `CompilerBaseTests`.
+   - The coolant clutch rule expands and restores: holds. The tests of P1-06 and P7-01 pass. The command line gives the same result with the rule of machine-config 5a added to a copy of `fanuc-mill-30i.toml`. `annotate` shows the generated `@SAVE`, `SPINDLE:TOOL=OFF` and `@RESTORE` around the coolant block. `trace` shows the spindle going from CW to OFF before the coolant and back to CW after it, with `RPM:S1` staying at 1500. `check` reports nothing.
+   - Trace and annotate output exists for `2.5D_FRAESEN.ncx`: holds. Both exit 0 and equal their expected files byte for byte.
+2. CI green on `main` on both operating systems: cannot be checked, because nothing is pushed (`10-phase-0-foundations.md`, Log, item 2).
+3. Task files: P1-01 to P1-07 are in `done/` with their logs.
+4. Decisions: D99 to D103 and D106 have their rows in `decisions.md` and their answers in `rationale.md`. The virtual machine sections were amended when D90 to D106 were applied (2026-09-11). Architecture 5, 5.1, 5.3 and 9 and VM 7 were amended by the document fixes of P1-01, P1-02 and P1-05 (F18 to F21). The phase took no other decision; the open entries above are unanswered.
+5. The five examples: `ncx format --check` passes (phase 0), and `ncx check` reports no ERROR: holds.
+6. `docs/spec/generated/diagnostics.md` equals the code: holds. `DiagnosticTableTests` passes and leaves `docs/spec/generated/` unchanged. `docs/reading-the-code.md` exists and `ReadingTheCodeTests` finds every file it names.
+7. `01-findings.md`: F12 to F17, F26, F29 and F30 were already resolved by their decisions and document fixes. F18 to F21 were filled in by this bookkeeping with the commits of P1-01, P1-02 and P1-05.
+8. The entry state of the phase 2 tasks that follow phase 1 (P2-03, P2-04), and of phase 4, which needs only phase 1, was checked against the commits and corrected.
+
+Commands and results (the build, the formatting and the test run of the gate as in phase 0):
+
+```sh
+for f in 2.5D_FRAESEN INCREMENTAL_SUB MILLTURN_TRANSFER PATTERN_LOOP POLAR_FACE; do
+  dotnet run --no-build --project src/Ncx.Cli -- check docs/spec/examples/$f.ncx   # exit 0, no ERROR, output = Expected/$f.check.txt
+done
+dotnet run --no-build --project src/Ncx.Cli -- trace docs/spec/examples/2.5D_FRAESEN.ncx      # exit 0, = Expected/2.5D_FRAESEN.trace.txt
+dotnet run --no-build --project src/Ncx.Cli -- annotate docs/spec/examples/2.5D_FRAESEN.ncx   # exit 0, = Expected/2.5D_FRAESEN.annotate.txt
+dotnet test tests/Ncx.Core.Tests --no-build --filter "FullyQualifiedName~CoolantClutch"            # 6 passed
+dotnet test tests/Ncx.Acceptance --no-build --filter "FullyQualifiedName~CoolantClutchPluginTests" # 3 passed
+# clutch-mill.toml: machines/fanuc-mill-30i.toml with, under [coolant],
+#   THROUGH = { ON = "M51", OFF = "M9", requires = { SPINDLE = "OFF" }, restore = ["SPINDLE"] }
+# clutch.ncx: one program with UNITS=MM WORKPLANE=XY, SPINDLE:TOOL=CW RPM:TOOL=1500, COOLANT:THROUGH=ON
+dotnet run --no-build --project src/Ncx.Cli -- annotate clutch.ncx --machine clutch-mill.toml   # exit 0, excerpt below
+dotnet run --no-build --project src/Ncx.Cli -- trace clutch.ncx --machine clutch-mill.toml      # exit 0
+dotnet run --no-build --project src/Ncx.Cli -- check clutch.ncx --machine clutch-mill.toml      # exit 0, no diagnostic
+```
+
+```text
+SPINDLE:TOOL=CW RPM:TOOL=1500                           ; SPINDLE:S1 OFF -> CW, RPM:S1 0 -> 1500
+; generated by [coolant] THROUGH (restore): @SAVE=SPINDLE:TOOL
+; generated by [coolant] THROUGH (requires): SPINDLE:TOOL=OFF ; SPINDLE:S1 CW -> OFF
+COOLANT:THROUGH=ON                                      ; COOLANT:THROUGH OFF -> ON
+; generated by [coolant] THROUGH (restore): @RESTORE=SPINDLE:TOOL ; SPINDLE:S1 OFF -> CW
+```

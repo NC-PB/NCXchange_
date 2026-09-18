@@ -1,6 +1,6 @@
 # Phase 7: plugins and release 1.0
 
-Status: 2026-09-11, not started. Milestone M10. Tasks P7-01 to P7-03. Closed when the template builds and runs unchanged, the coolant clutch sample expands and restores through a plugin, a sample plugin puts Z on its own line, and a tagged 1.0 with release notes exists (`../plan/phases.md`).
+Status: written 2026-09-11; open on 2026-09-18. P7-01 is in `../plan/tasks/done/`. P7-02 is on `main` (87b8917) and waits for the answer on the block count of the plugin INFO line. P7-03, the release, waits for the maintainer. Milestone M10. Tasks P7-01 to P7-03. Closed when the template builds and runs unchanged, the coolant clutch sample expands and restores through a plugin, a sample plugin puts Z on its own line, and a tagged 1.0 with release notes exists (`../plan/phases.md`).
 
 ## Entry state
 

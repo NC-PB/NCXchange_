@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: written 2026-09-11 from version 1.0 of the documentation set, before any code exists. This folder is the engineer's side of `../plan/`: `plan/phases.md` and `plan/tasks/` say what to build and when a task is done; the documents here say how the tasks are built, in which order they actually work, and what had to be settled first. Everything here is a plan; it changes as the code lands, and the log at the end of each phase file says what happened.
+Status: 2026-09-18, written 2026-09-11 from version 1.0 of the documentation set before any code existed. On 2026-09-18, 26 of the 35 tasks are done. Phases 1 and 2 are closed, and phase 0 except its CI criterion, which waits for the maintainer's push; the logs of `10-` to `12-` record the closing. Phases 3 to 7 are open: every remaining task but the release P7-03 is on `main` and waits for something only the maintainer can give (the corpus, a measured cycle time, an answer, the push). This folder is the engineer's side of `../plan/`: `plan/phases.md` and `plan/tasks/` say what to build and when a task is done; the documents here say how the tasks are built, in which order they actually work, and what had to be settled first. Everything here is a plan; it changes as the code lands, and the log at the end of each phase file says what happened.
 
 ## Why a second plan
 

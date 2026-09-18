@@ -1,10 +1,12 @@
 # Phase 4: interpreted virtual machine and analytics
 
-Status: 2026-09-11, not started. Milestone M7. Tasks P4-01 to P4-03. Closed when `PATTERN_LOOP.ncx` runs to the end with the expected variable values and the analytics run on `3D_FRAESEN` and on a 5-axis program with their results recorded as the reference (`../plan/phases.md`).
+Status: written 2026-09-11; open on 2026-09-18. P4-01 is in `../plan/tasks/done/`; P4-02 and P4-03 are on `main` (857a3b3, dbd8753) and wait for the measured cycle time of `3D_FRAESEN` and the 5-axis pair of the corpus. Milestone M7. Tasks P4-01 to P4-03. Closed when `PATTERN_LOOP.ncx` runs to the end with the expected variable values and the analytics run on `3D_FRAESEN` and on a 5-axis program with their results recorded as the reference (`../plan/phases.md`).
 
 ## Entry state
 
 Phase 1 closed (P4-01 needs only the VM and the expression parser); the plan runs the phase after phase 3, as the table does, so that the analytics can read converted corpus programs, but P4-01 can be pulled forward if phase 3 waits for the corpus. At the start of the phase the maintainer is asked for the measured cycle time of `3D_FRAESEN` and for the two large pairs (the 5-axis A/C program of 1.2 MB and the 5.7 MB point list, `sources/README.md`).
+
+Checked 2026-09-18, at the close of phase 1: the phase was pulled forward and ran beside phases 1 and 3. The evaluator of P4-01 (e9a941a) landed on 2026-09-13, before P0-04. The interpreted flow (428a513) followed P1-07 on 2026-09-14. P4-02 (857a3b3) and P4-03 (dbd8753) came the same morning, beside P3-03. Phase 1 closed formally on 2026-09-18. The measured cycle time of `3D_FRAESEN` and the two large pairs have not arrived. P4-02 commits its computed runtime as an unverified reference, and the 5-axis test of P4-03 skips (their logs).
 
 ## Decisions needed first
 

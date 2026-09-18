@@ -1,6 +1,6 @@
 # Schedule
 
-Status: 2026-09-11, before any code. The order in which the tasks of `../plan/tasks/` are actually worked, where and why it differs from the phase table, what can run in parallel, when the decision batches are asked, what the maintainer is asked for and when, and the checklist that closes a phase.
+Status: 2026-09-18, written 2026-09-11 before any code. The order in which the tasks of `../plan/tasks/` are actually worked, where and why it differs from the phase table, what can run in parallel, when the decision batches are asked, what the maintainer is asked for and when, and the checklist that closes a phase. From 2026-09-13 on the tasks ran in parallel waves of agents rather than one after the other in the order of section 1; the entry states of the phase files say how the phases overlapped. On 2026-09-18, 26 of the 35 tasks are in `../plan/tasks/done/`. Phases 1 and 2 are closed, and phase 0 except its CI criterion, which waits for the push. Phases 3 to 7 are open, as the status lines of their phase files say.
 
 ## 1. Build order
 
@@ -8,7 +8,7 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 
 | # | Task | Phase file | Note |
 |---|---|---|---|
-| 1 | P0-01 Repository skeleton and solution | 10 | `git init` first |
+| 1 | P0-01 Repository skeleton and solution | 10 | `git init` first; on `main` (eebc2e9), stays in `inbox/` until CI is green on `main`, which waits for the maintainer's push |
 | 2 | ✓ P0-02 Core model | 10 | |
 | 3 | ✓ P0-03 Word catalog | 10 | decision batch 1, answered 2026-09-11 |
 | 4 | ✓ P0-04 Lexer and parser | 10 | |
@@ -32,16 +32,16 @@ One engineer, one task at a time, in this order. A tick goes in front of a task 
 | 22 | ✓ P3-04 Heidenhain compiler | 13 | closes M5; needs `BOHREN.ncx` from 20 |
 | 23 | ✓ P3-05 Heidenhain reader | 13 | |
 | 24 | ✓ P3-06 Fanuc compiler | 13 | closes M6 |
-| 25 | P3-07 Acceptance project and corpus runner | 13 | |
+| 25 | P3-07 Acceptance project and corpus runner | 13 | on `main` (3ffc1bc); waits for the maintainer's corpus report |
 | 26 | ✓ P4-01 Expression evaluation and interpreted flow | 14 | ask for the cycle time and the large pairs now |
-| 27 | P4-02 Analytics: tool list, runtime estimate | 14 | |
-| 28 | P4-03 Analytics: segment length and tool vector change | 14 | closes M7 |
-| 29 | P5-01 Siemens reader | 15 | |
-| 30 | P5-02 Siemens compiler | 15 | closes M8 |
+| 27 | P4-02 Analytics: tool list, runtime estimate | 14 | on `main` (857a3b3); waits for the measured cycle time of `3D_FRAESEN` |
+| 28 | P4-03 Analytics: segment length and tool vector change | 14 | closes M7; on `main` (dbd8753); waits for the 5-axis pair of the corpus |
+| 29 | P5-01 Siemens reader | 15 | on `main` (52df450); waits for the corpus |
+| 30 | P5-02 Siemens compiler | 15 | closes M8; on `main` (e231691); waits for the corpus |
 | 31 | ✓ P6-01 Job scheduler and `SYNC` | 16 | |
-| 32 | P6-02 Job compiler and channel binding | 16 | closes M9 |
+| 32 | P6-02 Job compiler and channel binding | 16 | closes M9; on `main` (496e752); waits for two answers on `nakamura-ntjx.toml` |
 | 33 | ✓ P7-01 Plugin interfaces and loading | 17 | |
-| 34 | P7-02 Plugin template and `ncx plugin` commands | 17 | |
+| 34 | P7-02 Plugin template and `ncx plugin` commands | 17 | on `main` (87b8917); waits for the answer on the block count of the plugin INFO line |
 | 35 | P7-03 Release 1.0 | 17 | closes M10 |
 
 `PL-01` (kinematics) and `PL-02` (further controllers) stay in `inbox/` as documented in `phases.md`; nothing in the order above may make them harder (D24, D68).

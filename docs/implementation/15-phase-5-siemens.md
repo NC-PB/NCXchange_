@@ -1,6 +1,6 @@
 # Phase 5: Siemens
 
-Status: 2026-09-11, not started. Milestone M8. Tasks P5-01, P5-02. Closed when `MILLTURN_TRANSFER.ncx` compiles for its machine file with generic words only, and the Hermle C22 U and a Burkhardt+Weber program of the corpus read without loss and compile back (`../plan/phases.md`).
+Status: written 2026-09-11; open on 2026-09-18. P5-01 and P5-02 are on `main` (52df450, e231691) and wait for the Hermle C22 U and Burkhardt+Weber programs of the corpus. Milestone M8. Tasks P5-01, P5-02. Closed when `MILLTURN_TRANSFER.ncx` compiles for its machine file with generic words only, and the Hermle C22 U and a Burkhardt+Weber program of the corpus read without loss and compile back (`../plan/phases.md`).
 
 ## Entry state
 

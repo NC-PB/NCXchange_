@@ -1,6 +1,6 @@
 # Phase 6: jobs and channels
 
-Status: 2026-09-11, not started. Milestone M9. Tasks P6-01, P6-02. Closed when the two Nakamura WY250L programs read as a job, analyze without deadlock and compile back with their wait codes (`../plan/phases.md`).
+Status: written 2026-09-11; open on 2026-09-18. P6-01 is in `../plan/tasks/done/`; P6-02 is on `main` (496e752) and waits for two answers on `nakamura-ntjx.toml`: the `CSS_OFF` of `[spindle.SUB]` and D243. Milestone M9. Tasks P6-01, P6-02. Closed when the two Nakamura WY250L programs read as a job, analyze without deadlock and compile back with their wait codes (`../plan/phases.md`).
 
 ## Entry state
 
