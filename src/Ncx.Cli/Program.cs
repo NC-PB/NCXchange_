@@ -10,6 +10,7 @@ using Ncx.Cli.Commands;
 using Ncx.Compilers;
 using Ncx.Compilers.Fanuc;
 using Ncx.Compilers.Heidenhain;
+using Ncx.Compilers.Siemens;
 using Ncx.Core.Machine;
 using Ncx.Core.Model;
 using Ncx.Readers;
@@ -125,6 +126,7 @@ internal static class Program
         var compilers = new CompilerRegistry();
         compilers.Register(Controller.Fanuc, () => new FanucCompiler());
         compilers.Register(Controller.Heidenhain, () => new HeidenhainCompiler());
+        compilers.Register(Controller.Siemens, () => new SiemensCompiler());
         return compilers;
     }
 }

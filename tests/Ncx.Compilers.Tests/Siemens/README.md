@@ -1,0 +1,7 @@
+# Siemens
+
+The tests of the Siemens compiler (`src/Ncx.Compilers/Siemens/`): NCX blocks in, the SINUMERIK lines out, one test per rule of `controllers/siemens.md` 12 and per cell of the Siemens column of `controller-mapping.md` the compiler writes, named after what the compiler does with the words (`ExtendedAxisZ2_Rapid_IsWrittenWithTheEqualsSign`, `SurfaceSpeedOnTheSubSpindle_SelectsItAsMasterInABlockOfItsOwn`, `Drill_CalledAtTwoPositions_IsMcallWithTheSignatureThenThePositions`).
+
+`SiemensCompile.cs` frames the blocks as the program `T` with the complete header of D34 and compiles them for the 840D sl mill of `machines/siemens-840dsl-mill.toml`, the mill-turn `machines/millturn1.toml` (D104), that mill with a rotary table and the `[transform]` of the mill-turn, or a variant of one of them, each with the cycle catalog `cycles/siemens.toml`, and gives the lines between the header line and `M30` without block numbers. The files follow the rules of siemens 12: `SiemensProgramFrameTests` (rule 1, the units, the comments, the skip levels, `RAW:SIEMENS` of rule 6), `SiemensMotionTests` (rule 2), `SiemensToolTests` (rule 3, the spindles and the functions), `SiemensFrameTests` (rule 4), `SiemensCycleTests` (rule 5), `SiemensFlowTests` (the flow of siemens 8), `SiemensChannelTests` (rule 6).
+
+`MILLTURN_TRANSFER.ncx` end to end, its round trip through the Siemens reader and the corpus round trips are in `../../Ncx.Acceptance/Examples/SiemensCompilerTests.cs`.
