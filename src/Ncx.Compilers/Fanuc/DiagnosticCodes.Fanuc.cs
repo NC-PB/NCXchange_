@@ -54,6 +54,14 @@ public static partial class DiagnosticCodes
     public const string FanucWordNotWritten = "CMP308";
 
     /// <summary>
+    /// CMP309: a modal value that a block takes from the state before it, without stating it, differs by the path the
+    /// control arrives on (a LABEL that a jump reaches, the block after a skipped one) or comes from an expression, and
+    /// the control does not hold it on every path, so no one line is right on all of them (virtual machine 1; D53;
+    /// language 2 rule 2).
+    /// </summary>
+    public const string FanucModalValueNotHeld = "CMP309";
+
+    /// <summary>
     /// CMP320: LINE or ARC with FRAME=MACHINE, which G53 would move at rapid (D242).
     /// </summary>
     public const string FanucFeedMotionInMachineFrame = "CMP320";
@@ -135,13 +143,16 @@ public static partial class DiagnosticCodes
     public const string FanucContourCycleNotWritten = "CMP384";
 
     /// <summary>
-    /// CMP385: a cycle word that the catalog entry maps to no address of the Fanuc cycle block (machine-config 6).
+    /// CMP385: a cycle word that the catalog entry maps to no address of the Fanuc cycle block and that no rule of the
+    /// compiler carries, PITCH of THREAD, DEPTH of TURN_OD (machine-config 6; controller-mapping 5; language 2 rule 8).
     /// </summary>
     public const string FanucCycleWordNotMapped = "CMP385";
 
     /// <summary>
-    /// CMP386: PITCH of a tapping cycle without CYCLE_F in feed per minute where the speed of the spindle is not known,
-    /// so the feed PITCH x S of G84 cannot be written (controller-mapping 5, TAP; language 2 rule 8).
+    /// CMP386: PITCH of a tapping cycle without CYCLE_F in feed per minute where the spindle that turns the tap, the
+    /// spindle of the current tool holder, gives no speed: it is off, a positioning axis or under CSS, or its speed is
+    /// not known, so the feed PITCH x S of G84 cannot be written (controller-mapping 5, TAP; virtual machine 2.3;
+    /// language 2 rule 8).
     /// </summary>
     public const string FanucTapFeedNotKnown = "CMP386";
 

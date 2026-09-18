@@ -23,6 +23,17 @@ internal static class FanucToolWords
     // The spindle whose M code the control saw last, which a bare S belongs to (controllers fanuc.md 5).
     private const string LastSpindle = "SPINDLE:LAST";
 
+    /// <summary>
+    /// The key of the speed the control has for a spindle, S: with its resource id.
+    /// </summary>
+    public const string SpeedKey = "S:";
+
+    /// <summary>
+    /// The key of G96 or G97, which the control has for a spindle, CSS: with its resource id: under G96 its S is the
+    /// cutting speed, under G97 the speed (controllers fanuc.md 4).
+    /// </summary>
+    public const string CssKey = "CSS:";
+
     // Tool 0 is the empty spindle (language 4.4).
     private static readonly ToolRef s_emptySpindle = new(0);
 
@@ -143,14 +154,21 @@ internal static class FanucToolWords
             write.Written(radius);
         }
 
-        // D stands with G41 or G42 (controller-mapping 2, COMP: G41/G42/G40 with D; controllers fanuc.md 4).
+        // D stands with G41 or G42 (controller-mapping 2, COMP: G41/G42/G40 with D; controllers fanuc.md 4). A register
+        // the block does not state is the one of the state before it, which the control holds where it differs by
+        // path (FanucBlock.NeedsValueOfTheWalk); one it states without G41 or G42 stands with the next of them.
+        bool stated = write.Block.Find("OFFSET", "RAD") is not null;
         if (write.After.Motion.Comp != Compensation.Off && holder is not null && holder.OffsetRad != 0)
         {
             string register = holder.OffsetRad.ToString(CultureInfo.InvariantCulture);
-            if (write.Target.Changes("D", register))
+            if (stated ? write.Target.Changes("D", register) : write.NeedsValueOfTheWalk("D", register, "OFFSET:RAD"))
             {
                 write.Main.Word("D" + register);
             }
+        }
+        else if (stated)
+        {
+            write.StatesForLater("D", known: true);
         }
     }
 
@@ -227,6 +245,32 @@ internal static class FanucToolWords
         }
     }
 
+    /// <summary>
+    /// The speed of a spindle as the compiler writes it, S1000, from the RPM template of its table (controllers
+    /// fanuc.md 5; machine-config 5); without a template rounded to the decimals of S without the WARNING of the block
+    /// that writes it (machine-config 2); null where the template cannot be written.
+    /// </summary>
+    public static string? SpeedTextOf(FanucBlock write, string id, SpindleSnapshot spindle)
+    {
+        string? tableRole = TableRoleOf(write, null, id);
+        FunctionTable? table = tableRole is not null
+            && write.Machine.SpindleTables.TryGetValue(tableRole, out FunctionTable? found) ? found : null;
+        decimal rpm = table?.States.ContainsKey("RPM") != true && write.Numbers.DecimalsOf("S") is int decimals
+            ? Math.Round(spindle.Rpm, decimals, MidpointRounding.AwayFromZero)
+            : spindle.Rpm;
+        return SpeedOf(write, null, spindle with { Rpm = rpm }, table, $"[spindle.{tableRole}]");
+    }
+
+    /// <summary>
+    /// True where an S alone belongs to the spindle: the machine has one spindle, or its M code is the one the control
+    /// saw last (controllers fanuc.md 5).
+    /// </summary>
+    public static bool SpeedStandsAlone(FanucBlock write, string id)
+    {
+        return write.Target.ActiveOf(LastSpindle) == id
+            || write.Machine.Resources.Count(resource => resource.IsSpindle) <= 1;
+    }
+
     // The words of one spindle: S and its M code (controllers fanuc.md 5; controller-mapping 4, SPINDLE and RPM).
     private static void AddSpindle(FanucBlock write, string? role)
     {
@@ -253,21 +297,25 @@ internal static class FanucToolWords
 
         var parts = new List<string>();
         string what = $"[spindle.{tableRole}]";
+        string key = SpeedKey + id;
         bool runs = spindle.Direction != SpindleDirection.Off;
         string? speed = spindle.Css ? null : SpeedOf(write, rpm, spindle, table, what);
-        string? direction = runs ? Code(write, table, spindle.Direction == SpindleDirection.Clockwise ? "CW" : "CCW",
-            what) : null;
+        string? direction = runs && !write.SpindleCodesWritten.Contains(id)
+            ? Code(write, table, spindle.Direction == SpindleDirection.Clockwise ? "CW" : "CCW", what)
+            : null;
         if (state is not null && runs)
         {
-            // A start writes its S unless the control has that speed and the block writes none (fanuc 10 rule 2).
-            if (speed is not null && (rpm is not null || write.Target.ActiveOf("S:" + id) != speed))
+            // A start writes its S unless the control has that speed and the block writes none (fanuc 10 rule 2); a
+            // speed the block does not state is the one of the state before it, which the control holds where it
+            // differs by path (FanucBlock.NeedsValueOfTheWalk).
+            if (speed is not null && (rpm is not null || NeedsSpeedOfTheWalk(write, id, speed)))
             {
                 parts.Add(speed);
             }
 
             AddIfWritten(parts, direction);
         }
-        else if (state is not null)
+        else if (state is not null && !write.SpindleCodesWritten.Contains(id))
         {
             AddIfWritten(parts, Code(write, table, "OFF", what));
         }
@@ -282,14 +330,35 @@ internal static class FanucToolWords
             }
         }
 
+        // A start and an S of the speed are right under G97 or under G96 only: a start without S runs at the cutting
+        // speed under G96 and at the S the control has under G97, and an S is the cutting speed under G96 (controllers
+        // fanuc.md 4; language 4.11). Where the one the control has differs by path, the block is right on one path
+        // only (virtual machine 1; D53).
+        bool takesCss = (state is not null && runs) || (speed is not null && parts.Contains(speed));
+        if (takesCss && write.DependsOnThePath(CssKey + id))
+        {
+            write.ReportNotHeld("CSS");
+        }
+
         if (parts.Count > 0)
         {
             FanucFunctions.Add(write, string.Join(" ", parts));
             write.Target.Set(LastSpindle, id);
-            if (speed is not null && runs)
+        }
+
+        // The control holds the speed it was given; one from an expression is the value of NCX, which the compiler
+        // cannot name (FanucBlock.Hold). The RPM of a standing spindle, or under CSS, stands with its next start.
+        if (speed is not null && parts.Contains(speed))
+        {
+            write.Target.Set(key, speed);
+            if (rpm?.Value is ExprValue)
             {
-                write.Target.Set("S:" + id, speed);
+                write.Hold(key);
             }
+        }
+        else if (rpm is not null)
+        {
+            write.StatesForLater(key, rpm.Value is not ExprValue);
         }
 
         if (orient is not null)
@@ -308,6 +377,24 @@ internal static class FanucToolWords
                 FanucFunctions.Add(write, text);
             }
         }
+    }
+
+    // A start without RPM takes the speed of the state before it: nothing where the control holds the speed of NCX of
+    // each path, the speed where the control has another, CMP309 where neither can be (FanucBlock.NeedsValueOfTheWalk);
+    // an RPM from an expression is not known in the STATIC walk (virtual machine 1), so only the control can hold it.
+    private static bool NeedsSpeedOfTheWalk(FanucBlock write, string id, string speed)
+    {
+        if (!write.After.Unknown.Contains("RPM:" + id))
+        {
+            return write.NeedsValueOfTheWalk(SpeedKey + id, speed, "RPM");
+        }
+
+        if (!write.Holds(SpeedKey + id))
+        {
+            write.ReportNotHeld("RPM");
+        }
+
+        return false;
     }
 
     // S of the RPM template of the spindle's table, "S{rpm}", or S itself where the table has none: Fanuc has one S
@@ -342,9 +429,10 @@ internal static class FanucToolWords
     // 4; machine-config 5).
     private static void Line(FanucBlock write, Word word, string state, Value? value)
     {
-        string? tableRole = TableRoleOf(write, word.Addr, word.Addr is null
+        string? id = word.Addr is null
             ? write.Machine.ResolveDefaultSpindle()?.Id
-            : write.Machine.ResolveRole(word.Addr)?.Id);
+            : write.Machine.ResolveRole(word.Addr)?.Id;
+        string? tableRole = TableRoleOf(write, word.Addr, id);
         FunctionTable? table = tableRole is not null
             && write.Machine.SpindleTables.TryGetValue(tableRole, out FunctionTable? found) ? found : null;
         var values = new TemplateValues();
@@ -353,11 +441,137 @@ internal static class FanucToolWords
             values.Set("value", decimal.Parse(value.ToCanonical(), CultureInfo.InvariantCulture));
         }
 
-        if (write.Render(table?.States.GetValueOrDefault(state), $"[spindle.{tableRole}] {state} (machine-config 5)",
-            values) is string text)
+        string what = $"[spindle.{tableRole}]";
+        if (write.Render(table?.States.GetValueOrDefault(state), $"{what} {state} (machine-config 5)",
+            values) is not string text)
+        {
+            return;
+        }
+
+        // TODO(question): fanuc 5 gives the S of a block to the spindle of the M code in it, otherwise to the spindle
+        // selected last, and fanuc 4 does not say whether the speed limit of G50 S and G92 S is one per spindle; the
+        // limit is written alone, as NAKAMURA_WY250L_O1000.path1.nc writes G50S2500 before any M code, until that is
+        // answered.
+        if (id is null || state == "RPM_MAX")
         {
             write.Write(text);
+            return;
         }
+
+        // Under CSS the spindle follows VC, and RPM keeps its meaning and applies again after CSS=OFF (language 4.11),
+        // while G97 alone keeps the speed the spindle has (controllers fanuc.md 4: G97 S1500), so G97 carries the S of
+        // a running spindle; an RPM of the block itself stands with the M code (AddSpindleFunctions).
+        if (state == "CSS_OFF" && SpeedAfterCss(write, id, table, what) is string speed)
+        {
+            text += " " + speed;
+        }
+
+        // The S of G96 S140 and of G97 S1000 belongs to the spindle whose M code stands in the same block, otherwise to
+        // the spindle selected last, so it carries the M code of its spindle where the control may have another
+        // selected: never S alone after another spindle's M code (controllers fanuc.md 5, 10 rule 2;
+        // controller-mapping 4, RPM:role).
+        if (HasSpeed(text))
+        {
+            if (!SpeedStandsAlone(write, id) && write.After.Spindles.TryGetValue(id, out SpindleSnapshot? spindle))
+            {
+                string code = spindle.Direction switch
+                {
+                    SpindleDirection.Clockwise => "CW",
+                    SpindleDirection.Counterclockwise => "CCW",
+                    _ => "OFF",
+                };
+                if (Code(write, table, code, what) is string mCode)
+                {
+                    text += " " + mCode;
+                    write.SpindleCodesWritten.Add(id);
+                }
+            }
+
+            write.Target.Set(LastSpindle, id);
+        }
+
+        write.Write(text);
+
+        // G96 S140 gives the S of the control the cutting speed (controllers fanuc.md 4), so the speed of RPM is no
+        // longer on the control for the spindle.
+        if (state == "VC")
+        {
+            write.WroteAnotherValue(SpeedKey + id, null);
+        }
+
+        // CSS=ON and CSS=OFF state G96 and G97 on every path; the G96 S of VC alone gives the control G96 as well, and
+        // where the control may have G97 on another path, the line is right on one path only (language 4.11; virtual
+        // machine 1; D53).
+        string cssKey = CssKey + id;
+        if (word.Key != "CSS" && write.DependsOnThePath(cssKey))
+        {
+            write.ReportNotHeld("CSS");
+        }
+        else
+        {
+            write.Target.Set(cssKey, state == "VC" ? "G96" : "G97");
+        }
+    }
+
+    // The S that G97 carries: the RPM of the spindle where it runs after the block and the block states no RPM of its
+    // own, where the control may have another speed (FanucBlock.NeedsValueOfTheWalk); an RPM from an expression is not
+    // known in the STATIC walk (virtual machine 1) and cannot be written, CMP309.
+    private static string? SpeedAfterCss(FanucBlock write, string id, FunctionTable? table, string what)
+    {
+        if (StatesRpm(write, id)
+            || !write.After.Spindles.TryGetValue(id, out SpindleSnapshot? spindle)
+            || spindle.Direction == SpindleDirection.Off || spindle.Css)
+        {
+            return null;
+        }
+
+        if (write.After.Unknown.Contains("RPM:" + id))
+        {
+            if (!write.Holds(SpeedKey + id))
+            {
+                write.ReportNotHeld("RPM");
+            }
+
+            return null;
+        }
+
+        return SpeedOf(write, null, spindle, table, what) is string speed
+            && write.NeedsValueOfTheWalk(SpeedKey + id, speed, "RPM")
+            ? speed
+            : null;
+    }
+
+    // True where the block has an RPM of the spindle, with its role or without one for the default spindle (virtual
+    // machine 3.8 rule 2).
+    private static bool StatesRpm(FanucBlock write, string id)
+    {
+        foreach (Word word in write.Block.Words)
+        {
+            string? spindle = word.Addr is null
+                ? write.Machine.ResolveDefaultSpindle()?.Id
+                : write.Machine.ResolveRole(word.Addr)?.Id;
+            if (word.Key == "RPM" && spindle == id)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // True where an S word stands in the text of a line, S140 or S#1 (controllers fanuc.md 5).
+    private static bool HasSpeed(string text)
+    {
+        foreach (string token in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token.Length > 1 && token[0] == 'S' && (char.IsAsciiDigit(token[1]) || token[1] is '.' or '-' or '#'
+                or '['))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // The cutting speed of a spindle after the block: the VC word or the one the virtual machine holds.

@@ -41,14 +41,20 @@ internal static class FanucMotion
         }
 
         // The plane stands in the motion block itself, and under plane_with_first_motion only there (the TODO(question)
-        // of OutputFormat).
+        // of OutputFormat). The lines of a skipped block run only where the block runs (controller-mapping 1, SKIP), so
+        // the plane of a skipped block stands in its own lines. A plane the next motion writes is the same on every
+        // path from here on.
         if (block.Has("WORKPLANE"))
         {
             write.Written("WORKPLANE");
             bool moves = block.Verb is Word verb && s_planeMotions.Contains(verb.Key);
-            if (!moves && write.Machine.Format?.PlaneWithFirstMotion != true)
+            if (!moves && (write.Machine.Format?.PlaneWithFirstMotion != true || block.Skip))
             {
                 WritePlane(write);
+            }
+            else if (!moves)
+            {
+                write.StatesForLater(FanucCodes.Plane, known: true);
             }
         }
 
@@ -61,11 +67,21 @@ internal static class FanucMotion
     }
 
     /// <summary>
-    /// The code of the working plane where the control has another active (language 4.2, WORKPLANE).
+    /// The code of the working plane where the control has another active (language 4.2, WORKPLANE); a plane the block
+    /// does not state is the one of the state before it, which the control holds where it differs by path
+    /// (FanucBlock.NeedsValueOfTheWalk).
     /// </summary>
     public static void WritePlane(FanucBlock write)
     {
-        Change(write, FanucCodes.Plane, FanucCodes.PlaneCode(write.After.Frame.Workplane));
+        string code = FanucCodes.PlaneCode(write.After.Frame.Workplane);
+        if (write.Block.Has("WORKPLANE"))
+        {
+            Change(write, FanucCodes.Plane, code);
+        }
+        else if (write.NeedsValueOfTheWalk(FanucCodes.Plane, code, "WORKPLANE"))
+        {
+            write.Main.Code(FanucCodes.RankOf(FanucCodes.Plane), code);
+        }
     }
 
     /// <summary>
@@ -297,8 +313,34 @@ internal static class FanucMotion
             position.Value * FanucAxes.StateFactor(write, axis.Axis));
     }
 
-    // F where the feed of the control differs from the feed of NCX; a RAPID writes none. The feed mode stands with the
-    // feed where the control has another (controllers fanuc.md 2, 3).
+    /// <summary>
+    /// F of a block that does not feed itself (language 4.3: F is modal; 5 rule 2: F needs no verb): in a block
+    /// without a verb in its line, F200. or G95 F0.1, as a Fanuc block holds F alone (controllers fanuc.md 2, 4); in a
+    /// CYCLE_CALL, HOME, SETPOS, SHIFT, TILT, TILT_AXIS or RETRACT block the next LINE or ARC writes it, since the F
+    /// of a cycle block is the feed of the cycle on the control (D29, D218) and the others do not feed.
+    /// </summary>
+    public static void WriteFeedWord(FanucBlock write)
+    {
+        if (write.Block.Find("F") is not Word feed || write.Block.Verb?.Key is "RAPID" or "LINE" or "ARC")
+        {
+            return;
+        }
+
+        write.Written(feed);
+        if (write.Block.Verb is null)
+        {
+            AddStatedFeed(write, feed);
+        }
+        else
+        {
+            write.StatesForLater("F", feed.Value is not ExprValue);
+        }
+    }
+
+    // F where the feed of the control differs from the feed of NCX; a RAPID writes none, the next LINE or ARC writes
+    // it. The feed mode stands with the feed where the control has another (controllers fanuc.md 2, 3). A feed and a
+    // feed mode the block does not state are those of the state before it, which the control holds where they differ
+    // by path (FanucBlock.NeedsValueOfTheWalk).
     // TODO(question): D218: where the F of a Fanuc cycle block stands is open; the compiler counts it as the control's
     // feed and writes F only where the NCX feed differs, as D218 recommends, until D218 is answered.
     private static void AddFeed(FanucBlock write, string verb)
@@ -311,14 +353,70 @@ internal static class FanucMotion
 
         if (verb == "RAPID")
         {
+            if (feedWord is not null)
+            {
+                write.StatesForLater("F", feedWord.Value is not ExprValue);
+            }
+
             return;
         }
 
-        Change(write, FanucCodes.FeedMode, FanucCodes.FeedModeCode(write.After.Motion.FeedMode, write.System));
-        string? feed = feedWord is not null
-            ? FanucExpressions.WordValue(write, "F", feedWord.Value, 1m)
-            : write.After.Motion.Feed is decimal value ? write.Format("F", value) : null;
-        if (feed is not null && write.Target.Changes("F", feed))
+        string mode = FanucCodes.FeedModeCode(write.After.Motion.FeedMode, write.System);
+        if (write.Block.Has("FEED_MODE"))
+        {
+            Change(write, FanucCodes.FeedMode, mode);
+        }
+        else if (write.NeedsValueOfTheWalk(FanucCodes.FeedMode, mode, "FEED_MODE"))
+        {
+            write.Main.Code(FanucCodes.RankOf(FanucCodes.FeedMode), mode);
+        }
+
+        if (feedWord is not null)
+        {
+            AddStatedFeed(write, feedWord);
+            return;
+        }
+
+        // The feed from an expression is not known in the STATIC walk (virtual machine 1): the control holds it where
+        // the F of its block was written, and nothing else can be written for it.
+        if (write.After.Unknown.Contains("F"))
+        {
+            if (!write.Holds("F"))
+            {
+                write.ReportNotHeld("F");
+            }
+
+            return;
+        }
+
+        if (write.After.Motion.Feed is not decimal value)
+        {
+            return;
+        }
+
+        string feed = write.Format("F", value);
+        if (write.NeedsValueOfTheWalk("F", feed, "F"))
+        {
+            write.Main.Word("F" + feed);
+        }
+    }
+
+    // The F word of the block, where the control's feed differs; an expression every time, since its value may have
+    // changed since the last F (controllers fanuc.md 7), after which the control holds the value of NCX that the
+    // compiler cannot name (FanucBlock.Hold).
+    private static void AddStatedFeed(FanucBlock write, Word feedWord)
+    {
+        if (FanucExpressions.WordValue(write, "F", feedWord.Value, 1m) is not string feed)
+        {
+            return;
+        }
+
+        if (feedWord.Value is ExprValue)
+        {
+            write.Main.Word("F" + feed);
+            write.Hold("F");
+        }
+        else if (write.Target.Changes("F", feed))
         {
             write.Main.Word("F" + feed);
         }

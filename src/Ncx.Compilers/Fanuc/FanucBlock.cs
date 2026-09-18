@@ -24,6 +24,17 @@ internal sealed class FanucBlock
     // the walk of a subprogram leaves stands as a value.
     private const string UnknownValue = "?";
 
+    // What the target state holds under a modal key whose value on the control is the value of NCX on the path the
+    // control came along, which differs by path (a LABEL that a jump reaches, the block after a skipped one; virtual
+    // machine 1, D53), or which an expression set that the STATIC walk does not evaluate: F, the modal words of
+    // language 4.3, keeps its value on the control as in NCX, so nothing stands for it again until a block states it.
+    private const string HeldValue = "=";
+
+    // What the target state holds under a modal key whose value of NCX differs by path or comes from an expression,
+    // where the control does not hold it: a block that takes the value from the state before it cannot be written right
+    // on every path.
+    private const string LostValue = "!";
+
     // The words the concerns have written, by key and address.
     private readonly HashSet<string> _written = new(StringComparer.Ordinal);
 
@@ -180,6 +191,12 @@ internal sealed class FanucBlock
     public bool OffsetsAdded { get; set; }
 
     /// <summary>
+    /// The spindles, by resource id, whose M code stands already in a spindle line of the block, G96 S140 M3, so that
+    /// it stands once.
+    /// </summary>
+    public HashSet<string> SpindleCodesWritten { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Writes the main line when anything stands in it, then the lines that follow it.
     /// </summary>
     public void WriteMain()
@@ -249,6 +266,144 @@ internal sealed class FanucBlock
                 MakeUnknown(key);
             }
         }
+    }
+
+    /// <summary>
+    /// Records that the control holds the value of NCX under a modal key on every path it may come along, a value the
+    /// compiler cannot name as one: it differs by path, or an expression set it (language 4.3, F is modal; virtual
+    /// machine 1).
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    public void Hold(string key)
+    {
+        Target.Set(key, HeldValue);
+    }
+
+    /// <summary>
+    /// Records that the control does not hold the value of NCX under a modal key on every path, and that the compiler
+    /// cannot name it: a block that takes it from the state before it is CMP309.
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    public void Lose(string key)
+    {
+        Target.Set(key, LostValue);
+    }
+
+    /// <summary>
+    /// True when the control holds, under a modal key, the value of NCX of the path it came along (Hold).
+    /// </summary>
+    public bool Holds(string key)
+    {
+        return IsHeld(Target.ActiveOf(key));
+    }
+
+    /// <summary>
+    /// True for the value of a target state that says the control holds the value of NCX of its path (Hold).
+    /// </summary>
+    /// <param name="active">What a target state holds under a key; null for nothing.</param>
+    public static bool IsHeld(string? active)
+    {
+        return active == HeldValue;
+    }
+
+    /// <summary>
+    /// True when the value of NCX under a modal key differs by path or comes from an expression (Hold, Lose).
+    /// </summary>
+    public bool DependsOnThePath(string key)
+    {
+        return IsPathValue(Target.ActiveOf(key));
+    }
+
+    /// <summary>
+    /// True for the value of a target state that says the value of NCX under its key differs by path or comes from an
+    /// expression (Hold, Lose).
+    /// </summary>
+    /// <param name="active">What a target state holds under a key; null for nothing.</param>
+    public static bool IsPathValue(string? active)
+    {
+        return active is HeldValue or LostValue;
+    }
+
+    /// <summary>
+    /// Tells whether a modal value that the block takes from the state before it, without stating it, must be written,
+    /// and records it: a code or value is written only on change (controllers fanuc.md 10 rule 1), nothing where the
+    /// control holds the value of NCX of each path (Hold), and CMP309 where it holds none of them (Lose), since the
+    /// value of the STATIC walk is the value of one path only (virtual machine 1; D53).
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    /// <param name="value">The value of the STATIC walk as written: "100.".</param>
+    /// <param name="word">The NCX word the value belongs to, for the message: "F".</param>
+    public bool NeedsValueOfTheWalk(string key, string value, string word)
+    {
+        string? active = Target.ActiveOf(key);
+        if (active == HeldValue)
+        {
+            return false;
+        }
+
+        if (active == LostValue)
+        {
+            ReportNotHeld(word);
+            return false;
+        }
+
+        return Target.Changes(key, value);
+    }
+
+    /// <summary>
+    /// A modal word the block states and the compiler writes in a later block (F of a RAPID, WORKPLANE under
+    /// plane_with_first_motion, the RPM of a standing spindle): the value of NCX is the same on every path from here
+    /// on, so the next use writes it; one from an expression is not written anywhere and cannot be named.
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    /// <param name="known">False for a value from an expression (virtual machine 1).</param>
+    public void StatesForLater(string key, bool known)
+    {
+        if (!known)
+        {
+            Lose(key);
+        }
+        else if (DependsOnThePath(key))
+        {
+            MakeUnknown(key);
+        }
+    }
+
+    /// <summary>
+    /// The compiler wrote under a modal key a value that is not the value of NCX, the F of a canned cycle (D218) or
+    /// the cutting speed of G96 S (controllers fanuc.md 4): where the value of NCX differs by path the control holds
+    /// none of them any more.
+    /// </summary>
+    /// <param name="key">The key: "F".</param>
+    /// <param name="written">The value written, a number; null for an expression, which the compiler cannot
+    /// name.</param>
+    public void WroteAnotherValue(string key, string? written)
+    {
+        if (DependsOnThePath(key))
+        {
+            Lose(key);
+        }
+        else if (written is null)
+        {
+            MakeUnknown(key);
+        }
+        else
+        {
+            Target.Set(key, written);
+        }
+    }
+
+    /// <summary>
+    /// CMP309 for a modal value that the block takes from the state before it and that the control does not hold on
+    /// every path.
+    /// </summary>
+    /// <param name="word">The NCX word, "F".</param>
+    public void ReportNotHeld(string word)
+    {
+        Error(DiagnosticCodes.FanucModalValueNotHeld,
+            $"The block takes {word} from the state before it, and that value differs by the path the control arrives "
+            + "on (a LABEL that a jump reaches, the block after a skipped one) or comes from an expression, while the "
+            + "control does not hold it on every path; state it in the block (virtual machine 1; D53; language 4.3).");
     }
 
     /// <summary>

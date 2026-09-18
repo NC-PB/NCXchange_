@@ -126,6 +126,167 @@ public sealed class FanucCyclesTests
         Assert.Equal(DiagnosticCodes.FanucTapFeedNotKnown, error.Code);
     }
 
+    // Controller-mapping 5 TAP, virtual machine 2.3 and 5: the tap turns with the spindle of the current tool holder,
+    // the driven tool TOOL of the turret, so the feed per minute is PITCH times its 800, not the speed of the main
+    // spindle, which is off.
+    [Fact]
+    public void Tap_OnTheDrivenToolOfALathe_FeedsWithTheSpeedOfTheDrivenTool()
+    {
+        string text = FanucCompile.TextOf(FanucCompile.Run(FanucCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\" NUMBER=1",
+            "FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY DIAMETER=ON CYCLE=OFF",
+            "SPINDLE:MAIN=CW RPM:MAIN=500",
+            "SPINDLE:MAIN=OFF",
+            "TOOL=1 OFFSET=1",
+            "SPINDLE:TOOL=CW RPM:TOOL=800",
+            "RAPID X=0 Z=5",
+            "CYCLE=TAP CLEARANCE=2 DEPTH=-10 PITCH=1",
+            "CYCLE_CALL",
+            "CYCLE=OFF",
+            "PROGRAM=END",
+            "FILE=END"), FanucCompile.Lathe()));
+
+        Assert.Contains("\nG84 Z-10. R2. F800.\n", text, StringComparison.Ordinal);
+    }
+
+    // Controller-mapping 5 TAP, language 2 rule 8: the spindle of the current tool holder is off, so PITCH x S has no
+    // speed, and G84 would tap with the feed the control has: CMP386.
+    [Fact]
+    public void Tap_WhileTheSpindleOfTheHolderIsOff_IsTheErrorCmp386()
+    {
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\" NUMBER=1",
+            "FEED_MODE=PER_MIN COMP=OFF UNITS=MM WORKPLANE=XY DIAMETER=ON CYCLE=OFF",
+            "SPINDLE:MAIN=CW RPM:MAIN=500",
+            "TOOL=1 OFFSET=1",
+            "RAPID X=0 Z=5",
+            "CYCLE=TAP CLEARANCE=2 DEPTH=-10 PITCH=1",
+            "CYCLE_CALL",
+            "CYCLE=OFF",
+            "PROGRAM=END",
+            "FILE=END"), FanucCompile.Lathe()));
+
+        Assert.Equal(DiagnosticCodes.FanucTapFeedNotKnown, error.Code);
+    }
+
+    // Machine-config 6, language 2 rule 8, D175: the catalog maps no address of G92 to PITCH, so the thread cycle
+    // would cut with the feed the control has: CMP385, never a thread without its lead.
+    [Fact]
+    public void Thread_WithPitch_IsTheErrorCmp385()
+    {
+        const string Thread = "[[cycle]]\nname = \"THREAD\"\nnative = \"G92\"\nmodal = true";
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\" NUMBER=1",
+            "FEED_MODE=PER_REV COMP=OFF UNITS=MM WORKPLANE=ZX DIAMETER=ON CYCLE=OFF",
+            "SPINDLE:MAIN=CW RPM:MAIN=500",
+            "RAPID X=70 Z=2",
+            "CYCLE=THREAD PITCH=1.5",
+            "CYCLE_CALL X=60 Z=-30",
+            "CYCLE=OFF",
+            "PROGRAM=END",
+            "FILE=END"), FanucCompile.Lathe(FanucCompile.DefaultSync, Thread)));
+
+        Assert.Equal(DiagnosticCodes.FanucCycleWordNotMapped, error.Code);
+    }
+
+    // Machine-config 6, language 2 rule 8, D175: the catalog entry of G90 maps neither DEPTH nor CLEARANCE, whose Z and
+    // R would be no planes of the turning cycle (R is its taper): CMP385 for each.
+    [Fact]
+    public void TurnOd_WithDepthAndClearance_IsTheErrorCmp385()
+    {
+        const string TurnOd =
+            "[[cycle]]\nname = \"TURN_OD\"\nnative = \"G90\"\nmodal = true\nparams = { CYCLE_F = \"F\" }";
+        CompileResult result = FanucCompile.Run(FanucCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\" NUMBER=1",
+            "FEED_MODE=PER_REV COMP=OFF UNITS=MM WORKPLANE=ZX DIAMETER=ON CYCLE=OFF",
+            "SPINDLE:MAIN=CW RPM:MAIN=500",
+            "RAPID X=70 Z=2",
+            "CYCLE=TURN_OD CYCLE_F=0.3 CLEARANCE=2 DEPTH=-30",
+            "CYCLE_CALL X=60 Z=-30",
+            "CYCLE=OFF",
+            "PROGRAM=END",
+            "FILE=END"), FanucCompile.Lathe(FanucCompile.DefaultSync, TurnOd));
+
+        Assert.Empty(result.Files);
+        Assert.Equal(2, FanucCompile.CompilerDiagnostics(result).Count(
+            diagnostic => diagnostic.Code == DiagnosticCodes.FanucCycleWordNotMapped));
+    }
+
+    // Language 4.7 (PITCH is the pitch of TAP), D157: no address and no rule of G81 carries PITCH: CMP385.
+    [Fact]
+    public void Drill_WithPitch_IsTheErrorCmp385()
+    {
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Program((Approach
+            + "\nCYCLE=DRILL CLEARANCE=5 DEPTH=-20 PITCH=1.5\nCYCLE_CALL").Split('\n')), FanucCompile.Mill()));
+
+        Assert.Equal(DiagnosticCodes.FanucCycleWordNotMapped, error.Code);
+    }
+
+    // Language 4.3 (F is modal) and 5 rule 2, D29, D218: F of a CYCLE_CALL is the feed of the program, while the F of a
+    // Fanuc cycle block is the feed of the cycle, so the next LINE writes it.
+    [Fact]
+    public void Call_WithAFeed_LeavesTheFeedToTheNextLine()
+    {
+        string body = FanucCompile.Body(Approach
+            + "\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=100\nCYCLE_CALL X=5 F=300\nCYCLE=OFF\nLINE X=10");
+
+        Assert.EndsWith("G81 G99 X5. Z-10. R2. F100.\nG80\nG1 X10. F300.\n", body, StringComparison.Ordinal);
+    }
+
+    // Language 4.3 and 5 rule 2, controllers fanuc.md 2 and 4: F of a CYCLE block, which writes nothing of its own
+    // before its call, is F alone, and the cycle block writes its CYCLE_F.
+    [Fact]
+    public void Cycle_WithAFeed_WritesTheFeedAlone()
+    {
+        string body = FanucCompile.Body(Approach
+            + "\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=100 F=300\nCYCLE_CALL\nCYCLE=OFF\nLINE X=10");
+
+        Assert.EndsWith("F300.\nG81 G99 Z-10. R2. F100.\nG80\nG1 X10. F300.\n", body, StringComparison.Ordinal);
+    }
+
+    // Language 4.7 (CYCLE is modal), virtual machine 1: the call after the label executes DRILL where the control
+    // comes from the block before and PECK where it comes from the jump, and Fanuc defines a cycle with its first call,
+    // so the control holds neither: CMP309, never the G81 of the walk on both paths.
+    [Fact]
+    public void Call_AfterALabelThatAJumpReachesWithAnotherCycle_IsTheErrorCmp309()
+    {
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Program((Approach
+            + "\nVAR:V1=0\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=100\nLABEL=10\nCYCLE_CALL X=5"
+            + "\nCYCLE=PECK CLEARANCE=2 DEPTH=-10 PECK=1 CYCLE_F=100\nCYCLE_CALL X=6\nVAR:V1={$V1 + 1}"
+            + "\nJUMP=10 IF={$V1 < 3}").Split('\n')), FanucCompile.Mill()));
+
+        Assert.Equal(DiagnosticCodes.FanucModalValueNotHeld, error.Code);
+    }
+
+    // Controller-mapping 1, SKIP; language 4.7: the next call executes PECK where the skipped CYCLE block ran and DRILL
+    // where it did not, and neither definition can stand for both paths: CMP309.
+    [Fact]
+    public void Call_AfterASkippedCycleBlock_IsTheErrorCmp309()
+    {
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Program((Approach
+            + "\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=100\nCYCLE_CALL"
+            + "\nSKIP CYCLE=PECK CLEARANCE=2 DEPTH=-10 PECK=1\nCYCLE_CALL X=30").Split('\n')), FanucCompile.Mill()));
+
+        Assert.Equal(DiagnosticCodes.FanucModalValueNotHeld, error.Code);
+    }
+
+    // Language 4.7, virtual machine 1: DRILL is the cycle on both paths to the label, so the call after it writes the
+    // definition again, as the control may have ended it.
+    [Fact]
+    public void Call_AfterALabelWithTheSameCycleOnEveryPath_DefinesItAgain()
+    {
+        string body = FanucCompile.Body(Approach
+            + "\nVAR:V1=0\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=100\nLABEL=10\nCYCLE_CALL X=5\nRAPID Z=5"
+            + "\nVAR:V1={$V1 + 1}\nJUMP=10 IF={$V1 < 3}");
+
+        Assert.EndsWith("N10\nG17 G90 G81 G99 X5. Z-10. R2. F100.\nG80\nG0 Z5.\n#1 = #1 + 1\n"
+            + "IF [#1 LT 3] GOTO 10\n", body, StringComparison.Ordinal);
+    }
+
     // D99, fanuc 6 (a position block under an active G81 drills; the TODO(question) of D247): a subprogram is written
     // from an unknown target state, so G80 stands before its first motion, and after its return the caller writes the
     // definition of the cycle again with its next call.

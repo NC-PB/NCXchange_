@@ -19,8 +19,9 @@ public sealed class FanucCompiler : CompilerBase
     private readonly Dictionary<Section, FanucLabels> _labels = [];
 
     // The skipped blocks whose changes to the target state wait to be made unknown: the target state of the program or
-    // walk of the block, and what it held before the block.
-    private readonly List<(TargetState Target, Dictionary<string, string> Before)> _skipped = [];
+    // walk of the block, what it held before the block, and the state of NCX before the block.
+    private readonly List<(TargetState Target, Dictionary<string, string> Before, ChannelSnapshot NcxBefore)> _skipped =
+        [];
 
     /// <summary>
     /// The Fanuc family, Fanuc and the ISO dialects (controllers fanuc.md).
@@ -157,7 +158,8 @@ public sealed class FanucCompiler : CompilerBase
 
         if (write.Block.Skip)
         {
-            _skipped.Add((Target, new Dictionary<string, string>(Target.Active, StringComparer.Ordinal)));
+            FanucPaths.BeforeSkippedBlock(write);
+            _skipped.Add((Target, new Dictionary<string, string>(Target.Active, StringComparer.Ordinal), write.Before));
         }
 
         FanucFlow.WriteLabel(write);
@@ -168,6 +170,7 @@ public sealed class FanucCompiler : CompilerBase
         FanucMotion.WriteModalWords(write);
         FanucCycles.Write(write);
         FanucMotion.Write(write);
+        FanucMotion.WriteFeedWord(write);
         FanucFrames.WriteVerbs(write);
         FanucToolWords.AddOffsets(write, movesToolAxis: false);
         FanucFunctions.Write(write);
@@ -192,15 +195,17 @@ public sealed class FanucCompiler : CompilerBase
     }
 
     // The lines of a skipped block reach the control only while the block-skip switch is off (controller-mapping 1,
-    // SKIP), so every code and value the block changed in the target state is unknown after it, and the next block of
-    // its program or walk writes its own again: NCX states the verb and the absolute or incremental words on every
-    // block (language 2 rules 2 and 3). A skipped CALL is made unknown after its subprogram has returned, with what the
-    // walk wrote (virtual machine 3.9, D99).
+    // SKIP), so every code the block changed in the target state is unknown after it, and the next block of its program
+    // or walk writes its own again: NCX states the verb and the absolute or incremental words on every block (language
+    // 2 rules 2 and 3). The modal values a block may take from the state before it, F, the feed mode, the plane, D and
+    // S, are compared over the two paths (FanucPaths.AfterSkippedBlock): the virtual machine executed the skipped block
+    // (D53), so its value is the value of one path only (virtual machine 1). A skipped CALL is joined after its
+    // subprogram has returned, with what the walk wrote (virtual machine 3.9, D99).
     private void MakeSkippedUnknown(FanucBlock write)
     {
         for (int index = _skipped.Count - 1; index >= 0; index--)
         {
-            (TargetState target, Dictionary<string, string> before) = _skipped[index];
+            (TargetState target, Dictionary<string, string> before, ChannelSnapshot ncxBefore) = _skipped[index];
             if (!ReferenceEquals(target, Target))
             {
                 continue;
@@ -212,11 +217,13 @@ public sealed class FanucCompiler : CompilerBase
             foreach (string key in keys)
             {
                 bool kept = before.TryGetValue(key, out string? value) && target.ActiveOf(key) == value;
-                if (!kept && key != FanucToolWords.PendingLength)
+                if (!kept && key != FanucToolWords.PendingLength && !FanucPaths.IsModalValue(write, key))
                 {
                     write.MakeUnknown(key);
                 }
             }
+
+            FanucPaths.AfterSkippedBlock(write, before, ncxBefore);
         }
     }
 

@@ -169,6 +169,71 @@ public sealed class FanucToolWordsTests
         Assert.Equal("G92 S3000\nG96 S200\nM3\nG97\nS1000\n", body);
     }
 
+    // Language 4.11 (RPM keeps its meaning and applies again after CSS=OFF), controllers fanuc.md 4 (G97 S1500): G96
+    // S140 gives the control's S the cutting speed, so G97 carries the RPM of the running spindle.
+    [Fact]
+    public void Css_Off_WritesTheSpeedOfRpmWithG97()
+    {
+        string body = FanucCompile.Body("SPINDLE=CW RPM=1000\nCSS=ON VC=140\nCSS=OFF");
+
+        Assert.Equal("S1000 M3\nG96 S140\nG97 S1000\n", body);
+    }
+
+    // Language 4.11, fanuc 10 rule 2: after CSS=OFF of a standing spindle its next start writes the RPM, which G96 S
+    // took from the control.
+    [Fact]
+    public void Css_OffWhileTheSpindleStands_WritesTheSpeedWithTheNextStart()
+    {
+        string body = FanucCompile.Body("SPINDLE=CW RPM=1000\nCSS=ON VC=140\nSPINDLE=OFF\nCSS=OFF\nSPINDLE=CW");
+
+        Assert.Equal("S1000 M3\nG96 S140\nM5\nG97\nS1000 M3\n", body);
+    }
+
+    // Controllers fanuc.md 5 and 10 rule 2, controller-mapping 4: after the M code of the driven tool the S of G96
+    // would belong to the driven tool, so it carries the M code of the main spindle, G96 S140 M3, and G97 carries the
+    // RPM of the main spindle.
+    [Fact]
+    public void Css_AfterTheCodeOfAnotherSpindle_CarriesTheCodeOfItsSpindle()
+    {
+        string program = FanucCompile.Lines(
+            "FILE=BEGIN NCX=1",
+            "PROGRAM=BEGIN NAME=\"T\" NUMBER=1",
+            "FEED_MODE=PER_REV COMP=OFF UNITS=MM WORKPLANE=ZX DIAMETER=ON CYCLE=OFF",
+            "SPINDLE:MAIN=CW RPM:MAIN=1000",
+            "SPINDLE:TOOL=CW RPM:TOOL=800",
+            "CSS:MAIN=ON VC:MAIN=140",
+            "CSS:MAIN=OFF",
+            "SPINDLE:MAIN=OFF",
+            "SPINDLE:MAIN=CW",
+            "PROGRAM=END",
+            "FILE=END");
+
+        string text = FanucCompile.TextOf(FanucCompile.Run(program, FanucCompile.Lathe()));
+
+        Assert.Contains("\nS1000 M3\nS800 M88\nG96 S140 M3\nG97 S1000\nM5\nM3\n", text, StringComparison.Ordinal);
+    }
+
+    // Controller-mapping 1, SKIP; language 4.5 (RPM is modal); D53: the speed is 2000 where the skipped block ran and
+    // 1000 where it did not, and the control keeps either, so the next start writes no S of the walk.
+    [Fact]
+    public void Skip_SpeedOfASkippedBlock_LeavesTheSpeedToTheControl()
+    {
+        string body = FanucCompile.Body("SPINDLE=CW RPM=1000\nSKIP RPM=2000\nSPINDLE=CCW");
+
+        Assert.Equal("S1000 M3\n/S2000\nM4\n", body);
+    }
+
+    // Controller-mapping 1, SKIP; language 4.4 (OFFSET:RAD is modal); D53: the register is 2 where the skipped block
+    // ran and 1 where it did not, and the control keeps either, so the next compensated line writes no D of the walk.
+    [Fact]
+    public void Skip_RadiusOffsetOfASkippedBlock_LeavesTheRegisterToTheControl()
+    {
+        string body = FanucCompile.Body(
+            "TOOL=1\nRAPID X=0 Y=0\nLINE X=1 OFFSET:RAD=1 COMP=LEFT F=100\nSKIP LINE X=2 OFFSET:RAD=2\nLINE X=3");
+
+        Assert.Equal("T1 M6\nG0 G17 X0. Y0.\nG1 G41 X1. D1 F100.\n/X2. D2\nX3.\n", body);
+    }
+
     // Fanuc 6, BOHREN.fanuc.nc N3100: the rigid tapping function stands before the S of the running spindle, M29 S500.
     [Fact]
     public void Function_WithTheSpeed_StandsBeforeTheS()

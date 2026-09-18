@@ -56,18 +56,38 @@ internal static class FanucFlow
             return;
         }
 
+        // The STATIC walk does not follow JUMP (virtual machine 1), so the values of NCX at the label are those of the
+        // block before it, and a jump arrives with those of its own block. A modal value a block may take without
+        // stating it, F, the feed mode, the plane, D, S, G96 or G97, whose value of NCX differs by path, or depends on
+        // the path that led to the label or to a jump (D53), is the control's to keep (language 4.3, 4.4, 4.5, 4.11:
+        // modal), written here and before each jump where the control does not hold it and a line of its own can;
+        // where none can, the first block after the label that takes it without stating it is CMP309 (FanucPaths).
+        bool reached = write.Labels.IsJumpTarget(name);
+        Dictionary<string, bool> byPath = reached ? FanucPaths.MeetAtLabel(write, name) : [];
         if (write.Labels.NumberOf(name) is int number)
         {
             write.Writer("N" + number.ToString(CultureInfo.InvariantCulture));
         }
 
-        // The STATIC walk does not follow JUMP (virtual machine 1), so the codes the target state holds at the label
-        // are those of the block before it, and a jump arrives with those of its own block: every modal code, G0 or
-        // G1, G90 or G91, F, D, S, stands again at its next use (language 2 rules 2 and 3; controllers fanuc.md 10
-        // rule 1). The M99 loop returns to the start block of the program, whose lines run again.
-        if (write.Labels.IsJumpTarget(name))
+        // Every other modal code, G0 or G1, G90 or G91, the canned cycle, and a modal value of the same value on every
+        // path, stands again at its next use (language 2 rules 2 and 3; controllers fanuc.md 10 rule 1). The M99 loop
+        // returns to the start block of the program, whose lines run again.
+        if (!reached)
         {
-            write.MakeTargetUnknown();
+            return;
+        }
+
+        write.MakeTargetUnknown();
+        foreach (KeyValuePair<string, bool> value in byPath)
+        {
+            if (value.Value)
+            {
+                write.Hold(value.Key);
+            }
+            else
+            {
+                write.Lose(value.Key);
+            }
         }
     }
 
@@ -182,6 +202,12 @@ internal static class FanucFlow
         if (write.Labels.NumberOf(target) is not int number)
         {
             return;
+        }
+
+        // The label takes the modal values that differ by path from the control (FanucFlow.WriteLabel).
+        if (write.Labels.IsJumpTarget(target))
+        {
+            FanucPaths.CheckJump(write, target);
         }
 
         string jumpText = "GOTO " + number.ToString(CultureInfo.InvariantCulture);

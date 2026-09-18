@@ -129,14 +129,100 @@ public sealed class FanucMotionTests
         Assert.Equal("#1 = 2\nG4 P[#1 * 1000]\nG4 P[[#1 + 0.5] * 1000]\n", body);
     }
 
-    // Controller-mapping 1, SKIP; language 2 rules 2 and 3: the codes of a skipped block reach the control only while
-    // the switch is off, so the next block writes G1 and the feed again, which the skipped block wrote.
+    // Controller-mapping 1, SKIP; language 2 rule 2 (the verb on every block), 4.3 (F is modal); D53, virtual machine
+    // 1: the codes of a skipped block reach the control only while the switch is off, so the next block writes G1
+    // again; its feed is F50 where the skipped block ran and no F where it did not, and the control keeps either, so
+    // no F of the walk is forced on the path that skips the block.
     [Fact]
-    public void Skip_LineAfterASkippedLine_WritesItsCodeAndFeedAgain()
+    public void Skip_LineAfterASkippedLine_WritesItsCodeAndLeavesTheFeedToTheControl()
     {
         string body = FanucCompile.Body("RAPID Z=2\nSKIP LINE Z=-3 F=50\nLINE X=5");
 
-        Assert.Equal("G17 Z2.\n/G1 Z-3. F50.\nG1 X5. F50.\n", body);
+        Assert.Equal("G17 Z2.\n/G1 Z-3. F50.\nG1 X5.\n", body);
+    }
+
+    // Controller-mapping 1, SKIP; language 4.2 (WORKPLANE is modal): the plane is XY on both paths, and only the path
+    // that runs the skipped first motion has G17 on the control, so the next motion writes it again.
+    [Fact]
+    public void Skip_FirstMotionSkipped_WritesThePlaneAgain()
+    {
+        string body = FanucCompile.Body("SKIP RAPID X=0 Y=0\nRAPID X=5");
+
+        Assert.Equal("/G17 X0. Y0.\nG17 X5.\n", body);
+    }
+
+    // Controller-mapping 1, SKIP; language 4.3 (FEED_MODE is modal): the feed mode differs by the path, and the control
+    // keeps each, so the next line writes neither G94 nor G95.
+    [Fact]
+    public void Skip_FeedModeOfASkippedBlock_LeavesTheFeedModeToTheControl()
+    {
+        string body = FanucCompile.Body("LINE X=0 F=100\nSKIP FEED_MODE=PER_REV\nLINE X=1 F=0.1");
+
+        Assert.Equal("G1 G17 X0. F100.\n/G95\nX1. F0.1\n", body);
+    }
+
+    // Controller-mapping 1, SKIP; D218 (the F of a cycle block is the control's feed): the control has the feed of the
+    // cycle and NCX the F100 of the program, so F100 stands unskipped before the skipped block, and each path keeps its
+    // own feed after it.
+    [Fact]
+    public void Skip_AfterTheFeedOfACycle_WritesTheFeedOfNcxBeforeTheSkippedBlock()
+    {
+        string body = FanucCompile.Body("LINE X=0 Z=5 F=100\nCYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=565\nCYCLE_CALL"
+            + "\nCYCLE=OFF\nSKIP LINE X=1 F=50\nLINE X=2");
+
+        Assert.Equal("G1 G17 X0. Z5. F100.\nG81 G99 Z-10. R2. F565.\nG80\nF100.\n/G1 X1. F50.\nG1 X2.\n", body);
+    }
+
+    // Virtual machine 1 (an expression is not evaluated in STATIC mode), controller-mapping 1, SKIP: the F of the path
+    // that skips the block comes from an expression, which the control no longer holds after the F of the cycle, so no
+    // line after the skipped block is right on both paths: CMP309, never the F of the walk.
+    [Fact]
+    public void Skip_WhereTheControlHoldsNoFeedOfNcx_IsTheErrorCmp309()
+    {
+        Diagnostic error = FanucCompile.ErrorOf(FanucCompile.Run(FanucCompile.Program("VAR:V1=100",
+            "LINE X=0 Z=5 F={$V1}", "CYCLE=DRILL CLEARANCE=2 DEPTH=-10 CYCLE_F=565", "CYCLE_CALL", "CYCLE=OFF",
+            "SKIP LINE X=1 F=50", "LINE X=2"), FanucCompile.Mill()));
+
+        Assert.Equal(DiagnosticCodes.FanucModalValueNotHeld, error.Code);
+    }
+
+    // Virtual machine 1, language 4.3 (F is modal), controllers fanuc.md 7: the feed of F#1 is not known in the STATIC
+    // walk, and the control holds it, so the next line writes no F, never the value the walk kept from before.
+    [Fact]
+    public void Line_AfterAFeedFromAnExpression_WritesNoFeedOfTheWalk()
+    {
+        string body = FanucCompile.Body("VAR:V1=100\nLINE X=1 F={$V1}\nLINE X=2");
+
+        Assert.Equal("#1 = 100\nG1 G17 X1. F#1\nX2.\n", body);
+    }
+
+    // Language 4.3 (F is modal), 5 rule 2 (F needs no verb); controllers fanuc.md 2 and 4: F in a block of its own is
+    // the Fanuc block F200., which the next line keeps.
+    [Fact]
+    public void Feed_InABlockOfItsOwn_IsFAlone()
+    {
+        string body = FanucCompile.Body("RAPID X=0 Y=0\nF=200\nLINE X=5");
+
+        Assert.Equal("G17 X0. Y0.\nF200.\nG1 X5.\n", body);
+    }
+
+    // Language 4.3, controllers fanuc.md 3: FEED_MODE and F in one block are G95 F0.1, as the Fanuc reader reads it.
+    [Fact]
+    public void FeedMode_WithAFeed_IsG95WithF()
+    {
+        string body = FanucCompile.Body("RAPID X=0 Y=0\nFEED_MODE=PER_REV F=0.1\nLINE X=5");
+
+        Assert.Equal("G17 X0. Y0.\nG95 F0.1\nG1 X5.\n", body);
+    }
+
+    // Controller-mapping 1, SKIP; D53: the first skipped block leaves F50 or F100 to the control, and the second one
+    // states F100 on the path that runs it only, so the feed still differs by path after it: the line writes no F.
+    [Fact]
+    public void Skip_AfterASkippedBlockThatLeftTheFeedToTheControl_KeepsItThere()
+    {
+        string body = FanucCompile.Body("LINE X=0 F=50\nSKIP F=100\nLINE X=1\nSKIP F=100\nLINE X=2");
+
+        Assert.Equal("G1 G17 X0. F50.\n/F100.\nX1.\n/F100.\nX2.\n", body);
     }
 
     // Controller-mapping 1, SKIP; language 2 rule 3: after a skipped G91 block the control may still have G90, so the

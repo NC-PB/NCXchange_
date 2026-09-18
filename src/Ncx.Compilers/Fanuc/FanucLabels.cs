@@ -17,6 +17,10 @@ internal sealed class FanucLabels
     // The labels a JUMP of the section names.
     private readonly HashSet<string> _jumpTargets = new(StringComparer.Ordinal);
 
+    // What the compiler knows of the paths to a label that a jump reaches, by the walk step of the LABEL block, one per
+    // walk of the section (FanucPaths).
+    private readonly Dictionary<int, FanucMeeting> _meetings = [];
+
     /// <summary>
     /// The labels of no section: FILE=BEGIN and FILE=END.
     /// </summary>
@@ -50,6 +54,27 @@ internal sealed class FanucLabels
     public bool IsJumpTarget(string label)
     {
         return _jumpTargets.Contains(label);
+    }
+
+    /// <summary>
+    /// Whether the value of NCX under a key differs by the path on which the control reaches a label, by label and key,
+    /// as FanucPaths finds it from the steps of the walk.
+    /// </summary>
+    public Dictionary<(string Label, string Key), bool> DiffersByPath { get; } = [];
+
+    /// <summary>
+    /// What the compiler knows of the paths on which the control reaches the LABEL of a step (virtual machine 1).
+    /// </summary>
+    /// <param name="label">The step of the LABEL block in its walk.</param>
+    public FanucMeeting MeetingAt(BlockStep label)
+    {
+        if (!_meetings.TryGetValue(label.Index, out FanucMeeting? meeting))
+        {
+            meeting = new FanucMeeting();
+            _meetings.Add(label.Index, meeting);
+        }
+
+        return meeting;
     }
 
     /// <summary>
